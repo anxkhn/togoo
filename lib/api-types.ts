@@ -10,9 +10,13 @@ export interface EventData {
   allowed_hours_end: number;
   meeting_duration_minutes: number;
   slot_granularity_minutes: number;
+  min_attendance_threshold: number;
+  participants_required_by_default: number;
   response_deadline: number | null;
   status: string;
   allow_participant_edit: number;
+  show_results_to_participants: number;
+  preferences_required: number;
   enabled_preferences: string | null;
 }
 
@@ -22,6 +26,24 @@ export interface ParticipantData {
   email: string | null;
   role: string;
   response_status?: string;
+}
+
+export interface ActivityLogEntry {
+  id: string;
+  action: string;
+  actor_id: string | null;
+  data: string | null;
+  created_at: number;
+}
+
+export interface FinalSelectionData {
+  id: string;
+  event_id: string;
+  slot_start: number;
+  slot_end: number;
+  notes: string | null;
+  selected_by: string;
+  finalized_at: number;
 }
 
 export interface ExistingPreferences {
@@ -38,6 +60,7 @@ export interface ExistingPreferences {
 
 export interface ValidateTokenResponse {
   valid: boolean;
+  role: string;
   event_id: string;
   event: EventData;
   participant: ParticipantData;

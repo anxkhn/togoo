@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import vinextPlugin from "vinext";
+import { cloudflare } from "@cloudflare/vite-plugin";
 import type { Plugin } from "vite";
 
 function cloudflareWorkersShim(): Plugin {
@@ -91,8 +92,19 @@ export const env = { DB };
 }
 
 export default defineConfig({
+  build: {
+    rollupOptions: {
+      external: ["cloudflare:workers"],
+    },
+  },
   plugins: [
     vinextPlugin(),
+    cloudflare({
+      viteEnvironment: {
+        name: "rsc",
+        childEnvironments: ["ssr"],
+      },
+    }),
     cloudflareWorkersShim(),
   ],
 });

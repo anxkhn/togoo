@@ -7,6 +7,8 @@ import { generateId } from "@/lib/tokens";
 import { SubmitResponseSchema } from "@/lib/validation";
 import { normalizeAvailabilityWindows } from "@/lib/scheduling";
 import { unixNow } from "@/lib/utils";
+import { parseEnabledPreferences, hasMeaningfulPreferences } from "@/lib/event-settings";
+import { findParticipantInviteToken } from "@/lib/auth";
 
 export async function POST(
   request: NextRequest,
@@ -24,13 +26,7 @@ export async function POST(
     const { token, availability_windows, preferences } = parsed.data;
     const db = getDB((env as unknown as { DB: D1Database }).DB);
 
-    const tokenRecord = await db.query.invite_tokens.findFirst({
-      where: and(
-        eq(schema.invite_tokens.token, token),
-        eq(schema.invite_tokens.event_id, eventId),
-        eq(schema.invite_tokens.is_active, 1)
-      ),
-    });
+    const tokenRecord = await findParticipantInviteToken(db, eventId, token);
 
     if (!tokenRecord) {
       return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
@@ -41,8 +37,14 @@ export async function POST(
     });
 
     if (!event) return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    const now = unixNow();
+
     if (event.status === "finalized") {
       return NextResponse.json({ error: "Event is finalized, responses closed" }, { status: 400 });
+    }
+
+    if (event.response_deadline && now > event.response_deadline) {
+      return NextResponse.json({ error: "The response deadline has passed" }, { status: 403 });
     }
 
     const participant = await db.query.participants.findFirst({
@@ -56,7 +58,14 @@ export async function POST(
       return NextResponse.json({ error: "Editing responses is not allowed for this event" }, { status: 403 });
     }
 
-    const now = unixNow();
+    const enabledPreferences = parseEnabledPreferences(event.enabled_preferences);
+
+    if (event.preferences_required === 1 && !hasMeaningfulPreferences(preferences, enabledPreferences)) {
+      return NextResponse.json(
+        { error: "Please add at least one preference before submitting" },
+        { status: 400 }
+      );
+    }
 
     await db
       .delete(schema.availability_windows)
@@ -97,6 +106,7 @@ export async function POST(
         allowed_hours_start: event.allowed_hours_start,
         allowed_hours_end: event.allowed_hours_end,
         scoring_mode: event.scoring_mode,
+        min_attendance_threshold: event.min_attendance_threshold,
       }
     );
 
@@ -124,7 +134,18 @@ export async function POST(
       if (existingPref) {
         await db
           .update(schema.participant_preferences)
-          .set({ ...preferences, updated_at: now })
+          .set({
+            preferred_area: preferences.preferred_area ?? null,
+            max_travel_distance: preferences.max_travel_distance ?? null,
+            food_preference: preferences.food_preference,
+            food_note: preferences.food_note ?? null,
+            budget_preference: preferences.budget_preference,
+            preferred_day_type: preferences.preferred_day_type,
+            preferred_time_of_day: preferences.preferred_time_of_day,
+            indoor_outdoor: preferences.indoor_outdoor,
+            notes: preferences.notes ?? null,
+            updated_at: now,
+          })
           .where(eq(schema.participant_preferences.id, existingPref.id));
       } else {
         await db.insert(schema.participant_preferences).values({

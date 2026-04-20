@@ -29,7 +29,7 @@ function ScoreBar({ score, className }: { score: number; className?: string }) {
 }
 
 function RecommendationCard({ meeting, timezone, durationMinutes, highlight, onSelect, selected }: RecommendationCardProps) {
-  const label = meeting.label ?? "Suggested time";
+  const label = meeting.label ?? "Recommended time";
   const attendancePct = meeting.totalParticipants > 0
     ? Math.round((meeting.attendingCount / meeting.totalParticipants) * 100)
     : 0;
@@ -52,7 +52,7 @@ function RecommendationCard({ meeting, timezone, durationMinutes, highlight, onS
                 <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
-                Best overall
+                Top recommendation
               </span>
             )}
             <Badge variant={meeting.isWeekend ? "warning" : "default"}>
@@ -67,12 +67,12 @@ function RecommendationCard({ meeting, timezone, durationMinutes, highlight, onS
         </div>
         <div className="text-right flex-shrink-0">
           <p className="text-2xl font-display font-bold text-accent">{attendancePct}%</p>
-          <p className="text-xs text-muted">attendance</p>
+          <p className="text-xs text-muted">can make it</p>
         </div>
       </div>
 
       <p className="text-xs text-muted mb-3">
-        {meeting.attendingCount} of {meeting.totalParticipants} people available
+        {meeting.attendingCount} of {meeting.totalParticipants} people can make it
         {meeting.totalRequired > 0 && (
           <> &middot; {meeting.requiredAttending}/{meeting.totalRequired} required</>
         )}
@@ -80,19 +80,19 @@ function RecommendationCard({ meeting, timezone, durationMinutes, highlight, onS
 
       <div className="space-y-1.5">
         <div className="flex items-center justify-between text-xs text-muted">
-          <span>Attendance</span>
+          <span>Who can make it</span>
         </div>
         <ScoreBar score={meeting.attendanceScore} />
         {meeting.totalRequired > 0 && (
           <>
             <div className="flex items-center justify-between text-xs text-muted">
-              <span>Required attendees</span>
+              <span>Must-have people</span>
             </div>
             <ScoreBar score={meeting.requiredScore} />
           </>
         )}
         <div className="flex items-center justify-between text-xs text-muted">
-          <span>Time preference fit</span>
+          <span>Preference fit</span>
         </div>
         <ScoreBar score={meeting.timePrefScore} />
       </div>
@@ -112,7 +112,7 @@ function RecommendationCard({ meeting, timezone, durationMinutes, highlight, onS
               onSelect(meeting);
             }}
           >
-            {selected ? "Selected" : "Select this time"}
+            {selected ? "Selected option" : "Choose this option"}
           </Button>
         </div>
       )}
@@ -140,9 +140,8 @@ export function RecommendationCards({
   if (!best_overall && top_candidates.length === 0) {
     return (
       <div className="text-center py-12 text-muted">
-        <div className="text-4xl mb-3">🔍</div>
-        <p className="font-medium text-text">No recommendations yet</p>
-        <p className="text-sm mt-1">More responses will help surface the best options.</p>
+        <p className="font-medium text-text">No suggestions yet</p>
+        <p className="text-sm mt-1">Once more people reply, Togoo will rank the best options.</p>
       </div>
     );
   }

@@ -63,6 +63,7 @@ export interface EventSettings {
   allowed_hours_start: number;
   allowed_hours_end: number;
   scoring_mode: string;
+  min_attendance_threshold?: number;
 }
 
 export interface OrganizerOverride {
@@ -102,17 +103,21 @@ function applyOverrides(
 ): ScoredMeeting[] {
   const blocked: Array<{ start: number; end: number }> = [];
   const forceExclude: number[] = [];
+  const forceInclude = new Set<number>();
 
   for (const override of overrides) {
     const data = JSON.parse(override.data);
     if (override.override_type === "block_time") {
       blocked.push({ start: data.start_time, end: data.end_time });
+    } else if (override.override_type === "force_include") {
+      forceInclude.add(data.slot_start);
     } else if (override.override_type === "force_exclude") {
       forceExclude.push(data.slot_start);
     }
   }
 
   return candidates.filter((c) => {
+    if (forceInclude.has(c.start)) return true;
     if (forceExclude.includes(c.start)) return false;
     for (const block of blocked) {
       if (c.start < block.end && c.end > block.start) return false;
@@ -154,7 +159,13 @@ export function computeRecommendations(
   settings: EventSettings,
   overrides: OrganizerOverride[]
 ): RecommendationSet {
-  const { meeting_duration_minutes, slot_granularity_minutes, timezone, scoring_mode } = settings;
+  const {
+    meeting_duration_minutes,
+    slot_granularity_minutes,
+    timezone,
+    scoring_mode,
+    min_attendance_threshold = 0,
+  } = settings;
   const slotsPerMeeting = Math.ceil(meeting_duration_minutes / slot_granularity_minutes);
   const granularitySec = slot_granularity_minutes * 60;
 
@@ -269,7 +280,8 @@ export function computeRecommendations(
     });
   }
 
-  const filtered = applyOverrides(candidates, overrides);
+  const thresholdFiltered = candidates.filter((candidate) => candidate.attendingCount >= min_attendance_threshold);
+  const filtered = applyOverrides(thresholdFiltered, overrides);
   const sorted = [...filtered].sort((a, b) => b.compositeScore - a.compositeScore);
 
   const bestOverall = sorted[0] ?? null;

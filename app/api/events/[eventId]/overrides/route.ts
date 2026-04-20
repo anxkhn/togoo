@@ -6,6 +6,7 @@ import * as schema from "@/lib/db/schema";
 import { generateId } from "@/lib/tokens";
 import { OrganizerOverrideSchema } from "@/lib/validation";
 import { unixNow } from "@/lib/utils";
+import { findOrganizerInviteToken } from "@/lib/auth";
 
 export async function GET(
   request: NextRequest,
@@ -16,14 +17,7 @@ export async function GET(
     const token = request.headers.get("x-organizer-token");
     const db = getDB((env as unknown as { DB: D1Database }).DB);
 
-    const tokenRecord = await db.query.invite_tokens.findFirst({
-      where: and(
-        eq(schema.invite_tokens.token, token ?? ""),
-        eq(schema.invite_tokens.event_id, eventId),
-        eq(schema.invite_tokens.role, "organizer"),
-        eq(schema.invite_tokens.is_active, 1)
-      ),
-    });
+    const tokenRecord = await findOrganizerInviteToken(db, eventId, token);
     if (!tokenRecord) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const overrides = await db
@@ -47,14 +41,7 @@ export async function POST(
     const token = request.headers.get("x-organizer-token");
     const db = getDB((env as unknown as { DB: D1Database }).DB);
 
-    const tokenRecord = await db.query.invite_tokens.findFirst({
-      where: and(
-        eq(schema.invite_tokens.token, token ?? ""),
-        eq(schema.invite_tokens.event_id, eventId),
-        eq(schema.invite_tokens.role, "organizer"),
-        eq(schema.invite_tokens.is_active, 1)
-      ),
-    });
+    const tokenRecord = await findOrganizerInviteToken(db, eventId, token);
     if (!tokenRecord) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await request.json();
@@ -98,17 +85,13 @@ export async function DELETE(
   try {
     const { eventId } = await params;
     const token = request.headers.get("x-organizer-token");
-    const { override_id } = await request.json();
+    const { override_id } = await request.json() as { override_id?: string };
+    if (!override_id) {
+      return NextResponse.json({ error: "override_id is required" }, { status: 400 });
+    }
     const db = getDB((env as unknown as { DB: D1Database }).DB);
 
-    const tokenRecord = await db.query.invite_tokens.findFirst({
-      where: and(
-        eq(schema.invite_tokens.token, token ?? ""),
-        eq(schema.invite_tokens.event_id, eventId),
-        eq(schema.invite_tokens.role, "organizer"),
-        eq(schema.invite_tokens.is_active, 1)
-      ),
-    });
+    const tokenRecord = await findOrganizerInviteToken(db, eventId, token);
     if (!tokenRecord) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     await db

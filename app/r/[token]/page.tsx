@@ -9,6 +9,7 @@ import { PreferenceForm, type PreferenceValues, defaultPreferences } from "@/com
 import { cn, formatDate } from "@/lib/utils";
 import { saveEvent } from "@/components/my-events";
 import type { ValidateTokenResponse, ApiError, EventData, ParticipantData } from "@/lib/api-types";
+import { hasMeaningfulPreferences, parseEnabledPreferences } from "@/lib/event-settings";
 
 type Step = "availability" | "preferences" | "review" | "success";
 
@@ -27,6 +28,10 @@ export default function RespondPage() {
   const [windows, setWindows] = useState<TimeWindow[]>([]);
   const [preferences, setPreferences] = useState<PreferenceValues>(defaultPreferences);
   const [localTimezone, setLocalTimezone] = useState("UTC");
+  const enabledPreferenceFields = parseEnabledPreferences(event?.enabled_preferences);
+  const responseClosed = Boolean(event?.response_deadline && Date.now() / 1000 > event.response_deadline);
+  const preferencesSatisfied =
+    !event || event.preferences_required !== 1 || hasMeaningfulPreferences(preferences, enabledPreferenceFields);
 
   useEffect(() => {
     setLocalTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
@@ -41,6 +46,11 @@ export default function RespondPage() {
 
         if (!data.valid) {
           setTokenError("This invite link is invalid or has expired.");
+          return;
+        }
+
+        if (data.role !== "participant") {
+          setTokenError("This link is for organizer access, not participant replies.");
           return;
         }
 
@@ -73,7 +83,7 @@ export default function RespondPage() {
           });
         }
       } catch {
-        setTokenError("Failed to load event. Please try refreshing.");
+        setTokenError("We could not load this invite. Try refreshing.");
       } finally {
         setLoading(false);
       }
@@ -83,7 +93,15 @@ export default function RespondPage() {
 
   const handleSubmit = async () => {
     if (windows.length === 0) {
-      setError("Please add at least one availability window.");
+      setError("Add at least one time window.");
+      return;
+    }
+    if (responseClosed) {
+      setError("Responses are closed for this event.");
+      return;
+    }
+    if (!preferencesSatisfied) {
+      setError("Please add at least one preference before submitting.");
       return;
     }
     if (!eventId) return;
@@ -120,7 +138,7 @@ export default function RespondPage() {
 
       const data = await res.json() as ApiError;
       if (!res.ok) {
-        setError(data.error ?? "Submission failed. Please try again.");
+        setError(data.error ?? "We could not save your response. Please try again.");
         return;
       }
 
@@ -136,7 +154,7 @@ export default function RespondPage() {
 
       setStep("success");
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError("We could not save your response. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -145,7 +163,7 @@ export default function RespondPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center">
-        <div className="text-center text-muted animate-pulse">Loading...</div>
+        <div className="text-center text-muted animate-pulse">Loading your invite...</div>
       </div>
     );
   }
@@ -159,9 +177,9 @@ export default function RespondPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
-          <h1 className="font-display text-2xl font-semibold text-text mb-2">Invalid link</h1>
+          <h1 className="font-display text-2xl font-semibold text-text mb-2">This invite link is not working</h1>
           <p className="text-muted mb-6">{tokenError}</p>
-          <Link href="/" className="btn-secondary">Go home</Link>
+          <Link href="/" className="btn-secondary">Back home</Link>
         </div>
       </div>
     );
@@ -176,24 +194,29 @@ export default function RespondPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h1 className="font-display text-3xl font-bold text-text mb-2">You&apos;re in!</h1>
+          <h1 className="font-display text-3xl font-bold text-text mb-2">Response saved</h1>
           <p className="text-muted mb-2">
-            Thanks, <span className="font-medium text-text">{participant?.name}</span>. Your availability has been saved.
+            Thanks, <span className="font-medium text-text">{participant?.name}</span>. Your availability is in.
           </p>
           <p className="text-sm text-muted mb-8">
-            The organizer will review responses and let you know the final time.
+            The organizer will use everyone&apos;s replies to lock in the best time.
           </p>
           <div className="flex flex-col gap-3">
+            {event?.show_results_to_participants === 1 && eventId && (
+              <Link href={`/e/${eventId}/summary/${token}`} className="btn-secondary text-sm">
+                View live summary
+              </Link>
+            )}
             {event?.allow_participant_edit === 1 && (
               <button
                 onClick={() => setStep("availability")}
                 className="btn-secondary text-sm"
               >
-                Edit my response
+                Update my response
               </button>
             )}
             <Link href="/" className="text-sm text-muted hover:text-accent transition-colors">
-              Back to home
+              Back home
             </Link>
           </div>
         </div>
@@ -213,7 +236,7 @@ export default function RespondPage() {
           <Link href="/" className="font-display text-xl font-semibold text-text">Togoo</Link>
           {isUpdate && (
             <span className="text-xs text-muted bg-surface-alt border border-border rounded-full px-3 py-1">
-              Editing response
+              Updating reply
             </span>
           )}
         </div>
@@ -229,11 +252,22 @@ export default function RespondPage() {
               {formatDate(event.date_range_start, event.timezone)} &mdash; {formatDate(event.date_range_end, event.timezone)}
               <span className="ml-2 text-xs">({event.timezone})</span>
             </p>
-            {participant && (
+            {event.response_deadline && (
               <p className="text-sm text-muted mt-1">
-                Responding as <span className="font-medium text-text">{participant.name}</span>
+                Reply by <span className="font-medium text-text">{formatDate(event.response_deadline, event.timezone)}</span>
               </p>
             )}
+            {participant && (
+              <p className="text-sm text-muted mt-1">
+                  Replying as <span className="font-medium text-text">{participant.name}</span>
+                </p>
+              )}
+          </div>
+        )}
+
+        {responseClosed && (
+          <div className="mb-5 bg-warning-light border border-warning/20 rounded-input px-4 py-3 text-sm text-warning">
+            Responses are closed for this event.
           </div>
         )}
 
@@ -261,9 +295,9 @@ export default function RespondPage() {
         <div className="card p-5 animate-scale-in">
           {step === "availability" && event && (
             <div>
-              <h2 className="font-display text-xl font-semibold text-text mb-1">When are you free?</h2>
+              <h2 className="font-display text-xl font-semibold text-text mb-1">When could you make it?</h2>
               <p className="text-sm text-muted mb-5">
-                Add broad windows when you could meet — the more generous, the better the recommendations.
+                Choose broad windows when you could join. The more flexibility you share, the easier it is to find a time that works for the group.
                 Times are shown in <strong>{event.timezone}</strong>.
               </p>
               <AvailabilityPicker
@@ -281,25 +315,24 @@ export default function RespondPage() {
 
           {step === "preferences" && (
             <div>
-              <h2 className="font-display text-xl font-semibold text-text mb-1">Any preferences?</h2>
+              <h2 className="font-display text-xl font-semibold text-text mb-1">Anything to keep in mind?</h2>
               <p className="text-sm text-muted mb-5">
-                Optional, but helps the organizer find a spot that works for everyone.
+                {event?.preferences_required === 1
+                  ? "Required for this event. Add at least one preference so the organizer can weigh tradeoffs."
+                  : "Optional, but helpful when the organizer is weighing tradeoffs."}
               </p>
               <PreferenceForm
                 values={preferences}
                 onChange={setPreferences}
-                enabledFields={(() => {
-                  try { return JSON.parse(event?.enabled_preferences || "[]") as string[]; }
-                  catch { return []; }
-                })()}
+                enabledFields={enabledPreferenceFields}
               />
             </div>
           )}
 
           {step === "review" && event && (
             <div>
-              <h2 className="font-display text-xl font-semibold text-text mb-1">Looks good?</h2>
-              <p className="text-sm text-muted mb-5">Review your availability before submitting.</p>
+              <h2 className="font-display text-xl font-semibold text-text mb-1">Ready to send?</h2>
+              <p className="text-sm text-muted mb-5">Check your availability and preferences before you submit.</p>
 
               <div className="space-y-3">
                 <div>
@@ -346,7 +379,7 @@ export default function RespondPage() {
                   preferences.preferred_area ||
                   preferences.notes) && (
                   <div className="border-t border-border pt-3">
-                    <p className="text-xs font-medium text-muted uppercase tracking-wide mb-2">Preferences</p>
+                    <p className="text-xs font-medium text-muted uppercase tracking-wide mb-2">Your preferences</p>
                     <dl className="text-sm space-y-1">
                       {preferences.food_preference !== "no_preference" && (
                         <div className="flex gap-2"><dt className="text-muted">Food:</dt><dd className="text-text">{preferences.food_preference.replace(/_/g, " ")}</dd></div>
@@ -395,13 +428,23 @@ export default function RespondPage() {
             </Button>
           )}
           {step === "preferences" && (
-            <Button onClick={() => setStep("review")}>
+            <Button
+              disabled={responseClosed || !preferencesSatisfied}
+              onClick={() => {
+                if (!preferencesSatisfied) {
+                  setError("Please add at least one preference before continuing.");
+                  return;
+                }
+                setError("");
+                setStep("review");
+              }}
+            >
               Continue
             </Button>
           )}
           {step === "review" && (
-            <Button loading={submitting} onClick={handleSubmit}>
-              {isUpdate ? "Update response" : "Submit availability"}
+            <Button loading={submitting} disabled={responseClosed || !preferencesSatisfied} onClick={handleSubmit}>
+              {isUpdate ? "Update my availability" : "Send my availability"}
             </Button>
           )}
         </div>

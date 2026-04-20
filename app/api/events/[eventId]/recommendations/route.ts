@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { env } from "cloudflare:workers";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { getDB } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
 import { generateId } from "@/lib/tokens";
 import { computeRecommendations } from "@/lib/scheduling";
 import { unixNow } from "@/lib/utils";
+import { findOrganizerInviteToken } from "@/lib/auth";
 
 export async function GET(
   request: NextRequest,
@@ -16,13 +17,7 @@ export async function GET(
     const token = request.headers.get("x-organizer-token");
     const db = getDB((env as unknown as { DB: D1Database }).DB);
 
-    const tokenRecord = await db.query.invite_tokens.findFirst({
-      where: and(
-        eq(schema.invite_tokens.token, token ?? ""),
-        eq(schema.invite_tokens.event_id, eventId),
-        eq(schema.invite_tokens.is_active, 1)
-      ),
-    });
+    const tokenRecord = await findOrganizerInviteToken(db, eventId, token);
     if (!tokenRecord) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const event = await db.query.events.findFirst({
@@ -59,6 +54,7 @@ export async function GET(
         id: p.id,
         is_required: p.is_required,
         response_status: p.response_status,
+        priority_tier: p.priority_tier,
       })),
       slots,
       preferences.map((p) => ({
@@ -76,6 +72,7 @@ export async function GET(
         allowed_hours_start: event.allowed_hours_start,
         allowed_hours_end: event.allowed_hours_end,
         scoring_mode: event.scoring_mode,
+        min_attendance_threshold: event.min_attendance_threshold,
       },
       overrides
     );

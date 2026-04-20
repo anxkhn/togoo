@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { env } from "cloudflare:workers";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { getDB } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
 import { generateId } from "@/lib/tokens";
 import { FinalizeEventSchema } from "@/lib/validation";
 import { unixNow } from "@/lib/utils";
+import { findOrganizerInviteToken } from "@/lib/auth";
 
 export async function POST(
   request: NextRequest,
@@ -16,14 +17,7 @@ export async function POST(
     const token = request.headers.get("x-organizer-token");
     const db = getDB((env as unknown as { DB: D1Database }).DB);
 
-    const tokenRecord = await db.query.invite_tokens.findFirst({
-      where: and(
-        eq(schema.invite_tokens.token, token ?? ""),
-        eq(schema.invite_tokens.event_id, eventId),
-        eq(schema.invite_tokens.role, "organizer"),
-        eq(schema.invite_tokens.is_active, 1)
-      ),
-    });
+    const tokenRecord = await findOrganizerInviteToken(db, eventId, token);
     if (!tokenRecord) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await request.json();
@@ -34,15 +28,27 @@ export async function POST(
 
     const now = unixNow();
 
-    await db.insert(schema.final_selections).values({
-      id: generateId(),
-      event_id: eventId,
-      slot_start: parsed.data.slot_start,
-      slot_end: parsed.data.slot_end,
-      notes: parsed.data.notes ?? null,
-      selected_by: tokenRecord.participant_id,
-      finalized_at: now,
-    });
+    await db
+      .insert(schema.final_selections)
+      .values({
+        id: generateId(),
+        event_id: eventId,
+        slot_start: parsed.data.slot_start,
+        slot_end: parsed.data.slot_end,
+        notes: parsed.data.notes ?? null,
+        selected_by: tokenRecord.participant_id,
+        finalized_at: now,
+      })
+      .onConflictDoUpdate({
+        target: schema.final_selections.event_id,
+        set: {
+          slot_start: parsed.data.slot_start,
+          slot_end: parsed.data.slot_end,
+          notes: parsed.data.notes ?? null,
+          selected_by: tokenRecord.participant_id,
+          finalized_at: now,
+        },
+      });
 
     await db
       .update(schema.events)

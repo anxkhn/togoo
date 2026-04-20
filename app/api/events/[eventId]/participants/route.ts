@@ -6,19 +6,7 @@ import * as schema from "@/lib/db/schema";
 import { generateId, generateSecureToken } from "@/lib/tokens";
 import { AddParticipantSchema } from "@/lib/validation";
 import { unixNow } from "@/lib/utils";
-
-async function validateOrganizerToken(db: ReturnType<typeof getDB>, eventId: string, token: string | null) {
-  if (!token) return null;
-  const tokenRecord = await db.query.invite_tokens.findFirst({
-    where: and(
-      eq(schema.invite_tokens.token, token),
-      eq(schema.invite_tokens.event_id, eventId),
-      eq(schema.invite_tokens.role, "organizer"),
-      eq(schema.invite_tokens.is_active, 1)
-    ),
-  });
-  return tokenRecord ?? null;
-}
+import { findOrganizerInviteToken } from "@/lib/auth";
 
 export async function GET(
   request: NextRequest,
@@ -29,7 +17,7 @@ export async function GET(
     const token = request.headers.get("x-organizer-token");
     const db = getDB((env as unknown as { DB: D1Database }).DB);
 
-    const tokenRecord = await validateOrganizerToken(db, eventId, token);
+    const tokenRecord = await findOrganizerInviteToken(db, eventId, token);
     if (!tokenRecord) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -65,7 +53,7 @@ export async function POST(
     const token = request.headers.get("x-organizer-token");
     const db = getDB((env as unknown as { DB: D1Database }).DB);
 
-    const tokenRecord = await validateOrganizerToken(db, eventId, token);
+    const tokenRecord = await findOrganizerInviteToken(db, eventId, token);
     if (!tokenRecord) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

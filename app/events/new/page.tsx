@@ -18,7 +18,7 @@ const TZ_ALIAS_TO_CANONICAL = new Map<string, string>(
 
 const TIMEZONE_OPTIONS = ALL_TIMEZONES.map((tz) => ({
   value: tz.name,
-  label: `(${tz.abbreviation}, UTC${tz.rawOffsetInMinutes >= 0 ? "+" : ""}${Math.floor(tz.rawOffsetInMinutes / 60)}:${String(Math.abs(tz.rawOffsetInMinutes) % 60).padStart(2, "0")}) ${tz.name.replace(/_/g, " ")} — ${tz.alternativeName}`,
+  label: `(${tz.abbreviation}, UTC${tz.rawOffsetInMinutes >= 0 ? "+" : ""}${Math.floor(tz.rawOffsetInMinutes / 60)}:${String(Math.abs(tz.rawOffsetInMinutes) % 60).padStart(2, "0")}) ${tz.name.replace(/_/g, " ")} - ${tz.alternativeName}`,
 }));
 
 function detectTimezone(): string {
@@ -30,6 +30,7 @@ const ALL_PREF_FIELDS = [
   { key: "food", label: "Food preferences" },
   { key: "budget", label: "Budget" },
   { key: "location", label: "Preferred area" },
+  { key: "day_type", label: "Weekday or weekend" },
   { key: "time_of_day", label: "Time of day" },
   { key: "indoor_outdoor", label: "Indoor / outdoor" },
 ] as const;
@@ -46,7 +47,12 @@ interface FormState {
   meeting_duration_minutes: string;
   slot_granularity_minutes: string;
   scoring_mode: string;
+  min_attendance_threshold: string;
+  participants_required_by_default: boolean;
   allow_participant_edit: boolean;
+  show_results_to_participants: boolean;
+  preferences_required: boolean;
+  response_deadline_local: string;
   organizer_name: string;
   enabled_preferences: string[];
 }
@@ -101,7 +107,12 @@ export default function NewEventPage() {
     meeting_duration_minutes: "120",
     slot_granularity_minutes: "30",
     scoring_mode: "maximize_attendance",
+    min_attendance_threshold: "0",
+    participants_required_by_default: false,
     allow_participant_edit: true,
+    show_results_to_participants: false,
+    preferences_required: false,
+    response_deadline_local: "",
     organizer_name: "",
     enabled_preferences: ["food"],
   });
@@ -113,6 +124,8 @@ export default function NewEventPage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteEmailTouched, setInviteEmailTouched] = useState(false);
   const [invitePhone, setInvitePhone] = useState("");
+  const [inviteIsRequired, setInviteIsRequired] = useState(false);
+  const [invitePriorityTier, setInvitePriorityTier] = useState("0");
   const [addingInvite, setAddingInvite] = useState(false);
   const [inviteError, setInviteError] = useState("");
   const [addedParticipants, setAddedParticipants] = useState<AddedParticipant[]>([]);
@@ -150,11 +163,15 @@ export default function NewEventPage() {
         meeting_duration_minutes: parseInt(form.meeting_duration_minutes),
         slot_granularity_minutes: parseInt(form.slot_granularity_minutes) as 15 | 30,
         scoring_mode: form.scoring_mode,
+        min_attendance_threshold: parseInt(form.min_attendance_threshold) || 0,
         allow_participant_edit: form.allow_participant_edit,
-        show_results_to_participants: false,
-        participants_required_by_default: false,
-        preferences_required: false,
+        show_results_to_participants: form.show_results_to_participants,
+        participants_required_by_default: form.participants_required_by_default,
+        preferences_required: form.preferences_required,
         enabled_preferences: form.enabled_preferences,
+        response_deadline: form.response_deadline_local
+          ? localDateToUnix(`${form.response_deadline_local}T23:59:59`)
+          : undefined,
         organizer_name: form.organizer_name.trim(),
       };
 
@@ -164,11 +181,11 @@ export default function NewEventPage() {
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json() as CreateEventResponse | ApiError;
-      if (!res.ok) {
-        setError(("error" in data ? data.error : null) ?? "Failed to create event. Please try again.");
-        return;
-      }
+        const data = await res.json() as CreateEventResponse | ApiError;
+        if (!res.ok) {
+          setError(("error" in data ? data.error : null) ?? "We could not create your plan. Please try again.");
+          return;
+        }
       const created = data as CreateEventResponse;
 
       saveEvent({
@@ -181,9 +198,11 @@ export default function NewEventPage() {
 
       setCreatedEventId(created.event_id);
       setCreatedOrganizerToken(created.organizer_token);
+      setInviteIsRequired(payload.participants_required_by_default);
+      setInvitePriorityTier("0");
       setStep(4);
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError("We hit a snag creating your plan. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -205,16 +224,16 @@ export default function NewEventPage() {
           name: inviteName.trim(),
           email: inviteEmail.trim() || undefined,
           phone: invitePhone.trim() || undefined,
-          is_required: false,
-          priority_tier: 0,
+          is_required: inviteIsRequired,
+          priority_tier: parseInt(invitePriorityTier),
         }),
       });
 
       const data = await res.json() as AddParticipantInviteResponse | ApiError;
       if (!res.ok) {
-        setInviteError(("error" in data ? data.error : null) ?? "Failed to add participant.");
-        return;
-      }
+        setInviteError(("error" in data ? data.error : null) ?? "We could not add that invitee.");
+          return;
+        }
       const added = data as AddParticipantInviteResponse;
 
       setAddedParticipants((prev) => [
@@ -224,17 +243,19 @@ export default function NewEventPage() {
       setInviteName("");
       setInviteEmail("");
       setInvitePhone("");
+      setInviteIsRequired(form.participants_required_by_default);
+      setInvitePriorityTier("0");
     } catch {
-      setInviteError("Failed to add participant. Try again.");
+      setInviteError("We could not add that invitee. Try again.");
     } finally {
       setAddingInvite(false);
     }
   }
 
   const steps = [
-    { n: 1, label: "Details" },
+    { n: 1, label: "Basics" },
     { n: 2, label: "Schedule" },
-    { n: 3, label: "Review" },
+    { n: 3, label: "Check" },
     { n: 4, label: "Invite" },
   ];
 
@@ -251,12 +272,12 @@ export default function NewEventPage() {
       <main className="max-w-2xl mx-auto px-5 py-12">
         <div className="mb-10">
           <h1 className="font-display text-4xl font-bold text-text mb-2">
-            {step === 4 ? "Invite your people" : "Plan a meetup"}
+            {step === 4 ? "Invite your group" : "Start your plan"}
           </h1>
           <p className="text-muted">
             {step === 4
-              ? "Add everyone who should respond. You can always do this later from the dashboard."
-              : "Set up your event and invite people to respond."}
+              ? "Add the people who should reply. You can always invite more later from the dashboard."
+              : "Tell Togoo what you're planning so it can surface the best options."}
           </p>
         </div>
 
@@ -297,21 +318,21 @@ export default function NewEventPage() {
                 required
               />
               <Input
-                label="Event title"
-                placeholder="e.g., Team dinner, Birthday hangout..."
+                label="Plan title"
+                placeholder="e.g., Friday dinner, birthday drinks, team offsite"
                 value={form.title}
                 onChange={(e) => set("title", e.target.value)}
                 required
               />
               <Textarea
-                label="Description (optional)"
-                placeholder="Give your group some context..."
+                label="What should people know? (optional)"
+                placeholder="Add context, goals, or a note for the group."
                 rows={3}
                 value={form.description}
                 onChange={(e) => set("description", e.target.value)}
               />
               <Select
-                label="Event type"
+                label="Plan type"
                 options={[
                   { value: "meetup", label: "Meetup" },
                   { value: "dinner", label: "Dinner" },
@@ -332,17 +353,17 @@ export default function NewEventPage() {
                 options={TIMEZONE_OPTIONS}
                 value={form.timezone}
                 onChange={(e) => set("timezone", e.target.value)}
-                hint="Detected from your browser. Participants will see times in this timezone."
+                hint="Detected from your browser. Invitees will answer against this timezone."
               />
               <div className="grid grid-cols-2 gap-4">
                 <Input
-                  label="Earliest possible date"
+                  label="Earliest date"
                   type="date"
                   value={form.date_range_start_local}
                   onChange={(e) => set("date_range_start_local", e.target.value)}
                 />
                 <Input
-                  label="Latest possible date"
+                  label="Latest date"
                   type="date"
                   value={form.date_range_end_local}
                   onChange={(e) => set("date_range_end_local", e.target.value)}
@@ -350,7 +371,7 @@ export default function NewEventPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <Select
-                  label="Earliest allowed hour"
+                  label="Earliest start time"
                   options={Array.from({ length: 24 }, (_, i) => ({
                     value: String(i),
                     label: `${i === 0 ? "12 AM" : i < 12 ? `${i} AM` : i === 12 ? "12 PM" : `${i - 12} PM`}`,
@@ -359,7 +380,7 @@ export default function NewEventPage() {
                   onChange={(e) => set("allowed_hours_start", e.target.value)}
                 />
                 <Select
-                  label="Latest allowed hour"
+                  label="Latest end time"
                   options={Array.from({ length: 24 }, (_, i) => ({
                     value: String(i + 1),
                     label: `${i + 1 === 12 ? "12 PM" : i + 1 < 12 ? `${i + 1} AM` : i + 1 === 24 ? "12 AM" : `${i + 1 - 12} PM`}`,
@@ -370,7 +391,7 @@ export default function NewEventPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <Select
-                  label="Meeting duration"
+                  label="How long should it be?"
                   options={[
                     { value: "30", label: "30 minutes" },
                     { value: "60", label: "1 hour" },
@@ -384,18 +405,18 @@ export default function NewEventPage() {
                   onChange={(e) => set("meeting_duration_minutes", e.target.value)}
                 />
                 <Select
-                  label="Slot granularity"
+                  label="Suggestion spacing"
                   options={[
                     { value: "30", label: "30 minutes" },
                     { value: "15", label: "15 minutes" },
                   ]}
                   value={form.slot_granularity_minutes}
                   onChange={(e) => set("slot_granularity_minutes", e.target.value)}
-                  hint="How often candidate slots are generated."
+                  hint="Smaller spacing gives you more candidate options."
                 />
               </div>
               <Select
-                label="Recommendation strategy"
+                label="How should Togoo rank options?"
                 options={[
                   { value: "maximize_attendance", label: "Maximize attendance" },
                   { value: "prioritize_required", label: "Prioritize required attendees" },
@@ -404,12 +425,30 @@ export default function NewEventPage() {
                 ]}
                 value={form.scoring_mode}
                 onChange={(e) => set("scoring_mode", e.target.value)}
-                hint="Controls how recommendations are ranked."
+                hint="Choose what matters most when it scores the best time."
               />
 
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="Minimum people needed"
+                  type="number"
+                  min="0"
+                  value={form.min_attendance_threshold}
+                  onChange={(e) => set("min_attendance_threshold", e.target.value)}
+                  hint="Hide suggestions that fewer than this many people can make."
+                />
+                <Input
+                  label="Reply deadline (optional)"
+                  type="date"
+                  value={form.response_deadline_local}
+                  onChange={(e) => set("response_deadline_local", e.target.value)}
+                  hint="After this date, replies are closed."
+                />
+              </div>
+
               <div>
-                <p className="text-sm font-medium text-text mb-1">What to ask participants</p>
-                <p className="text-xs text-muted mb-3">Choose which preference fields to show when participants respond.</p>
+                <p className="text-sm font-medium text-text mb-1">What should people weigh in on?</p>
+                <p className="text-xs text-muted mb-3">Turn on only the preferences that matter for this plan.</p>
                 <div className="flex flex-wrap gap-2">
                   {ALL_PREF_FIELDS.map(({ key, label }) => {
                     const enabled = form.enabled_preferences.includes(key);
@@ -447,8 +486,28 @@ export default function NewEventPage() {
             <div className="space-y-5">
               <div className="flex items-start justify-between py-3 border-b border-border">
                 <div>
+                  <p className="text-sm font-medium text-text">Mark new invitees as required by default</p>
+                  <p className="text-xs text-muted mt-0.5">Useful when a small core group needs to be present.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => set("participants_required_by_default", !form.participants_required_by_default)}
+                  className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors duration-200 focus-visible:outline-accent flex-shrink-0 ${
+                    form.participants_required_by_default ? "bg-accent" : "bg-border"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                      form.participants_required_by_default ? "translate-x-5" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <div className="flex items-start justify-between py-3 border-b border-border">
+                <div>
                   <p className="text-sm font-medium text-text">Allow participants to edit</p>
-                  <p className="text-xs text-muted mt-0.5">Let people update their availability after submitting</p>
+                  <p className="text-xs text-muted mt-0.5">Let people update their availability after they submit</p>
                 </div>
                 <button
                   type="button"
@@ -465,19 +524,59 @@ export default function NewEventPage() {
                 </button>
               </div>
 
+              <div className="flex items-start justify-between py-3 border-b border-border">
+                <div>
+                  <p className="text-sm font-medium text-text">Require at least one preference</p>
+                  <p className="text-xs text-muted mt-0.5">If on, people must fill one preference before they can submit.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => set("preferences_required", !form.preferences_required)}
+                  className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors duration-200 focus-visible:outline-accent flex-shrink-0 ${
+                    form.preferences_required ? "bg-accent" : "bg-border"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                      form.preferences_required ? "translate-x-5" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <div className="flex items-start justify-between py-3 border-b border-border">
+                <div>
+                  <p className="text-sm font-medium text-text">Let participants view the live summary</p>
+                  <p className="text-xs text-muted mt-0.5">They can see the current overlap and top timings from their own invite link.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => set("show_results_to_participants", !form.show_results_to_participants)}
+                  className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors duration-200 focus-visible:outline-accent flex-shrink-0 ${
+                    form.show_results_to_participants ? "bg-accent" : "bg-border"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                      form.show_results_to_participants ? "translate-x-5" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+
               <div className="card bg-surface-alt p-4">
-                <p className="text-sm font-medium text-text mb-1">Review</p>
+                <p className="text-sm font-medium text-text mb-1">Quick review</p>
                 <dl className="text-sm space-y-1 text-muted">
                   <div className="flex justify-between">
-                    <dt>Event</dt>
+                    <dt>Plan</dt>
                     <dd className="text-text font-medium">{form.title || "(untitled)"}</dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt>Organizer</dt>
+                    <dt>Host</dt>
                     <dd className="text-text">{form.organizer_name || "(no name)"}</dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt>Date range</dt>
+                    <dt>Date window</dt>
                     <dd className="text-text">{form.date_range_start_local} – {form.date_range_end_local}</dd>
                   </div>
                   <div className="flex justify-between">
@@ -488,6 +587,16 @@ export default function NewEventPage() {
                     <dt>Timezone</dt>
                     <dd className="text-text">{form.timezone}</dd>
                   </div>
+                  <div className="flex justify-between">
+                    <dt>Minimum people</dt>
+                    <dd className="text-text">{form.min_attendance_threshold}</dd>
+                  </div>
+                  {form.response_deadline_local && (
+                    <div className="flex justify-between">
+                      <dt>Reply deadline</dt>
+                      <dd className="text-text">{form.response_deadline_local}</dd>
+                    </div>
+                  )}
                 </dl>
               </div>
 
@@ -544,6 +653,22 @@ export default function NewEventPage() {
                     }}
                   />
                 </div>
+                <label className="col-span-1 flex items-center gap-2 rounded-input border border-border px-3 py-2 text-sm text-text">
+                  <input type="checkbox" checked={inviteIsRequired} onChange={(e) => setInviteIsRequired(e.target.checked)} />
+                  Required attendee
+                </label>
+                <div className="col-span-1">
+                  <Select
+                    label="Priority"
+                    options={[
+                      { value: "0", label: "Regular" },
+                      { value: "1", label: "★ Important" },
+                      { value: "2", label: "★★ Key person" },
+                    ]}
+                    value={invitePriorityTier}
+                    onChange={(e) => setInvitePriorityTier(e.target.value)}
+                  />
+                </div>
               </div>
 
               {inviteError && (
@@ -557,13 +682,13 @@ export default function NewEventPage() {
                 variant="secondary"
                 className="w-full"
               >
-                Add person
+                Add invitee
               </Button>
 
               {addedParticipants.length > 0 && (
                 <div className="border-t border-border pt-4 space-y-1">
                   <p className="text-xs font-medium text-muted uppercase tracking-wide mb-3">
-                    Added ({addedParticipants.length})
+                    Invite links ready ({addedParticipants.length})
                   </p>
                   {addedParticipants.map((p) => (
                     <div key={p.invite_url} className="flex items-center justify-between gap-3 py-2">
@@ -591,7 +716,7 @@ export default function NewEventPage() {
         <div className="flex justify-between mt-6">
           {step === 4 ? (
             <p className="text-sm text-muted self-center">
-              {addedParticipants.length === 0 ? "You can add people from the dashboard too." : `${addedParticipants.length} added`}
+              {addedParticipants.length === 0 ? "You can always invite more people from the dashboard." : `${addedParticipants.length} invitee${addedParticipants.length === 1 ? "" : "s"} added`}
             </p>
           ) : step > 1 ? (
             <Button variant="secondary" onClick={() => setStep(step - 1)}>
@@ -607,7 +732,7 @@ export default function NewEventPage() {
             <Button
               onClick={() => {
                 if (step === 1 && (!form.organizer_name.trim() || !form.title.trim())) {
-                  setError("Please fill in your name and event title.");
+                  setError("Please enter your name and a plan title.");
                   return;
                 }
                 setError("");
@@ -623,12 +748,12 @@ export default function NewEventPage() {
               onClick={handleSubmit}
               disabled={!form.title.trim() || !form.organizer_name.trim()}
             >
-              Create event
+              Create plan
             </Button>
           )}
           {step === 4 && (
             <Button onClick={() => router.push(`/e/${createdEventId}/organizer/${createdOrganizerToken}`)}>
-              {addedParticipants.length === 0 ? "Skip to dashboard" : "Go to dashboard"}
+              Open dashboard
             </Button>
           )}
         </div>

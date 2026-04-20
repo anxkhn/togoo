@@ -125,6 +125,7 @@ export const participant_preferences = sqliteTable(
   (t) => [
     index("idx_prefs_event_id").on(t.event_id),
     index("idx_prefs_participant_id").on(t.participant_id),
+    uniqueIndex("idx_prefs_event_participant").on(t.event_id, t.participant_id),
   ]
 );
 
@@ -191,7 +192,7 @@ export const final_selections = sqliteTable(
     selected_by: text("selected_by").notNull(),
     finalized_at: integer("finalized_at").notNull().default(sql`(unixepoch())`),
   },
-  (t) => [index("idx_final_event_id").on(t.event_id)]
+  (t) => [uniqueIndex("idx_final_event_id").on(t.event_id)]
 );
 
 export const activity_log = sqliteTable(

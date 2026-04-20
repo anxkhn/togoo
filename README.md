@@ -1,16 +1,26 @@
-# where to go
+# Togoo
 
-A production-ready group scheduling app built on vinext, Cloudflare Workers, and Cloudflare D1. Find the perfect time and place for your group meetup by collecting availability windows and preferences, then surfacing smart ranked recommendations.
+Plan group meetups without the back-and-forth.
+
+Togoo helps a group go from "what time works?" to a confirmed plan. Send one link, collect availability and preferences, and review ranked suggestions in a private dashboard before you lock in the final time.
 
 ## What it does
 
-- Organizers create an event with a date range, duration, timezone, and scheduling settings
-- Participants receive unique invite links and submit broad availability windows (no account needed)
-- Participants optionally add preferences: food, budget, location, time of day, indoors/outdoors
-- A scoring engine computes ranked recommendations based on attendance overlap and preference fit
-- Organizers view a live dashboard with recommendations, an overlap heatmap, and participant management
-- Per-participant share actions: copy link, QR code modal, WhatsApp direct message, email
-- Organizers finalize the chosen slot, generating a shareable result page
+- Create a plan with a date range, meeting length, timezone, and ranking strategy
+- Share one private invite link per participant, with no account required to reply
+- Collect broad availability windows plus optional preferences such as food, budget, area, time of day, and indoor or outdoor
+- Rank the best options based on overlap, must-have attendees, and preference fit
+- Review replies in a private dashboard with participant management, recommendations, and an overlap heatmap
+- Share invite links with copy, QR, WhatsApp, and email actions
+- Confirm the final slot and generate a shareable final page for the group
+
+## Why use it
+
+- Replace long scheduling threads with a single response flow
+- Let guests respond quickly without creating an account
+- Make a better decision than "whoever replied first"
+- Keep the organizer in control of tradeoffs such as attendance, key people, and time preferences
+- Share the final answer back to the group in one place
 
 ## Why vinext + Workers + D1
 
@@ -26,8 +36,8 @@ app/
   events/new/page.tsx               Create event (client component, multi-step form)
   e/[eventId]/
     organizer/[token]/page.tsx      Organizer dashboard (client component)
-    respond/[token]/page.tsx        Participant response flow (client component)
-    summary/[token]/page.tsx        Public summary page (server component)
+    respond/[token]/page.tsx        Legacy participant route, redirects to /r/[token]
+    summary/[token]/page.tsx        Token-gated live summary page (server component)
     final/page.tsx                  Finalized result page (server component)
   api/
     events/                         Create event
@@ -86,16 +96,16 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-The demo event organizer dashboard is accessible at:
+The demo organizer dashboard is accessible at:
 ```
 http://localhost:3000/e/demo-event-001/organizer/demo-organizer-token-aaabbbcccdddeeefffggg0001
 ```
 
-Participant links:
+Sample participant links:
 ```
-http://localhost:3000/e/demo-event-001/respond/demo-participant-token-jordan-0001aaabbb
-http://localhost:3000/e/demo-event-001/respond/demo-participant-token-sam-000111aaabbb
-http://localhost:3000/e/demo-event-001/respond/demo-participant-token-riley-0001aaabbbc
+http://localhost:3000/r/demo-participant-token-jordan-0001aaabbb
+http://localhost:3000/r/demo-participant-token-sam-000111aaabbb
+http://localhost:3000/r/demo-participant-token-riley-0001aaabbbc
 ```
 
 ## D1 migrations

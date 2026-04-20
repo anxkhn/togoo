@@ -36,8 +36,19 @@ interface Event {
   date_range_start: number;
   date_range_end: number;
   meeting_duration_minutes: number;
+  participants_required_by_default: number;
+  show_results_to_participants: number;
+  response_deadline: number | null;
   status: string;
   allow_participant_edit: number;
+}
+
+interface FinalSelection {
+  id: string;
+  slot_start: number;
+  slot_end: number;
+  notes: string | null;
+  finalized_at: number;
 }
 
 interface ActivityLog {
@@ -57,6 +68,8 @@ interface DashboardStats {
 interface EventResponse {
   event: Event;
   stats: DashboardStats;
+  activity: ActivityLog[];
+  final_selection: FinalSelection | null;
 }
 
 interface ParticipantsResponse {
@@ -70,6 +83,10 @@ interface RecommendationsResponse {
 
 interface RegenerateTokenResponse {
   invite_token: string;
+}
+
+interface FinalizeResponse {
+  final_url: string;
 }
 
 const AVATAR_COLORS = [
@@ -122,7 +139,7 @@ function QRModal({ url, name, onClose }: { readonly url: string; readonly name: 
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in" onClick={onClose} />
       <div className="relative card p-6 max-w-xs w-full shadow-xl flex flex-col items-center gap-4 animate-scale-in">
         <div className="flex items-center justify-between w-full">
-          <p className="text-sm font-medium text-text">Invite QR — {name}</p>
+          <p className="text-sm font-medium text-text">Invite QR for {name}</p>
           <button
             onClick={onClose}
             className="text-muted hover:text-text transition-[color] duration-150 ease"
@@ -168,6 +185,8 @@ function ParticipantRow({
   const [editName, setEditName] = useState(participant.name);
   const [editEmail, setEditEmail] = useState(participant.email ?? "");
   const [editPhone, setEditPhone] = useState(participant.phone ?? "");
+  const [editIsRequired, setEditIsRequired] = useState(participant.is_required === 1);
+  const [editTier, setEditTier] = useState(String(participant.priority_tier));
   const [saving, setSaving] = useState(false);
   const [newToken, setNewToken] = useState<string | null>(null);
   const [showQR, setShowQR] = useState(false);
@@ -190,11 +209,26 @@ function ParticipantRow({
                 <input className="input text-sm" value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Name" />
                 <input className="input text-sm" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} placeholder="Email (optional)" type="email" />
                 <input className="input text-sm col-span-2" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="Phone for WhatsApp (optional)" type="tel" />
+                <label className="col-span-1 flex items-center gap-2 rounded-input border border-border px-3 py-2 text-sm text-text">
+                  <input type="checkbox" checked={editIsRequired} onChange={(e) => setEditIsRequired(e.target.checked)} />
+                  Required attendee
+                </label>
+                <select className="input text-sm col-span-1" value={editTier} onChange={(e) => setEditTier(e.target.value)}>
+                  <option value="0">Regular</option>
+                  <option value="1">★ Important</option>
+                  <option value="2">★★ Key person</option>
+                </select>
               </div>
               <div className="flex gap-2">
                 <Button size="sm" loading={saving} onClick={async () => {
                   setSaving(true);
-                  await onUpdate(participant.id, { name: editName, email: editEmail || null, phone: editPhone || null });
+                  await onUpdate(participant.id, {
+                    name: editName,
+                    email: editEmail || null,
+                    phone: editPhone || null,
+                    is_required: editIsRequired ? 1 : 0,
+                    priority_tier: parseInt(editTier),
+                  });
                   setSaving(false);
                   setEditing(false);
                 }}>Save</Button>
@@ -208,7 +242,7 @@ function ParticipantRow({
                 <TierBadge tier={participant.priority_tier} />
                 {participant.is_required === 1 && <Badge variant="warning" className="text-xs">Required</Badge>}
                 <Badge variant={participant.response_status === "responded" ? "success" : "default"}>
-                  {participant.response_status === "responded" ? "Responded" : "Pending"}
+                  {participant.response_status === "responded" ? "Replied" : "Waiting"}
                 </Badge>
               </div>
               {participant.email && <p className="text-xs text-muted mt-0.5">{participant.email}</p>}
@@ -263,7 +297,7 @@ function ParticipantRow({
                 setNewToken(tok);
               }}
               className="btn-ghost p-1.5"
-              title="Regenerate invite link"
+              title="Create a fresh invite link"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -299,6 +333,8 @@ export default function OrganizerDashboard() {
   const [loading, setLoading] = useState(true);
   const [recLoading, setRecLoading] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState<ScoredMeeting | null>(null);
+  const [finalSelection, setFinalSelection] = useState<FinalSelection | null>(null);
+  const [finalPath, setFinalPath] = useState<string | null>(null);
   const [finalizing, setFinalizing] = useState(false);
   const [tab, setTab] = useState<"participants" | "recommendations" | "activity">("participants");
   const [addingParticipant, setAddingParticipant] = useState(false);
@@ -306,6 +342,7 @@ export default function OrganizerDashboard() {
   const [newEmail, setNewEmail] = useState("");
   const [newEmailTouched, setNewEmailTouched] = useState(false);
   const [newPhone, setNewPhone] = useState("");
+  const [newIsRequired, setNewIsRequired] = useState(false);
   const [newTier, setNewTier] = useState("0");
   const [newExpiresHours, setNewExpiresHours] = useState("0");
   const [addLoading, setAddLoading] = useState(false);
@@ -319,12 +356,12 @@ export default function OrganizerDashboard() {
   const fetchDashboard = useCallback(async () => {
     try {
       const [eventRes, participantsRes] = await Promise.all([
-        fetch(`/api/events/${eventId}`),
+        fetch(`/api/events/${eventId}`, { headers }),
         fetch(`/api/events/${eventId}/participants`, { headers }),
       ]);
 
-      if (!eventRes.ok) {
-        setPageError("Event not found or you don't have access.");
+      if (!eventRes.ok || !participantsRes.ok) {
+        setPageError("We could not open this event.");
         return;
       }
 
@@ -333,9 +370,13 @@ export default function OrganizerDashboard() {
 
       setEvent(eventData.event);
       setStats(eventData.stats);
+      setActivityLog(eventData.activity ?? []);
+      setFinalSelection(eventData.final_selection ?? null);
+      setFinalPath(eventData.final_selection ? `/e/${eventId}/final` : null);
       setParticipants(participantsData.participants ?? []);
+      setNewIsRequired(eventData.event.participants_required_by_default === 1);
     } catch {
-      setPageError("Failed to load event data.");
+      setPageError("We could not load this plan. Try refreshing.");
     } finally {
       setLoading(false);
     }
@@ -379,7 +420,7 @@ export default function OrganizerDashboard() {
           name: newName.trim(),
           email: newEmail.trim() || undefined,
           phone: newPhone.trim() || undefined,
-          is_required: false,
+          is_required: newIsRequired,
           priority_tier: parseInt(newTier),
           token_expires_hours: parseInt(newExpiresHours) || undefined,
         }),
@@ -403,6 +444,7 @@ export default function OrganizerDashboard() {
         setNewEmail("");
         setNewEmailTouched(false);
         setNewPhone("");
+        setNewIsRequired(event?.participants_required_by_default === 1);
         setNewTier("0");
         setNewExpiresHours("0");
         setAddingParticipant(false);
@@ -416,7 +458,13 @@ export default function OrganizerDashboard() {
     await fetch(`/api/events/${eventId}/participants/${id}`, {
       method: "PUT",
       headers: { ...headers, "Content-Type": "application/json" },
-      body: JSON.stringify({ name: updates.name, email: updates.email, phone: updates.phone, is_required: updates.is_required }),
+      body: JSON.stringify({
+        name: updates.name,
+        email: updates.email,
+        phone: updates.phone,
+        is_required: updates.is_required,
+        priority_tier: updates.priority_tier,
+      }),
     });
     setParticipants((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)));
   };
@@ -445,7 +493,16 @@ export default function OrganizerDashboard() {
         body: JSON.stringify({ slot_start: selectedMeeting.start, slot_end: selectedMeeting.end }),
       });
       if (res.ok) {
+        const data = await res.json() as FinalizeResponse;
         setEvent((e) => e ? { ...e, status: "finalized" } : e);
+        setFinalSelection({
+          id: "pending-final-selection",
+          slot_start: selectedMeeting.start,
+          slot_end: selectedMeeting.end,
+          notes: null,
+          finalized_at: Math.floor(Date.now() / 1000),
+        });
+        setFinalPath(data.final_url);
       }
     } finally {
       setFinalizing(false);
@@ -453,16 +510,18 @@ export default function OrganizerDashboard() {
   };
 
   const handleReopen = async () => {
-    if (!confirm("Reopen this event? The finalized selection will be cleared.")) return;
+    if (!confirm("Reopen this plan? The confirmed selection will be cleared.")) return;
     await fetch(`/api/events/${eventId}/reopen`, { method: "POST", headers });
     setEvent((e) => e ? { ...e, status: "active" } : e);
     setSelectedMeeting(null);
+    setFinalSelection(null);
+    setFinalPath(null);
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center">
-        <div className="text-center text-muted animate-pulse">Loading dashboard...</div>
+        <div className="text-center text-muted animate-pulse">Loading your dashboard...</div>
       </div>
     );
   }
@@ -471,8 +530,8 @@ export default function OrganizerDashboard() {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center">
         <div className="text-center">
-          <p className="text-danger mb-4">{pageError || "Event not found"}</p>
-          <Link href="/" className="btn-secondary">Go home</Link>
+          <p className="text-danger mb-4">{pageError || "We could not find that event."}</p>
+          <Link href="/" className="btn-secondary">Back home</Link>
         </div>
       </div>
     );
@@ -488,11 +547,16 @@ export default function OrganizerDashboard() {
         <div className="max-w-5xl mx-auto px-5 h-14 flex items-center justify-between gap-4">
           <Link href="/" className="font-display text-xl font-semibold text-text flex-shrink-0">Togoo</Link>
           <div className="flex items-center gap-3">
+            {event.show_results_to_participants === 1 && (
+              <Link href={`/e/${eventId}/summary/${token}`} className="btn-secondary text-sm">
+                Live summary
+              </Link>
+            )}
             <Badge variant={event.status === "finalized" ? "success" : "default"}>
-              {event.status === "finalized" ? "Finalized" : "Active"}
+              {event.status === "finalized" ? "Confirmed" : "Open"}
             </Badge>
             {event.status === "finalized" && (
-              <Button variant="secondary" size="sm" onClick={handleReopen}>Reopen</Button>
+              <Button variant="secondary" size="sm" onClick={handleReopen}>Reopen plan</Button>
             )}
           </div>
         </div>
@@ -508,13 +572,18 @@ export default function OrganizerDashboard() {
             <span className="mx-2">&middot;</span>
             {event.timezone}
           </p>
+          {event.response_deadline && (
+            <p className="mt-1 text-sm text-muted">
+              Reply deadline: <span className="font-medium text-text">{formatDate(event.response_deadline, event.timezone)}</span>
+            </p>
+          )}
         </div>
 
         <div className="grid grid-cols-3 gap-4 mb-8">
           {[
             { label: "Invited", value: stats.total_invited },
-            { label: "Responded", value: stats.total_responded },
-            { label: "Response rate", value: `${responseRate}%` },
+            { label: "Replied", value: stats.total_responded },
+            { label: "Reply rate", value: `${responseRate}%` },
           ].map((stat) => (
             <div key={stat.label} className="card p-4 text-center">
               <p className="font-display text-3xl font-bold text-text">{stat.value}</p>
@@ -533,7 +602,7 @@ export default function OrganizerDashboard() {
                 tab === t ? "border-accent text-accent" : "border-transparent text-muted hover:text-text"
               )}
             >
-              {t}
+              {t === "participants" ? "people" : t === "recommendations" ? "best options" : "activity"}
             </button>
           ))}
         </div>
@@ -541,13 +610,13 @@ export default function OrganizerDashboard() {
         {tab === "participants" && (
           <div className="animate-fade-in">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="section-title">Participants ({nonOrganizerParticipants.length})</h2>
+              <h2 className="section-title">People ({nonOrganizerParticipants.length})</h2>
               <Button size="sm" variant="secondary" onClick={() => setAddingParticipant(true)}>+ Add person</Button>
             </div>
 
             {addingParticipant && (
               <div className="card p-4 mb-4 animate-scale-in">
-                <p className="text-sm font-medium text-text mb-3">Add participant</p>
+                <p className="text-sm font-medium text-text mb-3">Add someone to this plan</p>
                 <div className="grid grid-cols-2 gap-3 mb-3">
                   <Input placeholder="Name" value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleAddParticipant()} />
                   <div>
@@ -568,6 +637,12 @@ export default function OrganizerDashboard() {
                     value={newPhone}
                     onChange={(e) => setNewPhone(e.target.value)}
                   />
+                  <label className="flex items-center gap-2 rounded-input border border-border px-3 py-2 text-sm text-text">
+                    <input type="checkbox" checked={newIsRequired} onChange={(e) => setNewIsRequired(e.target.checked)} />
+                    Required attendee
+                  </label>
+                </div>
+                <div className="grid grid-cols-2 gap-3 mb-3">
                   <Select
                     label="Priority"
                     options={[
@@ -578,10 +653,8 @@ export default function OrganizerDashboard() {
                     value={newTier}
                     onChange={(e) => setNewTier(e.target.value)}
                   />
-                </div>
-                <div className="grid grid-cols-2 gap-3 mb-3">
                   <Select
-                    label="Link expires"
+                    label="Invite link expires"
                     options={[
                       { value: "0", label: "Never" },
                       { value: "24", label: "24 hours" },
@@ -594,7 +667,7 @@ export default function OrganizerDashboard() {
                   />
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" loading={addLoading} onClick={handleAddParticipant} disabled={!!newEmailError}>Add</Button>
+                  <Button size="sm" loading={addLoading} onClick={handleAddParticipant} disabled={!!newEmailError}>Add invitee</Button>
                   <Button size="sm" variant="ghost" onClick={() => setAddingParticipant(false)}>Cancel</Button>
                 </div>
               </div>
@@ -602,7 +675,7 @@ export default function OrganizerDashboard() {
 
             <div className="card divide-y-0">
               {nonOrganizerParticipants.length === 0 ? (
-                <div className="p-8 text-center text-muted text-sm">No participants yet. Add people above.</div>
+                <div className="p-8 text-center text-muted text-sm">No invitees yet. Add people to start collecting replies.</div>
               ) : (
                 <div className="p-4">
                   {nonOrganizerParticipants.map((p) => (
@@ -627,9 +700,9 @@ export default function OrganizerDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
             <div className="lg:col-span-2">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="section-title">Recommendations</h2>
+                <h2 className="section-title">Best options</h2>
                 <div className="flex items-center gap-3">
-                  {recStats && <span className="text-xs text-muted">Based on {recStats.response_rate}% response rate</span>}
+                  {recStats && <span className="text-xs text-muted">Based on {recStats.response_rate}% reply rate</span>}
                   <button onClick={fetchRecommendations} disabled={recLoading} className="text-xs text-muted hover:text-accent transition-colors">
                     {recLoading ? "Refreshing..." : "Refresh"}
                   </button>
@@ -637,7 +710,7 @@ export default function OrganizerDashboard() {
               </div>
 
               {recLoading ? (
-                <div className="text-center py-12 text-muted animate-pulse">Computing recommendations...</div>
+                <div className="text-center py-12 text-muted animate-pulse">Scoring the best options...</div>
               ) : recommendations ? (
                 <RecommendationCards
                   recommendations={recommendations}
@@ -648,16 +721,48 @@ export default function OrganizerDashboard() {
                 />
               ) : (
                 <div className="text-center py-12 text-muted">
-                  <p className="font-medium text-text mb-1">No data yet</p>
-                  <p className="text-sm">Recommendations appear once participants start responding.</p>
+                  <p className="font-medium text-text mb-1">No replies yet</p>
+                  <p className="text-sm">Suggestions appear after people start responding.</p>
                 </div>
               )}
             </div>
 
             <div className="space-y-5">
+              {event.status === "finalized" && finalSelection && (
+                <div className="card bg-accent-subtle border-accent/30 p-4 animate-scale-in">
+                  <p className="text-xs font-medium text-accent mb-2">Confirmed time</p>
+                  <p className="font-display text-base font-semibold text-text">
+                    {new Intl.DateTimeFormat("en-US", {
+                      weekday: "short", month: "short", day: "numeric",
+                      hour: "numeric", minute: "2-digit", timeZone: event.timezone,
+                    }).format(new Date(finalSelection.slot_start * 1000))}
+                  </p>
+                  <p className="text-sm text-muted mt-0.5">
+                    Ends {new Intl.DateTimeFormat("en-US", {
+                      hour: "numeric", minute: "2-digit", timeZone: event.timezone,
+                    }).format(new Date(finalSelection.slot_end * 1000))}
+                  </p>
+                  {finalPath && (
+                    <div className="mt-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <CopyButton text={`${window.location.origin}${finalPath}`} label="Copy final page" />
+                        <Link href={finalPath} className="text-xs text-accent hover:underline">
+                          Open final page
+                        </Link>
+                      </div>
+                      <ShareButtons
+                        path={finalPath}
+                        title={event.title}
+                        description={`${event.title} is confirmed.`}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
               {selectedMeeting && (
                 <div className="card bg-accent-subtle border-accent/30 p-4 animate-scale-in">
-                  <p className="text-xs font-medium text-accent mb-2">Selected time</p>
+                  <p className="text-xs font-medium text-accent mb-2">Selected option</p>
                   <p className="font-display text-base font-semibold text-text">
                     {new Intl.DateTimeFormat("en-US", {
                       weekday: "short", month: "short", day: "numeric",
@@ -665,16 +770,16 @@ export default function OrganizerDashboard() {
                     }).format(new Date(selectedMeeting.start * 1000))}
                   </p>
                   <p className="text-sm text-muted mt-0.5">
-                    {selectedMeeting.attendingCount} of {selectedMeeting.totalParticipants} attending
+                    {selectedMeeting.attendingCount} of {selectedMeeting.totalParticipants} can make it
                   </p>
                   <Button className="w-full mt-3" size="sm" loading={finalizing} onClick={handleFinalize} disabled={event.status === "finalized"}>
-                    {event.status === "finalized" ? "Already finalized" : "Confirm & finalize"}
+                    {event.status === "finalized" ? "Already confirmed" : "Confirm this time"}
                   </Button>
                 </div>
               )}
 
               <div className="card p-4">
-                <h3 className="text-sm font-medium text-text mb-3">Availability heatmap</h3>
+                <h3 className="text-sm font-medium text-text mb-3">Where replies overlap</h3>
                 <OverlapHeatmap
                   slots={heatmapSlots}
                   timezone={event.timezone}
@@ -687,10 +792,10 @@ export default function OrganizerDashboard() {
 
         {tab === "activity" && (
           <div className="animate-fade-in">
-            <h2 className="section-title mb-4">Activity log</h2>
+            <h2 className="section-title mb-4">Recent activity</h2>
             {activityLog.length === 0 ? (
               <div className="card p-8 text-center text-muted text-sm">
-                Activity will appear here as people respond and changes are made.
+                Replies and changes will show up here.
               </div>
             ) : (
               <div className="card divide-y divide-border">

@@ -6,6 +6,7 @@
     "dev": "vinext dev",
     "build": "vinext build",
     "deploy": "vinext deploy",
+    "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply where-to-go-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply where-to-go-db --remote",
@@ -20,6 +21,7 @@
     "date-fns": "^3.6.0",
     "date-fns-tz": "^3.2.0",
     "drizzle-orm": "^0.45.2",
+    "next": "^15.5.5",
     "qrcode.react": "^4.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -28,6 +30,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.13.6",
     "@cloudflare/workers-types": "^4.20250430.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

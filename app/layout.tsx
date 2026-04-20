@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Togoo — Plan group meetups effortlessly",
-  description: "Find the perfect time and place for your group. Collect availability, gather preferences, and get smart recommendations.",
+  title: "Togoo | Pick a meetup time without the back-and-forth",
+  description: "Send one link, collect everyone's availability and preferences, and choose the best meetup time faster.",
   openGraph: {
     siteName: "Togoo",
     type: "website",

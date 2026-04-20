@@ -315,7 +315,7 @@ export function AvailabilityPicker({
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <p className="text-xs text-muted">
-          Times in <span className="font-medium text-text">{tz}</span>
+          Shown in <span className="font-medium text-text">{tz}</span>
         </p>
         <div className="flex items-center gap-3">
           {windows.length > 0 && (
@@ -332,7 +332,7 @@ export function AvailabilityPicker({
             onClick={selectAll}
             className="text-xs font-medium text-accent hover:underline"
           >
-            Select all
+            Select all blocks
           </button>
         </div>
       </div>
@@ -398,7 +398,7 @@ export function AvailabilityPicker({
                     >
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
-                    Custom
+                    Add custom time
                   </button>
                 </div>
               </div>
@@ -409,7 +409,7 @@ export function AvailabilityPicker({
                   {/* Start time */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-medium text-muted block mb-1">Start</label>
+                      <label className="text-xs font-medium text-muted block mb-1">Start time</label>
                       <select
                         className="input text-sm"
                         value={`${draft.startH}:${draft.startM}`}
@@ -433,7 +433,7 @@ export function AvailabilityPicker({
 
                     {/* Duration buttons */}
                     <div>
-                      <label className="text-xs font-medium text-muted block mb-1">Duration</label>
+                      <label className="text-xs font-medium text-muted block mb-1">Length</label>
                       <div className="flex flex-wrap gap-1">
                         {durOpts.map((d) => (
                           <button
@@ -467,7 +467,7 @@ export function AvailabilityPicker({
                               : "bg-surface border-border text-text hover:border-accent/40"
                           )}
                         >
-                          Custom
+                          Set end time
                         </button>
                       </div>
                     </div>
@@ -499,7 +499,7 @@ export function AvailabilityPicker({
                     <span className="text-xs text-muted">
                       {computedEnd
                         ? `${fmtTime(toUnix(dateStr, draft.startH, draft.startM, tz), tz)} – ${fmtTime(toUnix(dateStr, computedEnd.h, computedEnd.m, tz), tz)}`
-                        : "Select a duration"}
+                        : "Choose a length"}
                     </span>
                     <div className="flex gap-2">
                       <button
@@ -507,7 +507,7 @@ export function AvailabilityPicker({
                         onClick={() => setOpenDay(null)}
                         className="text-xs text-muted hover:text-text transition-colors"
                       >
-                        Cancel
+                        Close
                       </button>
                       <button
                         type="button"
@@ -541,7 +541,7 @@ export function AvailabilityPicker({
 
       {windows.length === 0 && (
         <p className="text-center py-6 text-muted text-sm mt-2">
-          Tap a time block above to mark when you're free.
+          Choose the blocks when you could make it.
         </p>
       )}
 

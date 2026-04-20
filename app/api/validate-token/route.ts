@@ -3,6 +3,7 @@ import { env } from "cloudflare:workers";
 import { eq, and } from "drizzle-orm";
 import { getDB } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
+import { findActiveInviteToken } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,9 +12,7 @@ export async function GET(request: NextRequest) {
 
     const db = getDB((env as unknown as { DB: D1Database }).DB);
 
-    const tokenRecord = await db.query.invite_tokens.findFirst({
-      where: and(eq(schema.invite_tokens.token, token), eq(schema.invite_tokens.is_active, 1)),
-    });
+    const tokenRecord = await findActiveInviteToken(db, token);
 
     if (!tokenRecord) return NextResponse.json({ valid: false }, { status: 401 });
 

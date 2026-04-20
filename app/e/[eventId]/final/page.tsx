@@ -19,10 +19,10 @@ export async function generateMetadata({
 
   if (!event) return { title: "Togoo" };
 
-  const desc = event.description ?? `Join us for ${event.title}. Organized with Togoo.`;
+  const desc = event.description ?? `The plan is set for ${event.title}. See the confirmed date and time.`;
 
   return {
-    title: `${event.title} — Togoo`,
+    title: `${event.title} | Confirmed on Togoo`,
     description: desc,
     openGraph: {
       title: event.title,
@@ -77,7 +77,7 @@ export default async function FinalPage({
     timeZone: event.timezone,
   }).format(new Date(finalSelection.slot_end * 1000));
 
-  const shareText = `${event.title} is happening on ${startDate}, ${startTime}–${endTime} (${event.timezone})`;
+  const shareText = `The plan is set: ${event.title} is on ${startDate}, ${startTime}-${endTime} (${event.timezone})`;
 
   return (
     <div className="min-h-screen bg-bg flex items-center justify-center px-5">
@@ -92,7 +92,7 @@ export default async function FinalPage({
             Togoo
           </Link>
           <p className="text-xs font-medium text-accent uppercase tracking-wide mb-2">
-            {event.event_type} &mdash; confirmed
+            {event.event_type} | confirmed
           </p>
           <h1 className="font-display text-4xl font-bold text-text mb-2">{event.title}</h1>
           {event.description && (
@@ -101,7 +101,7 @@ export default async function FinalPage({
         </div>
 
         <div className="card p-8 text-center shadow-card-elevated animate-scale-in">
-          <p className="text-sm text-muted mb-1">It&apos;s happening on</p>
+          <p className="text-sm text-muted mb-1">Locked in for</p>
           <p className="font-display text-3xl font-bold text-text mb-2">{startDate}</p>
           <div className="inline-flex items-center gap-2 bg-accent-subtle border border-accent-light rounded-full px-4 py-2 mb-4">
             <svg className="w-4 h-4 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -119,7 +119,7 @@ export default async function FinalPage({
           )}
 
           <div className="mt-6 pt-5 border-t border-border flex items-center justify-center gap-2">
-            <span className="text-xs text-muted">Share</span>
+            <span className="text-xs text-muted">Share the plan</span>
             <ShareButtons
               path={`/e/${eventId}/final`}
               title={event.title}
@@ -129,7 +129,7 @@ export default async function FinalPage({
         </div>
 
         <p className="text-center text-xs text-muted mt-6">
-          Organized with{" "}
+          Planned with{" "}
           <Link href="/" className="text-accent hover:underline">
             Togoo
           </Link>

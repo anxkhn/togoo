@@ -95,7 +95,7 @@ function PillGroup({
 // ─── option data ──────────────────────────────────────────────────────────────
 
 const FOOD_OPTS: PillOption[] = [
-  { value: "no_preference", label: "No preference" },
+  { value: "no_preference", label: "Anything works" },
   { value: "veg", label: "Veg" },
   { value: "vegan", label: "Vegan" },
   { value: "non_veg", label: "Non-veg" },
@@ -106,20 +106,20 @@ const FOOD_OPTS: PillOption[] = [
 ];
 
 const BUDGET_OPTS: PillOption[] = [
-  { value: "no_preference", label: "No preference" },
-  { value: "low", label: "Budget" },
+  { value: "no_preference", label: "Anything works" },
+  { value: "low", label: "Keep it affordable" },
   { value: "medium", label: "Mid-range" },
-  { value: "high", label: "Upscale" },
+  { value: "high", label: "Splurge" },
 ];
 
 const DAY_OPTS: PillOption[] = [
-  { value: "no_preference", label: "No preference" },
+  { value: "no_preference", label: "Anything works" },
   { value: "weekday", label: "Weekday" },
   { value: "weekend", label: "Weekend" },
 ];
 
 const TIME_OPTS: PillOption[] = [
-  { value: "no_preference", label: "No preference" },
+  { value: "no_preference", label: "Anything works" },
   { value: "morning", label: "Morning" },
   { value: "afternoon", label: "Afternoon" },
   { value: "evening", label: "Evening" },
@@ -127,7 +127,7 @@ const TIME_OPTS: PillOption[] = [
 ];
 
 const SETTING_OPTS: PillOption[] = [
-  { value: "no_preference", label: "No preference" },
+  { value: "no_preference", label: "Anything works" },
   { value: "indoor", label: "Indoor" },
   { value: "outdoor", label: "Outdoor" },
 ];
@@ -152,8 +152,8 @@ export function PreferenceForm({ values, onChange, enabledFields }: PreferenceFo
 
       {show("food") && values.food_preference === "custom" && (
         <Input
-          label="Describe your preference"
-          placeholder="e.g., gluten-free, nut allergy..."
+          label="Tell us more"
+          placeholder="Gluten-free, nut allergy, etc."
           value={values.food_note}
           onChange={(e) => onChange(set(values, "food_note", e.target.value))}
         />
@@ -170,7 +170,7 @@ export function PreferenceForm({ values, onChange, enabledFields }: PreferenceFo
 
       {show("day_type") && (
         <PillGroup
-          label="Day"
+          label="Best day"
           value={values.preferred_day_type}
           options={DAY_OPTS}
           onChange={(v) => onChange(set(values, "preferred_day_type", v))}
@@ -188,7 +188,7 @@ export function PreferenceForm({ values, onChange, enabledFields }: PreferenceFo
 
       {show("indoor_outdoor") && (
         <PillGroup
-          label="Setting"
+          label="Indoor or outdoor"
           value={values.indoor_outdoor}
           options={SETTING_OPTS}
           onChange={(v) => onChange(set(values, "indoor_outdoor", v))}
@@ -198,15 +198,15 @@ export function PreferenceForm({ values, onChange, enabledFields }: PreferenceFo
       {show("location") && (
         <Input
           label="Preferred area"
-          placeholder="e.g., Downtown, East Side..."
+          placeholder="Downtown, east side, close to the office..."
           value={values.preferred_area}
           onChange={(e) => onChange(set(values, "preferred_area", e.target.value))}
         />
       )}
 
       <Textarea
-        label="Notes (optional)"
-        placeholder="Anything else? e.g., 'prefer somewhere with parking', 'need to leave by 9pm'..."
+        label="Anything else? (optional)"
+        placeholder="Parking, a hard stop time, accessibility needs, or anything else the organizer should know."
         rows={2}
         value={values.notes}
         onChange={(e) => onChange(set(values, "notes", e.target.value))}

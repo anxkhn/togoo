@@ -6,18 +6,7 @@ import * as schema from "@/lib/db/schema";
 import { generateId } from "@/lib/tokens";
 import { UpdateParticipantSchema } from "@/lib/validation";
 import { unixNow } from "@/lib/utils";
-
-async function validateOrganizerToken(db: ReturnType<typeof getDB>, eventId: string, token: string | null) {
-  if (!token) return null;
-  return db.query.invite_tokens.findFirst({
-    where: and(
-      eq(schema.invite_tokens.token, token),
-      eq(schema.invite_tokens.event_id, eventId),
-      eq(schema.invite_tokens.role, "organizer"),
-      eq(schema.invite_tokens.is_active, 1)
-    ),
-  });
-}
+import { findOrganizerInviteToken } from "@/lib/auth";
 
 export async function PUT(
   request: NextRequest,
@@ -28,7 +17,7 @@ export async function PUT(
     const token = request.headers.get("x-organizer-token");
     const db = getDB((env as unknown as { DB: D1Database }).DB);
 
-    const tokenRecord = await validateOrganizerToken(db, eventId, token);
+    const tokenRecord = await findOrganizerInviteToken(db, eventId, token);
     if (!tokenRecord) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await request.json();
@@ -42,6 +31,7 @@ export async function PUT(
     if (parsed.data.email !== undefined) updates.email = parsed.data.email || null;
     if (parsed.data.phone !== undefined) updates.phone = parsed.data.phone || null;
     if (parsed.data.is_required !== undefined) updates.is_required = parsed.data.is_required ? 1 : 0;
+    if (parsed.data.priority_tier !== undefined) updates.priority_tier = parsed.data.priority_tier;
 
     await db
       .update(schema.participants)
@@ -73,7 +63,7 @@ export async function DELETE(
     const token = request.headers.get("x-organizer-token");
     const db = getDB((env as unknown as { DB: D1Database }).DB);
 
-    const tokenRecord = await validateOrganizerToken(db, eventId, token);
+    const tokenRecord = await findOrganizerInviteToken(db, eventId, token);
     if (!tokenRecord) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const participant = await db.query.participants.findFirst({
