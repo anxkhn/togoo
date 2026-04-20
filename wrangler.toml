@@ -1,0 +1,9 @@
+name = "where-to-go"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "where-to-go-db"
+database_id = "ac702b96-1f8f-42ea-b639-cf8df094bb0a"
+migrations_dir = "drizzle/migrations"

@@ -1,0 +1,42 @@
+{
+  "name": "where-to-go",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "vinext dev",
+    "build": "vinext build",
+    "deploy": "vinext deploy",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply where-to-go-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply where-to-go-db --remote",
+    "db:studio": "drizzle-kit studio",
+    "cf-typegen": "wrangler types",
+    "seed:local": "wrangler d1 execute where-to-go-db --local --file=./scripts/seed.sql",
+    "seed:remote": "wrangler d1 execute where-to-go-db --remote --file=./scripts/seed.sql"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "date-fns": "^3.6.0",
+    "date-fns-tz": "^3.2.0",
+    "drizzle-orm": "^0.45.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-server-dom-webpack": "^19.2.5",
+    "tailwind-merge": "^2.5.4",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250430.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-rsc": "^0.5.24",
+    "autoprefixer": "^10.4.20",
+    "drizzle-kit": "^0.31.10",
+    "postcss": "^8.5.1",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.0",
+    "vinext": "latest",
+    "wrangler": "^4.83.0"
+  },
+  "type": "module"
+}

@@ -1,0 +1,90 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 14px;
+  }
+
+  html {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    background-color: #F5F3EF;
+    color: #1A1714;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    min-height: 100vh;
+  }
+
+  ::selection {
+    background-color: #D4EDDF;
+    color: #1A1714;
+  }
+
+  :focus-visible {
+    outline: 2px solid #2F6844;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: 'Fraunces', Georgia, serif;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-surface rounded-card shadow-card border border-border;
+  }
+
+  .btn-primary {
+    @apply bg-accent text-white rounded-input px-5 py-2.5 font-medium text-sm
+           hover:bg-accent-hover active:scale-[0.98] transition-all duration-150
+           focus-visible:outline-accent disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply bg-surface text-text border border-border rounded-input px-5 py-2.5 font-medium text-sm
+           hover:border-border-strong hover:bg-surface-alt active:scale-[0.98] transition-all duration-150
+           focus-visible:outline-accent disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-ghost {
+    @apply text-muted rounded-input px-3 py-1.5 text-sm font-medium
+           hover:text-text hover:bg-surface-alt transition-all duration-150
+           focus-visible:outline-accent disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .input {
+    @apply w-full bg-surface border border-border rounded-input px-3.5 py-2.5 text-sm text-text
+           placeholder:text-muted-light focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent
+           transition-all duration-150;
+  }
+
+  .label {
+    @apply block text-sm font-medium text-text mb-1.5;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  .divider {
+    @apply border-t border-border my-6;
+  }
+
+  .section-title {
+    @apply font-display text-xl font-semibold text-text;
+  }
+}
