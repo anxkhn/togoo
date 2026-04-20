@@ -9,6 +9,7 @@ A production-ready group scheduling app built on vinext, Cloudflare Workers, and
 - Participants optionally add preferences: food, budget, location, time of day, indoors/outdoors
 - A scoring engine computes ranked recommendations based on attendance overlap and preference fit
 - Organizers view a live dashboard with recommendations, an overlap heatmap, and participant management
+- Per-participant share actions: copy link, QR code modal, WhatsApp direct message, email
 - Organizers finalize the chosen slot, generating a shareable result page
 
 ## Why vinext + Workers + D1
@@ -50,6 +51,7 @@ lib/
   utils.ts                          Date/time helpers (Intl-based, Workers-compatible)
 
 drizzle/migrations/0001_init.sql    Full schema migration
+drizzle/migrations/0003_add_phone.sql  Add phone column to participants
 scripts/seed.sql                    Demo event with participants and responses
 ```
 
@@ -143,7 +145,7 @@ CLOUDFLARE_D1_TOKEN=your_api_token
 | Table | Purpose |
 |---|---|
 | `events` | Event settings, timezone, duration, scoring mode |
-| `participants` | Attendees, role (organizer/participant), response status |
+| `participants` | Attendees, role (organizer/participant), response status, optional phone |
 | `invite_tokens` | Secure per-participant access tokens |
 | `availability_windows` | Raw submitted windows (start/end timestamps) |
 | `participant_preferences` | Structured preferences (food, budget, location, time) |
@@ -165,8 +167,8 @@ The engine scores candidate meeting windows using weighted factors:
 Scoring modes (configurable per event):
 - `maximize_attendance`: default weights above
 - `prioritize_required`: 55% weight on required attendees
-- `prefer_evenings`: 30% weight on time preference
-- `prefer_weekends`: 30% weight on day type preference
+- `vip_priority`: boosts score based on key-person (★★) tier attendance
+- `time_optimized`: 30% weight on time-of-day preference fit
 
 Output surfaces: best overall, best attendance, best required-attendee match, best time fit, most popular.
 

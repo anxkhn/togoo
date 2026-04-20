@@ -40,6 +40,7 @@ export async function PUT(
     const updates: Record<string, unknown> = { updated_at: unixNow() };
     if (parsed.data.name !== undefined) updates.name = parsed.data.name;
     if (parsed.data.email !== undefined) updates.email = parsed.data.email || null;
+    if (parsed.data.phone !== undefined) updates.phone = parsed.data.phone || null;
     if (parsed.data.is_required !== undefined) updates.is_required = parsed.data.is_required ? 1 : 0;
 
     await db

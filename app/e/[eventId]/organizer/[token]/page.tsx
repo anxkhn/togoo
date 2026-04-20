@@ -167,6 +167,7 @@ function ParticipantRow({
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(participant.name);
   const [editEmail, setEditEmail] = useState(participant.email ?? "");
+  const [editPhone, setEditPhone] = useState(participant.phone ?? "");
   const [saving, setSaving] = useState(false);
   const [newToken, setNewToken] = useState<string | null>(null);
   const [showQR, setShowQR] = useState(false);
@@ -188,11 +189,12 @@ function ParticipantRow({
               <div className="grid grid-cols-2 gap-2">
                 <input className="input text-sm" value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Name" />
                 <input className="input text-sm" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} placeholder="Email (optional)" type="email" />
+                <input className="input text-sm col-span-2" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="Phone for WhatsApp (optional)" type="tel" />
               </div>
               <div className="flex gap-2">
                 <Button size="sm" loading={saving} onClick={async () => {
                   setSaving(true);
-                  await onUpdate(participant.id, { name: editName, email: editEmail || null });
+                  await onUpdate(participant.id, { name: editName, email: editEmail || null, phone: editPhone || null });
                   setSaving(false);
                   setEditing(false);
                 }}>Save</Button>
@@ -212,7 +214,7 @@ function ParticipantRow({
               {participant.email && <p className="text-xs text-muted mt-0.5">{participant.email}</p>}
               {inviteUrl && (
                 <div className="mt-2 space-y-1.5">
-                  <div className="flex items-start gap-1">
+                  <div className="flex items-center gap-1">
                     <span className="text-xs text-muted font-mono break-all">{inviteUrl}</span>
                     <CopyButton text={inviteUrl} label="Copy" />
                   </div>
@@ -414,7 +416,7 @@ export default function OrganizerDashboard() {
     await fetch(`/api/events/${eventId}/participants/${id}`, {
       method: "PUT",
       headers: { ...headers, "Content-Type": "application/json" },
-      body: JSON.stringify({ name: updates.name, email: updates.email, is_required: updates.is_required }),
+      body: JSON.stringify({ name: updates.name, email: updates.email, phone: updates.phone, is_required: updates.is_required }),
     });
     setParticipants((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)));
   };

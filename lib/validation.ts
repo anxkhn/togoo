@@ -39,6 +39,7 @@ export const AddParticipantSchema = z.object({
 export const UpdateParticipantSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   email: z.string().email().optional().or(z.literal("")),
+  phone: z.string().max(20).optional().or(z.literal("")),
   is_required: z.boolean().optional(),
   priority_tier: z.union([z.literal(0), z.literal(1), z.literal(2)]).optional(),
 });

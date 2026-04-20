@@ -56,6 +56,23 @@ interface AddedParticipant {
   invite_url: string;
 }
 
+const AVATAR_COLORS = [
+  "bg-violet-100 text-violet-700",
+  "bg-blue-100 text-blue-700",
+  "bg-emerald-100 text-emerald-700",
+  "bg-amber-100 text-amber-700",
+  "bg-rose-100 text-rose-700",
+  "bg-cyan-100 text-cyan-700",
+  "bg-fuchsia-100 text-fuchsia-700",
+  "bg-orange-100 text-orange-700",
+] as const;
+
+function avatarColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length] as string;
+}
+
 function localDateToUnix(localDate: string): number {
   return Math.floor(new Date(localDate).getTime() / 1000);
 }
@@ -95,6 +112,7 @@ export default function NewEventPage() {
   const [inviteName, setInviteName] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteEmailTouched, setInviteEmailTouched] = useState(false);
+  const [invitePhone, setInvitePhone] = useState("");
   const [addingInvite, setAddingInvite] = useState(false);
   const [inviteError, setInviteError] = useState("");
   const [addedParticipants, setAddedParticipants] = useState<AddedParticipant[]>([]);
@@ -186,6 +204,7 @@ export default function NewEventPage() {
         body: JSON.stringify({
           name: inviteName.trim(),
           email: inviteEmail.trim() || undefined,
+          phone: invitePhone.trim() || undefined,
           is_required: false,
           priority_tier: 0,
         }),
@@ -204,6 +223,7 @@ export default function NewEventPage() {
       ]);
       setInviteName("");
       setInviteEmail("");
+      setInvitePhone("");
     } catch {
       setInviteError("Failed to add participant. Try again.");
     } finally {
@@ -512,6 +532,18 @@ export default function NewEventPage() {
                     <p className="text-xs text-danger mt-1">{inviteEmailError}</p>
                   )}
                 </div>
+                <div className="col-span-2">
+                  <Input
+                    label="Phone for WhatsApp (optional)"
+                    type="tel"
+                    placeholder="+1 555 000 0000"
+                    value={invitePhone}
+                    onChange={(e) => setInvitePhone(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && inviteName.trim() && !inviteEmailError) handleAddParticipant();
+                    }}
+                  />
+                </div>
               </div>
 
               {inviteError && (
@@ -536,7 +568,7 @@ export default function NewEventPage() {
                   {addedParticipants.map((p) => (
                     <div key={p.invite_url} className="flex items-center justify-between gap-3 py-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-7 h-7 rounded-full bg-accent-subtle flex items-center justify-center text-accent text-xs font-semibold flex-shrink-0">
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 ${avatarColor(p.name)}`}>
                           {p.name[0].toUpperCase()}
                         </div>
                         <span className="text-sm text-text font-medium truncate">{p.name}</span>
