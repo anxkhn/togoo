@@ -16,6 +16,7 @@ export interface Participant {
   id: string;
   is_required: number;
   response_status: string;
+  priority_tier?: number; // 0 = regular, 1 = ★, 2 = ★★
 }
 
 export interface Preference {
@@ -100,15 +101,12 @@ function applyOverrides(
   overrides: OrganizerOverride[]
 ): ScoredMeeting[] {
   const blocked: Array<{ start: number; end: number }> = [];
-  const forceInclude: number[] = [];
   const forceExclude: number[] = [];
 
   for (const override of overrides) {
     const data = JSON.parse(override.data);
     if (override.override_type === "block_time") {
       blocked.push({ start: data.start_time, end: data.end_time });
-    } else if (override.override_type === "force_include") {
-      forceInclude.push(data.slot_start);
     } else if (override.override_type === "force_exclude") {
       forceExclude.push(data.slot_start);
     }
@@ -143,6 +141,12 @@ function buildExplanation(m: ScoredMeeting): string {
   return parts.join(", ") + ".";
 }
 
+function tierWeight(tier: number | undefined): number {
+  if (tier === 2) return 4; // ★★ key person
+  if (tier === 1) return 2; // ★ important
+  return 1;
+}
+
 export function computeRecommendations(
   participants: Participant[],
   slots: NormalizedSlot[],
@@ -165,6 +169,7 @@ export function computeRecommendations(
   const allSlotStarts = [...attendanceBySlot.keys()].sort((a, b) => a - b);
   const prefMap = new Map<string, Preference>(preferences.map((p) => [p.participant_id, p]));
   const respondedParticipants = participants.filter((p) => p.response_status === "responded");
+  const totalTierWeight = respondedParticipants.reduce((sum, p) => sum + tierWeight(p.priority_tier), 0);
 
   const candidates: ScoredMeeting[] = [];
 
@@ -198,6 +203,12 @@ export function computeRecommendations(
     const attendanceScore = respondedParticipants.length > 0 ? attendingIds.length / respondedParticipants.length : 0;
     const requiredScore = totalRequired > 0 ? requiredAttending / totalRequired : 1;
 
+    const attendingWeight = attendingIds.reduce((sum, pid) => {
+      const p = respondedParticipants.find((rp) => rp.id === pid);
+      return sum + tierWeight(p?.priority_tier);
+    }, 0);
+    const weightedAttendanceScore = totalTierWeight > 0 ? attendingWeight / totalTierWeight : attendanceScore;
+
     const hour = getHourInTimezone(windowStart, timezone);
     const timeCategory = getTimeCategory(hour);
     const dayOfWeek = getDayOfWeekInTimezone(windowStart, timezone);
@@ -212,11 +223,7 @@ export function computeRecommendations(
 
       timePrefTotal += timePref === "no_preference" || timePref === timeCategory ? 1 : 0.25;
       dayTypePrefTotal +=
-        dayPref === "no_preference"
-          ? 1
-          : (dayPref === "weekend") === isWeekend
-          ? 1
-          : 0.25;
+        dayPref === "no_preference" ? 1 : (dayPref === "weekend") === isWeekend ? 1 : 0.25;
     }
 
     const timePrefScore = attendingIds.length > 0 ? timePrefTotal / attendingIds.length : 1;
@@ -225,16 +232,24 @@ export function computeRecommendations(
     let compositeScore: number;
     switch (scoring_mode) {
       case "prioritize_required":
-        compositeScore = 0.2 * attendanceScore + 0.55 * requiredScore + 0.15 * timePrefScore + 0.1 * dayTypePrefScore;
+        compositeScore =
+          0.2 * attendanceScore + 0.55 * requiredScore + 0.15 * timePrefScore + 0.1 * dayTypePrefScore;
         break;
-      case "prefer_evenings":
-        compositeScore = 0.4 * attendanceScore + 0.2 * requiredScore + 0.3 * timePrefScore + 0.1 * dayTypePrefScore;
+      case "vip_priority":
+        // ★★ attendees weighted 4x, ★ weighted 2x — slot is boosted heavily if key people can make it
+        compositeScore =
+          0.15 * attendanceScore +
+          0.15 * requiredScore +
+          0.6 * weightedAttendanceScore +
+          0.1 * timePrefScore;
         break;
-      case "prefer_weekends":
-        compositeScore = 0.4 * attendanceScore + 0.2 * requiredScore + 0.1 * timePrefScore + 0.3 * dayTypePrefScore;
+      case "time_optimized":
+        compositeScore =
+          0.3 * attendanceScore + 0.15 * requiredScore + 0.4 * timePrefScore + 0.15 * dayTypePrefScore;
         break;
-      default:
-        compositeScore = 0.5 * attendanceScore + 0.3 * requiredScore + 0.12 * timePrefScore + 0.08 * dayTypePrefScore;
+      default: // maximize_attendance
+        compositeScore =
+          0.5 * attendanceScore + 0.3 * requiredScore + 0.12 * timePrefScore + 0.08 * dayTypePrefScore;
     }
 
     candidates.push({
@@ -261,10 +276,13 @@ export function computeRecommendations(
   const bestOverall = sorted[0] ?? null;
   const bestAttendance = [...filtered].sort((a, b) => b.attendingCount - a.attendingCount)[0] ?? null;
   const bestRequired =
-    [...filtered].sort((a, b) => b.requiredScore - a.requiredScore || b.attendingCount - a.attendingCount)[0] ?? null;
+    [...filtered].sort(
+      (a, b) => b.requiredScore - a.requiredScore || b.attendingCount - a.attendingCount
+    )[0] ?? null;
   const bestTimeFit =
-    [...filtered].sort((a, b) => b.timePrefScore - a.timePrefScore || b.attendingCount - a.attendingCount)[0] ?? null;
-  const mostPopular = bestAttendance;
+    [...filtered].sort(
+      (a, b) => b.timePrefScore - a.timePrefScore || b.attendingCount - a.attendingCount
+    )[0] ?? null;
 
   const withExplanations = (m: ScoredMeeting | null, label: string): ScoredMeeting | null => {
     if (!m) return null;
@@ -276,7 +294,7 @@ export function computeRecommendations(
     best_attendance: withExplanations(bestAttendance, "Best attendance"),
     best_required_match: withExplanations(bestRequired, "Best required-attendee match"),
     best_time_fit: withExplanations(bestTimeFit, "Best time fit"),
-    most_popular: withExplanations(mostPopular, "Most popular timing"),
+    most_popular: withExplanations(bestAttendance, "Most popular timing"),
     top_candidates: sorted.slice(0, 10).map((c) => ({ ...c, explanation: buildExplanation(c) })),
   };
 }

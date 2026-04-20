@@ -5,9 +5,11 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { RecommendationCards } from "@/components/recommendation-cards";
 import { OverlapHeatmap } from "@/components/overlap-heatmap";
+import { ShareButtons } from "@/components/share-buttons";
 import { cn, formatDate, formatTime } from "@/lib/utils";
 import type { RecommendationSet, ScoredMeeting } from "@/lib/scheduling";
 
@@ -17,6 +19,7 @@ interface Participant {
   email: string | null;
   role: string;
   is_required: number;
+  priority_tier: number;
   response_status: string;
   invite_token: string | null;
 }
@@ -32,7 +35,6 @@ interface Event {
   meeting_duration_minutes: number;
   status: string;
   allow_participant_edit: number;
-  show_results_to_participants: number;
 }
 
 interface ActivityLog {
@@ -76,17 +78,21 @@ function CopyButton({ text, label }: { text: string; label: string }) {
   );
 }
 
+function TierBadge({ tier }: { tier: number }) {
+  if (tier === 2) return <span className="text-amber-500 text-sm" title="Key person">★★</span>;
+  if (tier === 1) return <span className="text-amber-400 text-sm" title="Important">★</span>;
+  return null;
+}
+
 function ParticipantRow({
   participant,
   eventId,
-  organizerToken,
   onUpdate,
   onRemove,
   onRegenerateToken,
 }: {
   participant: Participant;
   eventId: string;
-  organizerToken: string;
   onUpdate: (id: string, updates: Partial<Participant>) => Promise<void>;
   onRemove: (id: string) => Promise<void>;
   onRegenerateToken: (id: string) => Promise<string>;
@@ -96,10 +102,10 @@ function ParticipantRow({
   const [editEmail, setEditEmail] = useState(participant.email ?? "");
   const [saving, setSaving] = useState(false);
   const [newToken, setNewToken] = useState<string | null>(null);
-  const inviteUrl = newToken
-    ? `${window.location.origin}/e/${eventId}/respond/${newToken}`
-    : participant.invite_token
-    ? `${window.location.origin}/e/${eventId}/respond/${participant.invite_token}`
+
+  const currentToken = newToken ?? participant.invite_token;
+  const inviteUrl = currentToken
+    ? `${window.location.origin}/e/${eventId}/respond/${currentToken}`
     : null;
 
   return (
@@ -147,6 +153,7 @@ function ParticipantRow({
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm font-medium text-text">{participant.name}</span>
+              <TierBadge tier={participant.priority_tier} />
               {participant.is_required === 1 && (
                 <Badge variant="warning" className="text-xs">Required</Badge>
               )}
@@ -158,9 +165,17 @@ function ParticipantRow({
               <p className="text-xs text-muted mt-0.5">{participant.email}</p>
             )}
             {inviteUrl && (
-              <div className="flex items-center gap-1 mt-1">
-                <span className="text-xs text-muted font-mono truncate max-w-xs">{inviteUrl}</span>
-                <CopyButton text={inviteUrl} label="Copy link" />
+              <div className="mt-1.5 space-y-1">
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-muted font-mono truncate max-w-xs">{inviteUrl}</span>
+                  <CopyButton text={inviteUrl} label="Copy" />
+                </div>
+                <ShareButtons
+                  path={`/e/${eventId}/respond/${currentToken}`}
+                  title={`You're invited`}
+                  participantName={participant.name}
+                  participantEmail={participant.email}
+                />
               </div>
             )}
           </div>
@@ -168,11 +183,7 @@ function ParticipantRow({
       </div>
       {participant.role !== "organizer" && !editing && (
         <div className="flex items-center gap-1 flex-shrink-0">
-          <button
-            onClick={() => setEditing(true)}
-            className="btn-ghost p-1.5"
-            title="Edit"
-          >
+          <button onClick={() => setEditing(true)} className="btn-ghost p-1.5" title="Edit">
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
@@ -223,8 +234,10 @@ export default function OrganizerDashboard() {
   const [finalizing, setFinalizing] = useState(false);
   const [tab, setTab] = useState<"recommendations" | "participants" | "activity">("recommendations");
   const [addingParticipant, setAddingParticipant] = useState(false);
-  const [newParticipantName, setNewParticipantName] = useState("");
-  const [newParticipantEmail, setNewParticipantEmail] = useState("");
+  const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newTier, setNewTier] = useState("0");
+  const [newExpiresHours, setNewExpiresHours] = useState("0");
   const [addLoading, setAddLoading] = useState(false);
   const [pageError, setPageError] = useState("");
 
@@ -264,20 +277,14 @@ export default function OrganizerDashboard() {
         setRecommendations(data.recommendations);
         setRecStats(data.stats);
 
-        const slots: Array<{ slot_start: number; participant_ids: string[] }> = [];
-        if (data.recommendations?.top_candidates) {
-          const bySlot = new Map<number, Set<string>>();
-          for (const c of data.recommendations.top_candidates) {
-            if (!bySlot.has(c.start)) bySlot.set(c.start, new Set());
-            for (const id of c.attendingIds) {
-              bySlot.get(c.start)!.add(id);
-            }
-          }
-          for (const [slot_start, ids] of bySlot) {
-            slots.push({ slot_start, participant_ids: [...ids] });
-          }
+        const bySlot = new Map<number, Set<string>>();
+        for (const c of data.recommendations?.top_candidates ?? []) {
+          if (!bySlot.has(c.start)) bySlot.set(c.start, new Set());
+          for (const id of c.attendingIds) bySlot.get(c.start)!.add(id);
         }
-        setHeatmapSlots(slots);
+        setHeatmapSlots(
+          [...bySlot.entries()].map(([slot_start, ids]) => ({ slot_start, participant_ids: [...ids] }))
+        );
       }
     } catch {
       // non-critical
@@ -286,29 +293,41 @@ export default function OrganizerDashboard() {
     }
   }, [eventId, token]);
 
-  useEffect(() => {
-    fetchDashboard();
-  }, [fetchDashboard]);
-
-  useEffect(() => {
-    if (!loading) fetchRecommendations();
-  }, [loading, fetchRecommendations]);
+  useEffect(() => { fetchDashboard(); }, [fetchDashboard]);
+  useEffect(() => { if (!loading) fetchRecommendations(); }, [loading, fetchRecommendations]);
 
   const handleAddParticipant = async () => {
-    if (!newParticipantName.trim()) return;
+    if (!newName.trim()) return;
     setAddLoading(true);
     try {
       const res = await fetch(`/api/events/${eventId}/participants`, {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newParticipantName.trim(), email: newParticipantEmail.trim() || undefined, is_required: false }),
+        body: JSON.stringify({
+          name: newName.trim(),
+          email: newEmail.trim() || undefined,
+          is_required: false,
+          priority_tier: parseInt(newTier),
+          token_expires_hours: parseInt(newExpiresHours) || undefined,
+        }),
       });
       const data = await res.json();
       if (res.ok) {
-        setParticipants((prev) => [...prev, { ...data.participant, role: "participant", response_status: "pending", invite_token: data.invite_token }]);
+        setParticipants((prev) => [
+          ...prev,
+          {
+            ...data.participant,
+            role: "participant",
+            response_status: "pending",
+            invite_token: data.invite_token,
+            priority_tier: data.participant.priority_tier ?? parseInt(newTier),
+          },
+        ]);
         setStats((s) => ({ ...s, total_invited: s.total_invited + 1, pending: s.pending + 1 }));
-        setNewParticipantName("");
-        setNewParticipantEmail("");
+        setNewName("");
+        setNewEmail("");
+        setNewTier("0");
+        setNewExpiresHours("0");
         setAddingParticipant(false);
       }
     } finally {
@@ -390,22 +409,14 @@ export default function OrganizerDashboard() {
       <header className="border-b border-border bg-surface/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-5 h-14 flex items-center justify-between gap-4">
           <Link href="/" className="font-display text-xl font-semibold text-text flex-shrink-0">
-            where to go
+            Togoo
           </Link>
           <div className="flex items-center gap-3">
             <Badge variant={event.status === "finalized" ? "success" : "default"}>
               {event.status === "finalized" ? "Finalized" : "Active"}
             </Badge>
-            {event.status === "finalized" ? (
+            {event.status === "finalized" && (
               <Button variant="secondary" size="sm" onClick={handleReopen}>Reopen</Button>
-            ) : selectedMeeting ? (
-              <Button size="sm" loading={finalizing} onClick={handleFinalize}>
-                Finalize choice
-              </Button>
-            ) : (
-              <Button size="sm" variant="secondary" onClick={fetchRecommendations} loading={recLoading}>
-                Refresh picks
-              </Button>
             )}
           </div>
         </div>
@@ -413,22 +424,14 @@ export default function OrganizerDashboard() {
 
       <main className="max-w-5xl mx-auto px-5 py-8">
         <div className="mb-8 animate-slide-up">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-medium text-muted uppercase tracking-wide mb-1">
-                {event.event_type}
-              </p>
-              <h1 className="font-display text-3xl sm:text-4xl font-bold text-text">{event.title}</h1>
-              {event.description && (
-                <p className="mt-2 text-muted">{event.description}</p>
-              )}
-              <p className="mt-2 text-sm text-muted">
-                {formatDate(event.date_range_start, event.timezone)} &mdash; {formatDate(event.date_range_end, event.timezone)}
-                <span className="mx-2">&middot;</span>
-                {event.timezone}
-              </p>
-            </div>
-          </div>
+          <p className="text-xs font-medium text-muted uppercase tracking-wide mb-1">{event.event_type}</p>
+          <h1 className="font-display text-3xl sm:text-4xl font-bold text-text">{event.title}</h1>
+          {event.description && <p className="mt-2 text-muted">{event.description}</p>}
+          <p className="mt-2 text-sm text-muted">
+            {formatDate(event.date_range_start, event.timezone)} &mdash; {formatDate(event.date_range_end, event.timezone)}
+            <span className="mx-2">&middot;</span>
+            {event.timezone}
+          </p>
         </div>
 
         <div className="grid grid-cols-3 gap-4 mb-8">
@@ -450,7 +453,7 @@ export default function OrganizerDashboard() {
               key={t}
               onClick={() => setTab(t)}
               className={cn(
-                "px-4 py-2.5 text-sm font-medium capitalize transition-colors duration-150 border-b-2 -mb-px",
+                "px-4 py-2.5 text-sm font-medium capitalize border-b-2 -mb-px motion-safe:transition-[color,border-color] motion-safe:duration-150 motion-safe:ease",
                 tab === t ? "border-accent text-accent" : "border-transparent text-muted hover:text-text"
               )}
             >
@@ -464,11 +467,20 @@ export default function OrganizerDashboard() {
             <div className="lg:col-span-2">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="section-title">Recommendations</h2>
-                {recStats && (
-                  <span className="text-xs text-muted">
-                    Based on {recStats.response_rate}% response rate
-                  </span>
-                )}
+                <div className="flex items-center gap-3">
+                  {recStats && (
+                    <span className="text-xs text-muted">
+                      Based on {recStats.response_rate}% response rate
+                    </span>
+                  )}
+                  <button
+                    onClick={fetchRecommendations}
+                    disabled={recLoading}
+                    className="text-xs text-muted hover:text-accent transition-colors"
+                  >
+                    {recLoading ? "Refreshing..." : "Refresh"}
+                  </button>
+                </div>
               </div>
 
               {recLoading ? (
@@ -484,7 +496,7 @@ export default function OrganizerDashboard() {
               ) : (
                 <div className="text-center py-12 text-muted">
                   <p className="font-medium text-text mb-1">No data yet</p>
-                  <p className="text-sm">Recommendations will appear once participants start responding.</p>
+                  <p className="text-sm">Recommendations appear once participants start responding.</p>
                 </div>
               )}
             </div>
@@ -545,15 +557,39 @@ export default function OrganizerDashboard() {
                 <div className="grid grid-cols-2 gap-3 mb-3">
                   <Input
                     placeholder="Name"
-                    value={newParticipantName}
-                    onChange={(e) => setNewParticipantName(e.target.value)}
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleAddParticipant()}
                   />
                   <Input
                     placeholder="Email (optional)"
                     type="email"
-                    value={newParticipantEmail}
-                    onChange={(e) => setNewParticipantEmail(e.target.value)}
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <Select
+                    label="Priority"
+                    options={[
+                      { value: "0", label: "Regular" },
+                      { value: "1", label: "★ Important" },
+                      { value: "2", label: "★★ Key person" },
+                    ]}
+                    value={newTier}
+                    onChange={(e) => setNewTier(e.target.value)}
+                  />
+                  <Select
+                    label="Link expires"
+                    options={[
+                      { value: "0", label: "Never" },
+                      { value: "24", label: "24 hours" },
+                      { value: "72", label: "3 days" },
+                      { value: "168", label: "7 days" },
+                      { value: "336", label: "14 days" },
+                    ]}
+                    value={newExpiresHours}
+                    onChange={(e) => setNewExpiresHours(e.target.value)}
                   />
                 </div>
                 <div className="flex gap-2">
@@ -570,7 +606,7 @@ export default function OrganizerDashboard() {
             <div className="card divide-y-0">
               {nonOrganizerParticipants.length === 0 ? (
                 <div className="p-8 text-center text-muted text-sm">
-                  No participants yet. Add people or share your event link.
+                  No participants yet. Add people above.
                 </div>
               ) : (
                 <div className="p-4">
@@ -579,7 +615,6 @@ export default function OrganizerDashboard() {
                       key={p.id}
                       participant={p}
                       eventId={eventId}
-                      organizerToken={token}
                       onUpdate={handleUpdateParticipant}
                       onRemove={handleRemoveParticipant}
                       onRegenerateToken={handleRegenerateToken}

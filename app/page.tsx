@@ -1,11 +1,12 @@
 import Link from "next/link";
+import { MyEvents } from "@/components/my-events";
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-bg">
       <header className="border-b border-border bg-surface/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-5 h-14 flex items-center justify-between">
-          <span className="font-display text-xl font-semibold text-text">where to go</span>
+          <span className="font-display text-xl font-semibold text-text">Togoo</span>
           <Link href="/events/new" className="btn-primary text-sm">
             Plan a meetup
           </Link>
@@ -38,6 +39,8 @@ export default function LandingPage() {
             </a>
           </div>
         </section>
+
+        <MyEvents />
 
         <section id="how-it-works" className="max-w-5xl mx-auto px-5 py-20">
           <div className="text-center mb-14">
@@ -78,7 +81,7 @@ export default function LandingPage() {
                 ),
               },
             ].map((item) => (
-              <div key={item.step} className="card p-6 hover:shadow-card-hover transition-shadow duration-200">
+              <div key={item.step} className="card card-interactive p-6">
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 bg-accent-subtle border border-accent-light rounded-lg flex items-center justify-center flex-shrink-0 text-accent">
                     {item.icon}
@@ -108,7 +111,7 @@ export default function LandingPage() {
       </main>
 
       <footer className="border-t border-border py-8 text-center text-sm text-muted">
-        <p>where to go &mdash; group scheduling made simple</p>
+        <p>Togoo — group scheduling made simple</p>
       </footer>
     </div>
   );

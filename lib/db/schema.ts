@@ -42,6 +42,7 @@ export const participants = sqliteTable(
     email: text("email"),
     role: text("role").notNull().default("participant"),
     is_required: integer("is_required").notNull().default(0),
+    priority_tier: integer("priority_tier").notNull().default(0),
     response_status: text("response_status").notNull().default("pending"),
     created_at: integer("created_at").notNull().default(sql`(unixepoch())`),
     updated_at: integer("updated_at").notNull().default(sql`(unixepoch())`),

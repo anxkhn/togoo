@@ -2,8 +2,12 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Where to Go — Group scheduling, made easy",
-  description: "Find the perfect time and place for your group meetup. Collect availability, gather preferences, and get smart recommendations.",
+  title: "Togoo — Plan group meetups effortlessly",
+  description: "Find the perfect time and place for your group. Collect availability, gather preferences, and get smart recommendations.",
+  openGraph: {
+    siteName: "Togoo",
+    type: "website",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

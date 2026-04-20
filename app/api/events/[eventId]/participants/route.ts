@@ -46,7 +46,7 @@ export async function GET(
 
     const participantsWithTokens = participants.map((p) => {
       const t = tokensForEvent.find((t) => t.participant_id === p.id && t.role === "participant");
-      return { ...p, invite_token: t?.token ?? null };
+      return { ...p, invite_token: t?.token ?? null, token_expires_at: t?.expires_at ?? null };
     });
 
     return NextResponse.json({ participants: participantsWithTokens });
@@ -76,10 +76,11 @@ export async function POST(
       return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
     }
 
-    const { name, email, is_required } = parsed.data;
+    const { name, email, is_required, priority_tier, token_expires_hours } = parsed.data;
     const now = unixNow();
     const participantId = generateId();
     const inviteToken = generateSecureToken();
+    const expiresAt = token_expires_hours ? now + token_expires_hours * 3600 : null;
 
     await db.insert(schema.participants).values({
       id: participantId,
@@ -88,6 +89,7 @@ export async function POST(
       email: email || null,
       role: "participant",
       is_required: is_required ? 1 : 0,
+      priority_tier,
       response_status: "pending",
       created_at: now,
       updated_at: now,
@@ -101,6 +103,7 @@ export async function POST(
       role: "participant",
       is_active: 1,
       created_at: now,
+      expires_at: expiresAt,
     });
 
     await db.insert(schema.activity_log).values({
@@ -113,7 +116,7 @@ export async function POST(
     });
 
     return NextResponse.json({
-      participant: { id: participantId, name, email: email || null, is_required },
+      participant: { id: participantId, name, email: email || null, is_required, priority_tier },
       invite_token: inviteToken,
       invite_url: `/e/${eventId}/respond/${inviteToken}`,
     });

@@ -1,0 +1,1 @@
+ALTER TABLE participants ADD COLUMN priority_tier INTEGER NOT NULL DEFAULT 0;

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { AvailabilityPicker, type TimeWindow } from "@/components/availability-picker";
 import { PreferenceForm, type PreferenceValues, defaultPreferences } from "@/components/preference-form";
 import { cn, formatDate } from "@/lib/utils";
+import { saveEvent } from "@/components/my-events";
 
 interface EventData {
   id: string;
@@ -45,6 +46,9 @@ export default function RespondPage() {
   const [windows, setWindows] = useState<TimeWindow[]>([]);
   const [preferences, setPreferences] = useState<PreferenceValues>(defaultPreferences);
   const [showPreferences, setShowPreferences] = useState(false);
+  const [localTimezone] = useState(() =>
+    typeof window !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC"
+  );
 
   useEffect(() => {
     async function loadToken() {
@@ -138,6 +142,16 @@ export default function RespondPage() {
         return;
       }
 
+      if (event && participant) {
+        saveEvent({
+          id: eventId,
+          title: event.title,
+          role: "participant",
+          token,
+          created_at: Math.floor(Date.now() / 1000),
+        });
+      }
+
       setStep("success");
     } catch {
       setError("Something went wrong. Please try again.");
@@ -185,16 +199,21 @@ export default function RespondPage() {
             Thanks, <span className="font-medium text-text">{participant?.name}</span>. Your availability has been saved.
           </p>
           <p className="text-sm text-muted mb-8">
-            The organizer will review responses and get back to you with the final time.
+            The organizer will review responses and let you know the final time.
           </p>
-          {event?.allow_participant_edit === 1 && (
-            <button
-              onClick={() => setStep("availability")}
-              className="btn-secondary text-sm"
-            >
-              Edit my response
-            </button>
-          )}
+          <div className="flex flex-col gap-3">
+            {event?.allow_participant_edit === 1 && (
+              <button
+                onClick={() => setStep("availability")}
+                className="btn-secondary text-sm"
+              >
+                Edit my response
+              </button>
+            )}
+            <Link href="/" className="text-sm text-muted hover:text-accent transition-colors">
+              Back to home
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -203,12 +222,13 @@ export default function RespondPage() {
   const isUpdate = participant?.response_status === "responded";
   const steps: Step[] = ["availability", "preferences", "review"];
   const stepIndex = steps.indexOf(step);
+  const showDualTimezone = event && localTimezone && localTimezone !== event.timezone;
 
   return (
     <div className="min-h-screen bg-bg">
       <header className="border-b border-border bg-surface/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-xl mx-auto px-5 h-14 flex items-center justify-between">
-          <span className="font-display text-xl font-semibold text-text">where to go</span>
+          <Link href="/" className="font-display text-xl font-semibold text-text">Togoo</Link>
           {isUpdate && (
             <span className="text-xs text-muted bg-surface-alt border border-border rounded-full px-3 py-1">
               Editing response
@@ -225,6 +245,7 @@ export default function RespondPage() {
             {event.description && <p className="text-muted text-sm mb-2">{event.description}</p>}
             <p className="text-sm text-muted">
               {formatDate(event.date_range_start, event.timezone)} &mdash; {formatDate(event.date_range_end, event.timezone)}
+              <span className="ml-2 text-xs">({event.timezone})</span>
             </p>
             {participant && (
               <p className="text-sm text-muted mt-1">
@@ -261,6 +282,7 @@ export default function RespondPage() {
               <h2 className="font-display text-xl font-semibold text-text mb-1">When are you free?</h2>
               <p className="text-sm text-muted mb-5">
                 Add broad windows when you could meet — the more generous, the better the recommendations.
+                Times are shown in <strong>{event.timezone}</strong>.
               </p>
               <AvailabilityPicker
                 windows={windows}
@@ -278,7 +300,6 @@ export default function RespondPage() {
               <p className="text-sm text-muted mb-5">
                 Optional, but helps the organizer find a spot that works for everyone.
               </p>
-
               <div className="flex items-center gap-3 mb-5 p-3 bg-surface-alt rounded-input">
                 <button
                   type="button"
@@ -289,7 +310,6 @@ export default function RespondPage() {
                 </button>
                 <span className="text-sm text-text">Include my preferences</span>
               </div>
-
               {showPreferences && (
                 <PreferenceForm values={preferences} onChange={setPreferences} />
               )}
@@ -307,17 +327,32 @@ export default function RespondPage() {
                     Your availability ({windows.length} window{windows.length !== 1 ? "s" : ""})
                   </p>
                   {windows.map((win) => {
-                    const start = new Intl.DateTimeFormat("en-US", {
+                    const eventTzFmt = new Intl.DateTimeFormat("en-US", {
                       weekday: "short", month: "short", day: "numeric",
                       hour: "numeric", minute: "2-digit", timeZone: event.timezone,
-                    }).format(new Date(win.start_time * 1000));
-                    const end = new Intl.DateTimeFormat("en-US", {
+                    });
+                    const endFmt = new Intl.DateTimeFormat("en-US", {
                       hour: "numeric", minute: "2-digit", timeZone: event.timezone,
-                    }).format(new Date(win.end_time * 1000));
+                    });
+                    const localFmt = new Intl.DateTimeFormat("en-US", {
+                      hour: "numeric", minute: "2-digit", timeZone: localTimezone,
+                    });
+                    const start = eventTzFmt.format(new Date(win.start_time * 1000));
+                    const end = endFmt.format(new Date(win.end_time * 1000));
+                    const localStart = localFmt.format(new Date(win.start_time * 1000));
+                    const localEnd = localFmt.format(new Date(win.end_time * 1000));
                     return (
-                      <div key={win.id} className="flex items-center gap-2 text-sm text-text py-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0" />
-                        {start} – {end}
+                      <div key={win.id} className="py-1.5">
+                        <div className="flex items-center gap-2 text-sm text-text">
+                          <div className="w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0" />
+                          {start} – {end}
+                          <span className="text-xs text-muted">({event.timezone})</span>
+                        </div>
+                        {showDualTimezone && (
+                          <p className="text-xs text-muted ml-3.5 mt-0.5">
+                            {localStart} – {localEnd} your time ({localTimezone})
+                          </p>
+                        )}
                       </div>
                     );
                   })}

@@ -17,7 +17,7 @@ export const CreateEventSchema = z.object({
   show_results_to_participants: z.boolean().default(false),
   preferences_required: z.boolean().default(false),
   scoring_mode: z
-    .enum(["maximize_attendance", "prioritize_required", "prefer_evenings", "prefer_weekends"])
+    .enum(["maximize_attendance", "prioritize_required", "vip_priority", "time_optimized"])
     .default("maximize_attendance"),
   response_deadline: z.number().int().positive().optional(),
   organizer_name: z.string().min(1).max(100),
@@ -28,16 +28,19 @@ export const AddParticipantSchema = z.object({
   name: z.string().min(1).max(100),
   email: z.string().email().optional().or(z.literal("")),
   is_required: z.boolean().default(false),
+  priority_tier: z.union([z.literal(0), z.literal(1), z.literal(2)]).default(0),
+  token_expires_hours: z.number().int().positive().optional(),
 });
 
 export const UpdateParticipantSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   email: z.string().email().optional().or(z.literal("")),
   is_required: z.boolean().optional(),
+  priority_tier: z.union([z.literal(0), z.literal(1), z.literal(2)]).optional(),
 });
 
 export const SubmitResponseSchema = z.object({
-  token: z.string().length(64),
+  token: z.string().min(24).max(64),
   availability_windows: z
     .array(
       z.object({

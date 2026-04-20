@@ -6,7 +6,25 @@ import { getDB } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
 import { computeRecommendations } from "@/lib/scheduling";
 import { formatDate } from "@/lib/utils";
-import { RecommendationCards } from "@/components/recommendation-cards";
+
+function formatSlotTime(ts: number, timezone: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: timezone,
+  }).format(new Date(ts * 1000));
+}
+
+function formatSlotEnd(ts: number, timezone: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: timezone,
+  }).format(new Date(ts * 1000));
+}
 
 export default async function SummaryPage({
   params,
@@ -24,17 +42,6 @@ export default async function SummaryPage({
   const event = await db.query.events.findFirst({ where: eq(schema.events.id, eventId) });
   if (!event) notFound();
 
-  if (event.show_results_to_participants === 0 && tokenRecord.role !== "organizer") {
-    return (
-      <div className="min-h-screen bg-bg flex items-center justify-center px-5">
-        <div className="text-center max-w-sm">
-          <h1 className="font-display text-2xl font-semibold text-text mb-2">Results not yet shared</h1>
-          <p className="text-muted">The organizer hasn&apos;t shared results with participants yet.</p>
-        </div>
-      </div>
-    );
-  }
-
   const participants = await db.select().from(schema.participants).where(eq(schema.participants.event_id, eventId));
   const slots = await db.select().from(schema.normalized_slots).where(eq(schema.normalized_slots.event_id, eventId));
   const preferences = await db.select().from(schema.participant_preferences).where(eq(schema.participant_preferences.event_id, eventId));
@@ -45,6 +52,7 @@ export default async function SummaryPage({
       id: p.id,
       is_required: p.is_required,
       response_status: p.response_status,
+      priority_tier: p.priority_tier,
     })),
     slots,
     preferences.map((p) => ({
@@ -69,13 +77,23 @@ export default async function SummaryPage({
   const totalParticipants = participants.filter((p) => p.role !== "organizer").length;
   const responded = participants.filter((p) => p.role !== "organizer" && p.response_status === "responded").length;
 
+  // Top 3 by attendance count (most people can make it)
+  const popularTimings = [...recommendations.top_candidates]
+    .sort((a, b) => b.attendingCount - a.attendingCount)
+    .slice(0, 3);
+
+  // Top 3 by composite score (best overall fit — may overlap with popular)
+  const suggestedTimings = recommendations.top_candidates.slice(0, 3);
+
+  // Deduplicate suggested from popular by start time
+  const popularStarts = new Set(popularTimings.map((t) => t.start));
+  const uniqueSuggested = suggestedTimings.filter((t) => !popularStarts.has(t.start));
+
   return (
     <div className="min-h-screen bg-bg">
       <header className="border-b border-border bg-surface/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-xl mx-auto px-5 h-14 flex items-center justify-between">
-          <Link href="/" className="font-display text-xl font-semibold text-text">
-            where to go
-          </Link>
+          <Link href="/" className="font-display text-xl font-semibold text-text">Togoo</Link>
         </div>
       </header>
 
@@ -83,8 +101,10 @@ export default async function SummaryPage({
         <div className="mb-8 animate-fade-in">
           <p className="text-xs font-medium text-accent uppercase tracking-wide mb-1">{event.event_type}</p>
           <h1 className="font-display text-3xl font-bold text-text">{event.title}</h1>
+          {event.description && <p className="text-sm text-muted mt-1">{event.description}</p>}
           <p className="text-sm text-muted mt-2">
             {formatDate(event.date_range_start, event.timezone)} &mdash; {formatDate(event.date_range_end, event.timezone)}
+            <span className="ml-2 text-xs">({event.timezone})</span>
           </p>
         </div>
 
@@ -105,12 +125,67 @@ export default async function SummaryPage({
           </div>
         )}
 
-        <h2 className="section-title mb-4">Best times so far</h2>
-        <RecommendationCards
-          recommendations={recommendations}
-          timezone={event.timezone}
-          durationMinutes={event.meeting_duration_minutes}
-        />
+        {popularTimings.length > 0 && (
+          <div className="mb-8">
+            <h2 className="section-title mb-3">Popular timings</h2>
+            <p className="text-xs text-muted mb-4">Times where the most people are available.</p>
+            <div className="space-y-3">
+              {popularTimings.map((slot, i) => (
+                <div key={slot.start} className="card card-interactive p-4 flex items-center gap-4">
+                  <div className="w-8 h-8 rounded-full bg-accent-subtle flex items-center justify-center flex-shrink-0 font-display font-bold text-accent text-sm">
+                    {i + 1}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-text">
+                      {formatSlotTime(slot.start, event.timezone)} &ndash; {formatSlotEnd(slot.end, event.timezone)}
+                    </p>
+                    <p className="text-xs text-muted mt-0.5">
+                      {slot.attendingCount} of {slot.totalParticipants} people available
+                    </p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-sm font-semibold text-text">
+                      {Math.round((slot.attendingCount / slot.totalParticipants) * 100)}%
+                    </p>
+                    <p className="text-xs text-muted">attendance</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {uniqueSuggested.length > 0 && (
+          <div className="mb-8">
+            <h2 className="section-title mb-3">Suggested timings</h2>
+            <p className="text-xs text-muted mb-4">Times that best match everyone&apos;s preferences.</p>
+            <div className="space-y-3">
+              {uniqueSuggested.map((slot, i) => (
+                <div key={slot.start} className="card p-4 flex items-center gap-4">
+                  <div className="w-8 h-8 rounded-full bg-surface-alt border border-border flex items-center justify-center flex-shrink-0 font-display font-bold text-muted text-sm">
+                    {i + 1}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-text">
+                      {formatSlotTime(slot.start, event.timezone)} &ndash; {formatSlotEnd(slot.end, event.timezone)}
+                    </p>
+                    <p className="text-xs text-muted mt-0.5">
+                      {slot.attendingCount} of {slot.totalParticipants} people available
+                      {slot.isWeekend ? " · weekend" : " · weekday"}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {popularTimings.length === 0 && (
+          <div className="card p-8 text-center text-muted text-sm">
+            <p className="font-medium text-text mb-1">No data yet</p>
+            <p>Timings will appear once participants start responding.</p>
+          </div>
+        )}
       </main>
     </div>
   );

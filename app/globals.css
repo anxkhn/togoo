@@ -7,6 +7,8 @@
 @layer base {
   :root {
     --radius: 14px;
+    --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
+    --ease-in-out-quart: cubic-bezier(0.77, 0, 0.175, 1);
   }
 
   html {
@@ -46,30 +48,40 @@
 @layer components {
   .card {
     @apply bg-surface rounded-card shadow-card border border-border;
+    /* shadow transition must sit here, not in Tailwind utilities, for specificity */
+    transition: box-shadow 200ms ease;
   }
 
+  /*
+   * Buttons: transition only color/border/shadow — NOT transform.
+   * Excluding transform lets :active scale snap instantly, which feels
+   * physically responsive rather than sluggish.
+   */
   .btn-primary {
     @apply bg-accent text-white rounded-input px-5 py-2.5 font-medium text-sm
-           hover:bg-accent-hover active:scale-[0.98] transition-all duration-150
+           hover:bg-accent-hover active:scale-[0.97]
            focus-visible:outline-accent disabled:opacity-50 disabled:cursor-not-allowed;
+    transition: background-color 150ms ease, box-shadow 150ms ease;
   }
 
   .btn-secondary {
     @apply bg-surface text-text border border-border rounded-input px-5 py-2.5 font-medium text-sm
-           hover:border-border-strong hover:bg-surface-alt active:scale-[0.98] transition-all duration-150
+           hover:border-border-strong hover:bg-surface-alt active:scale-[0.97]
            focus-visible:outline-accent disabled:opacity-50 disabled:cursor-not-allowed;
+    transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
   }
 
   .btn-ghost {
     @apply text-muted rounded-input px-3 py-1.5 text-sm font-medium
-           hover:text-text hover:bg-surface-alt transition-all duration-150
+           hover:text-text hover:bg-surface-alt active:scale-[0.97]
            focus-visible:outline-accent disabled:opacity-50 disabled:cursor-not-allowed;
+    transition: background-color 150ms ease, color 150ms ease;
   }
 
   .input {
     @apply w-full bg-surface border border-border rounded-input px-3.5 py-2.5 text-sm text-text
-           placeholder:text-muted-light focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent
-           transition-all duration-150;
+           placeholder:text-muted-light focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
   }
 
   .label {
@@ -86,5 +98,51 @@
 
   .section-title {
     @apply font-display text-xl font-semibold text-text;
+  }
+
+  /* Adds lift on hover. Only apply to cards that warrant the interaction cue. */
+  .card-interactive {
+    transition: box-shadow 200ms ease, transform 200ms ease;
+  }
+}
+
+/*
+ * Only apply hover lifts on devices that support true hover (not touch).
+ * Touch devices fire :hover on tap, causing a stuck highlighted state.
+ */
+@media (hover: hover) and (pointer: fine) {
+  .card-interactive:hover {
+    box-shadow: 0 4px 12px 0 rgba(26, 23, 20, 0.10), 0 2px 4px -1px rgba(26, 23, 20, 0.06);
+    transform: translateY(-1px);
+  }
+}
+
+/*
+ * Reduced motion: disable all animated movement, keep instant state changes.
+ * Per-selector (no !important) so specificity is respected.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-scale-in {
+    animation: none;
+  }
+
+  .card {
+    transition: none;
+  }
+
+  .btn-primary,
+  .btn-secondary,
+  .btn-ghost {
+    transition: none;
+  }
+
+  .input {
+    transition: none;
+  }
+
+  .card-interactive {
+    transition: none;
   }
 }

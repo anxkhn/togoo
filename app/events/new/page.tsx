@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { saveEvent } from "@/components/my-events";
 
 const TIMEZONES = [
   "UTC",
@@ -47,7 +48,6 @@ interface FormState {
   slot_granularity_minutes: string;
   scoring_mode: string;
   allow_participant_edit: boolean;
-  show_results_to_participants: boolean;
   organizer_name: string;
   organizer_email: string;
 }
@@ -81,7 +81,6 @@ export default function NewEventPage() {
     slot_granularity_minutes: "30",
     scoring_mode: "maximize_attendance",
     allow_participant_edit: true,
-    show_results_to_participants: false,
     organizer_name: "",
     organizer_email: "",
   });
@@ -108,7 +107,7 @@ export default function NewEventPage() {
         slot_granularity_minutes: parseInt(form.slot_granularity_minutes) as 15 | 30,
         scoring_mode: form.scoring_mode,
         allow_participant_edit: form.allow_participant_edit,
-        show_results_to_participants: form.show_results_to_participants,
+        show_results_to_participants: false,
         participants_required_by_default: false,
         preferences_required: false,
         organizer_name: form.organizer_name.trim(),
@@ -127,6 +126,14 @@ export default function NewEventPage() {
         return;
       }
 
+      saveEvent({
+        id: data.event_id,
+        title: payload.title,
+        role: "organizer",
+        token: data.organizer_token,
+        created_at: Math.floor(Date.now() / 1000),
+      });
+
       router.push(data.dashboard_url);
     } catch {
       setError("Something went wrong. Please try again.");
@@ -138,7 +145,7 @@ export default function NewEventPage() {
   const steps = [
     { n: 1, label: "Event details" },
     { n: 2, label: "Schedule" },
-    { n: 3, label: "Settings" },
+    { n: 3, label: "Review" },
   ];
 
   return (
@@ -146,7 +153,7 @@ export default function NewEventPage() {
       <header className="border-b border-border bg-surface/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-5 h-14 flex items-center justify-between">
           <Link href="/" className="font-display text-xl font-semibold text-text">
-            where to go
+            Togoo
           </Link>
         </div>
       </header>
@@ -236,7 +243,7 @@ export default function NewEventPage() {
                 options={TIMEZONES.map((tz) => ({ value: tz, label: tz.replace(/_/g, " ") }))}
                 value={form.timezone}
                 onChange={(e) => set("timezone", e.target.value)}
-                hint="All participants will see times in this timezone."
+                hint="Detected from your browser. Participants will see times in this timezone."
               />
               <div className="grid grid-cols-2 gap-4">
                 <Input
@@ -302,59 +309,39 @@ export default function NewEventPage() {
                 options={[
                   { value: "maximize_attendance", label: "Maximize attendance" },
                   { value: "prioritize_required", label: "Prioritize required attendees" },
-                  { value: "prefer_evenings", label: "Prefer evening times" },
-                  { value: "prefer_weekends", label: "Prefer weekends" },
+                  { value: "vip_priority", label: "Prioritize ★★ key people" },
+                  { value: "time_optimized", label: "Match time preferences" },
                 ]}
                 value={form.scoring_mode}
                 onChange={(e) => set("scoring_mode", e.target.value)}
+                hint="Controls how recommendations are ranked."
               />
             </div>
           )}
 
           {step === 3 && (
             <div className="space-y-5">
-              <div className="space-y-4">
-                <div className="flex items-start justify-between py-3 border-b border-border">
-                  <div>
-                    <p className="text-sm font-medium text-text">Allow participants to edit</p>
-                    <p className="text-xs text-muted mt-0.5">Let people update their availability after submitting</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => set("allow_participant_edit", !form.allow_participant_edit)}
-                    className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors duration-200 focus-visible:outline-accent flex-shrink-0 ${
-                      form.allow_participant_edit ? "bg-accent" : "bg-border"
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
-                        form.allow_participant_edit ? "translate-x-5" : "translate-x-1"
-                      }`}
-                    />
-                  </button>
+              <div className="flex items-start justify-between py-3 border-b border-border">
+                <div>
+                  <p className="text-sm font-medium text-text">Allow participants to edit</p>
+                  <p className="text-xs text-muted mt-0.5">Let people update their availability after submitting</p>
                 </div>
-                <div className="flex items-start justify-between py-3">
-                  <div>
-                    <p className="text-sm font-medium text-text">Show results to participants</p>
-                    <p className="text-xs text-muted mt-0.5">Let participants see the recommended time slots</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => set("show_results_to_participants", !form.show_results_to_participants)}
-                    className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors duration-200 focus-visible:outline-accent flex-shrink-0 ${
-                      form.show_results_to_participants ? "bg-accent" : "bg-border"
+                <button
+                  type="button"
+                  onClick={() => set("allow_participant_edit", !form.allow_participant_edit)}
+                  className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors duration-200 focus-visible:outline-accent flex-shrink-0 ${
+                    form.allow_participant_edit ? "bg-accent" : "bg-border"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                      form.allow_participant_edit ? "translate-x-5" : "translate-x-1"
                     }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
-                        form.show_results_to_participants ? "translate-x-5" : "translate-x-1"
-                      }`}
-                    />
-                  </button>
-                </div>
+                  />
+                </button>
               </div>
 
-              <div className="card bg-surface-alt p-4 mt-2">
+              <div className="card bg-surface-alt p-4">
                 <p className="text-sm font-medium text-text mb-1">Review</p>
                 <dl className="text-sm space-y-1 text-muted">
                   <div className="flex justify-between">

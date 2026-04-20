@@ -1,10 +1,41 @@
 import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { getDB } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
 import { formatDuration } from "@/lib/utils";
 import { notFound } from "next/navigation";
+import { ShareButtons } from "@/components/share-buttons";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ eventId: string }>;
+}): Promise<Metadata> {
+  const { eventId } = await params;
+  const db = getDB((env as unknown as { DB: D1Database }).DB);
+  const event = await db.query.events.findFirst({ where: eq(schema.events.id, eventId) });
+
+  if (!event) return { title: "Togoo" };
+
+  const desc = event.description ?? `Join us for ${event.title}. Organized with Togoo.`;
+
+  return {
+    title: `${event.title} — Togoo`,
+    description: desc,
+    openGraph: {
+      title: event.title,
+      description: desc,
+      type: "website",
+    },
+    twitter: {
+      card: "summary",
+      title: event.title,
+      description: desc,
+    },
+  };
+}
 
 export default async function FinalPage({
   params,
@@ -48,6 +79,8 @@ export default async function FinalPage({
     timeZone: event.timezone,
   }).format(new Date(finalSelection.slot_end * 1000));
 
+  const shareText = `${event.title} is happening on ${startDate}, ${startTime}–${endTime} (${event.timezone})`;
+
   return (
     <div className="min-h-screen bg-bg flex items-center justify-center px-5">
       <div className="max-w-md w-full">
@@ -58,7 +91,7 @@ export default async function FinalPage({
             </svg>
           </div>
           <Link href="/" className="font-display text-xl font-semibold text-text block mb-8">
-            where to go
+            Togoo
           </Link>
           <p className="text-xs font-medium text-accent uppercase tracking-wide mb-2">
             {event.event_type} &mdash; confirmed
@@ -86,12 +119,21 @@ export default async function FinalPage({
               <p className="text-sm text-muted">{finalSelection.notes}</p>
             </div>
           )}
+
+          <div className="mt-6 pt-5 border-t border-border flex items-center justify-center gap-2">
+            <span className="text-xs text-muted">Share</span>
+            <ShareButtons
+              path={`/e/${eventId}/final`}
+              title={event.title}
+              description={shareText}
+            />
+          </div>
         </div>
 
         <p className="text-center text-xs text-muted mt-6">
           Organized with{" "}
           <Link href="/" className="text-accent hover:underline">
-            where to go
+            Togoo
           </Link>
         </p>
       </div>
