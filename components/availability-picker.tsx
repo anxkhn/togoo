@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { fromZonedTime } from "date-fns-tz";
 import { cn } from "@/lib/utils";
 
 export interface TimeWindow {
@@ -16,183 +16,540 @@ interface AvailabilityPickerProps {
   dateRangeStart: number;
   dateRangeEnd: number;
   timezone: string;
+  allowedHoursStart?: number;
+  allowedHoursEnd?: number;
+  meetingDurationMinutes?: number;
 }
 
-function toLocalDatetimeValue(unixTs: number, timezone: string): string {
-  const date = new Date(unixTs * 1000);
-  const formatter = new Intl.DateTimeFormat("en-CA", {
+// ─── timezone helpers ────────────────────────────────────────────────────────
+
+function toUnix(dateStr: string, h: number, m: number, tz: string): number {
+  const iso = `${dateStr}T${pad(h)}:${pad(m)}:00`;
+  return Math.floor(fromZonedTime(iso, tz).getTime() / 1000);
+}
+
+function pad(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+function fmtTime(unix: number, tz: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: tz,
+  }).format(new Date(unix * 1000));
+}
+
+function fmtHour(h: number) {
+  if (h === 0 || h === 24) return "12 AM";
+  if (h < 12) return `${h} AM`;
+  if (h === 12) return "12 PM";
+  return `${h - 12} PM`;
+}
+
+function getDates(startUnix: number, endUnix: number, tz: string): string[] {
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    timeZone: timezone,
   });
-  const parts = formatter.formatToParts(date);
-  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
-  return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
+  const dates: string[] = [];
+  const seen = new Set<string>();
+  for (let ts = startUnix; ts <= endUnix + 3600; ts += 3600) {
+    const d = fmt.format(new Date(ts * 1000));
+    if (!seen.has(d)) {
+      seen.add(d);
+      dates.push(d);
+    }
+    if (dates.length > 60) break;
+  }
+  return dates;
 }
 
-function fromLocalDatetimeValue(value: string, timezone: string): number {
-  const [datePart, timePart] = value.split("T");
-  const [year, month, day] = datePart.split("-").map(Number);
-  const [hour, minute] = timePart.split(":").map(Number);
-
-  const fmt = new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
-    timeZoneName: "short",
-  });
-  const date = new Date(year, month - 1, day, hour, minute);
-  const tzOffset = getTimezoneOffsetMinutes(date, timezone);
-  return Math.floor(date.getTime() / 1000) - tzOffset * 60;
-}
-
-function getTimezoneOffsetMinutes(date: Date, timezone: string): number {
-  const utcFormatter = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", hour: "numeric", minute: "numeric", hour12: false });
-  const tzFormatter = new Intl.DateTimeFormat("en-US", { timeZone: timezone, hour: "numeric", minute: "numeric", hour12: false });
-
-  const utcParts = utcFormatter.formatToParts(date);
-  const tzParts = tzFormatter.formatToParts(date);
-
-  const utcH = parseInt(utcParts.find((p) => p.type === "hour")?.value ?? "0");
-  const utcM = parseInt(utcParts.find((p) => p.type === "minute")?.value ?? "0");
-  const tzH = parseInt(tzParts.find((p) => p.type === "hour")?.value ?? "0");
-  const tzM = parseInt(tzParts.find((p) => p.type === "minute")?.value ?? "0");
-
-  return (tzH * 60 + tzM) - (utcH * 60 + utcM);
-}
-
-function formatWindowDisplay(window: TimeWindow, timezone: string): string {
-  const start = new Intl.DateTimeFormat("en-US", {
+function fmtDayLabel(dateStr: string, tz: string) {
+  const noon = fromZonedTime(`${dateStr}T12:00:00`, tz);
+  return new Intl.DateTimeFormat("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    timeZone: timezone,
-  }).format(new Date(window.start_time * 1000));
-
-  const end = new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    timeZone: timezone,
-  }).format(new Date(window.end_time * 1000));
-
-  return `${start} – ${end}`;
+    timeZone: tz,
+  }).format(noon);
 }
+
+function getDayOfWeek(dateStr: string, tz: string): number {
+  const noon = fromZonedTime(`${dateStr}T12:00:00`, tz);
+  return new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: tz })
+    .format(noon)
+    .slice(0, 3) === "Sat" || new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: tz }).format(noon).slice(0, 3) === "Sun"
+    ? 1
+    : 0;
+}
+
+// ─── block helpers ───────────────────────────────────────────────────────────
+
+interface Block {
+  key: string;
+  label: string;
+  sh: number;
+  eh: number;
+}
+
+function getBlocks(aS: number, aE: number): Block[] {
+  const b: Block[] = [];
+  const mE = Math.min(12, aE);
+  if (mE > aS) b.push({ key: "morning", label: "Morning", sh: aS, eh: mE });
+  const pS = Math.max(12, aS);
+  const pE = Math.min(17, aE);
+  if (pE > pS) b.push({ key: "afternoon", label: "Afternoon", sh: pS, eh: pE });
+  const eS = Math.max(17, aS);
+  if (aE > eS) b.push({ key: "evening", label: "Evening", sh: eS, eh: aE });
+  return b;
+}
+
+function isExactBlock(w: TimeWindow, blocks: Block[], dateStr: string, tz: string) {
+  return blocks.some(
+    (b) => w.start_time === toUnix(dateStr, b.sh, 0, tz) && w.end_time === toUnix(dateStr, b.eh, 0, tz)
+  );
+}
+
+function isBlockSelected(windows: TimeWindow[], s: number, e: number) {
+  return windows.some((w) => w.start_time === s && w.end_time === e);
+}
+
+function uid() {
+  return Math.random().toString(36).slice(2, 10);
+}
+
+// ─── custom draft state ──────────────────────────────────────────────────────
+
+interface Draft {
+  startH: number;
+  startM: number;
+  durMins: number | "custom";
+  endH: number;
+  endM: number;
+}
+
+function defaultDraft(aS: number, durMins: number, aE: number): Draft {
+  const endTotalMins = Math.min(aS * 60 + durMins, aE * 60);
+  return {
+    startH: aS,
+    startM: 0,
+    durMins,
+    endH: Math.floor(endTotalMins / 60),
+    endM: endTotalMins % 60,
+  };
+}
+
+// ─── sub-components ──────────────────────────────────────────────────────────
+
+function BlockPill({
+  block,
+  selected,
+  onClick,
+}: {
+  block: Block;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-150 active:scale-[0.97]",
+        selected
+          ? "bg-accent text-white border-accent shadow-sm"
+          : "bg-surface border-border text-text hover:border-accent/50 hover:bg-accent-subtle/30"
+      )}
+    >
+      {selected && (
+        <svg className="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+        </svg>
+      )}
+      <span>{block.label}</span>
+      <span className={cn("text-[10px]", selected ? "text-white/70" : "text-muted")}>
+        {fmtHour(block.sh)}–{fmtHour(block.eh)}
+      </span>
+    </button>
+  );
+}
+
+function WindowChip({ label, onRemove }: { label: string; onRemove: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-1 bg-accent-subtle border border-accent-light rounded-full px-2.5 py-1 text-xs text-accent font-medium">
+      {label}
+      <button
+        type="button"
+        onClick={onRemove}
+        className="text-accent/70 hover:text-danger transition-colors ml-0.5"
+        aria-label="Remove"
+      >
+        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </span>
+  );
+}
+
+// ─── main component ──────────────────────────────────────────────────────────
 
 export function AvailabilityPicker({
   windows,
   onChange,
   dateRangeStart,
   dateRangeEnd,
-  timezone,
+  timezone: tz,
+  allowedHoursStart = 9,
+  allowedHoursEnd = 22,
+  meetingDurationMinutes = 60,
 }: AvailabilityPickerProps) {
-  const [draft, setDraft] = useState<{ start: string; end: string }>({
-    start: "",
-    end: "",
-  });
-  const [error, setError] = useState("");
+  const dates = getDates(dateRangeStart, dateRangeEnd, tz);
+  const blocks = getBlocks(allowedHoursStart, allowedHoursEnd);
 
-  const minDatetime = toLocalDatetimeValue(dateRangeStart, timezone).slice(0, 16);
-  const maxDatetime = toLocalDatetimeValue(dateRangeEnd, timezone).slice(0, 16);
+  const [openDay, setOpenDay] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<Record<string, Draft>>({});
 
-  function addWindow() {
-    if (!draft.start || !draft.end) {
-      setError("Please select both start and end times.");
-      return;
+  // ── block toggling ──────────────────────────────────────────────────────
+
+  function toggleBlock(dateStr: string, block: Block) {
+    const s = toUnix(dateStr, block.sh, 0, tz);
+    const e = toUnix(dateStr, block.eh, 0, tz);
+    if (isBlockSelected(windows, s, e)) {
+      onChange(windows.filter((w) => !(w.start_time === s && w.end_time === e)));
+    } else {
+      onChange([...windows, { id: uid(), start_time: s, end_time: e }]);
     }
-    const start = fromLocalDatetimeValue(draft.start, timezone);
-    const end = fromLocalDatetimeValue(draft.end, timezone);
-    if (end <= start) {
-      setError("End time must be after start time.");
-      return;
-    }
-    if (end - start < 30 * 60) {
-      setError("Window must be at least 30 minutes.");
-      return;
-    }
-    setError("");
-    const id = crypto.randomUUID();
-    onChange([...windows, { id, start_time: start, end_time: end }]);
-    setDraft({ start: "", end: "" });
   }
 
-  function removeWindow(id: string) {
-    onChange(windows.filter((w) => w.id !== id));
+  function selectAll() {
+    const toAdd: TimeWindow[] = [];
+    for (const dateStr of dates) {
+      for (const block of blocks) {
+        const s = toUnix(dateStr, block.sh, 0, tz);
+        const e = toUnix(dateStr, block.eh, 0, tz);
+        if (!isBlockSelected(windows, s, e) && !toAdd.some((w) => w.start_time === s && w.end_time === e)) {
+          toAdd.push({ id: uid(), start_time: s, end_time: e });
+        }
+      }
+    }
+    onChange([...windows, ...toAdd]);
   }
+
+  // ── custom draft helpers ────────────────────────────────────────────────
+
+  function openCustom(dateStr: string) {
+    if (openDay === dateStr) {
+      setOpenDay(null);
+      return;
+    }
+    setOpenDay(dateStr);
+    if (!drafts[dateStr]) {
+      setDrafts((p) => ({ ...p, [dateStr]: defaultDraft(allowedHoursStart, meetingDurationMinutes, allowedHoursEnd) }));
+    }
+  }
+
+  function updateDraft(dateStr: string, patch: Partial<Draft>) {
+    setDrafts((p) => ({ ...p, [dateStr]: { ...p[dateStr], ...patch } }));
+  }
+
+  function getStartOptions(dateStr: string) {
+    const opts: { label: string; h: number; m: number }[] = [];
+    for (let totalM = allowedHoursStart * 60; totalM < allowedHoursEnd * 60 - 29; totalM += 30) {
+      const h = Math.floor(totalM / 60);
+      const m = totalM % 60;
+      opts.push({ label: fmtTime(toUnix(dateStr, h, m, tz), tz), h, m });
+    }
+    return opts;
+  }
+
+  function getDurationOptions(startH: number, startM: number): number[] {
+    const maxMins = allowedHoursEnd * 60 - (startH * 60 + startM);
+    return [30, 60, 90, 120, 180, 240, 360].filter((d) => d <= maxMins);
+  }
+
+  function getEndOptions(dateStr: string, startH: number, startM: number) {
+    const opts: { label: string; h: number; m: number }[] = [];
+    for (let totalM = startH * 60 + startM + 30; totalM <= allowedHoursEnd * 60; totalM += 30) {
+      const h = Math.floor(totalM / 60);
+      const m = totalM % 60;
+      opts.push({ label: fmtTime(toUnix(dateStr, h, m, tz), tz), h, m });
+    }
+    return opts;
+  }
+
+  function computeEnd(draft: Draft): { h: number; m: number } | null {
+    if (draft.durMins === "custom") return { h: draft.endH, m: draft.endM };
+    const totalM = draft.startH * 60 + draft.startM + draft.durMins;
+    if (totalM > allowedHoursEnd * 60) return null;
+    return { h: Math.floor(totalM / 60), m: totalM % 60 };
+  }
+
+  function addCustomWindow(dateStr: string) {
+    const draft = drafts[dateStr];
+    if (!draft) return;
+    const end = computeEnd(draft);
+    if (!end) return;
+    const s = toUnix(dateStr, draft.startH, draft.startM, tz);
+    const e = toUnix(dateStr, end.h, end.m, tz);
+    if (e <= s) return;
+    onChange([...windows, { id: uid(), start_time: s, end_time: e }]);
+    setOpenDay(null);
+  }
+
+  const durLabels: Record<number, string> = {
+    30: "30 min",
+    60: "1 hr",
+    90: "1.5 hr",
+    120: "2 hr",
+    180: "3 hr",
+    240: "4 hr",
+    360: "6 hr",
+  };
 
   return (
-    <div className="space-y-4">
-      <div className="card p-4 space-y-3">
-        <p className="text-sm font-medium text-text">Add availability window</p>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="label text-xs">From</label>
-            <input
-              type="datetime-local"
-              className="input text-sm"
-              min={minDatetime}
-              max={maxDatetime}
-              value={draft.start}
-              onChange={(e) => setDraft((d) => ({ ...d, start: e.target.value }))}
-            />
-          </div>
-          <div>
-            <label className="label text-xs">To</label>
-            <input
-              type="datetime-local"
-              className="input text-sm"
-              min={draft.start || minDatetime}
-              max={maxDatetime}
-              value={draft.end}
-              onChange={(e) => setDraft((d) => ({ ...d, end: e.target.value }))}
-            />
-          </div>
+    <div>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-xs text-muted">
+          Times in <span className="font-medium text-text">{tz}</span>
+        </p>
+        <div className="flex items-center gap-3">
+          {windows.length > 0 && (
+            <button
+              type="button"
+              onClick={() => onChange([])}
+              className="text-xs text-muted hover:text-danger transition-colors"
+            >
+              Clear all
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={selectAll}
+            className="text-xs font-medium text-accent hover:underline"
+          >
+            Select all
+          </button>
         </div>
-        {error && <p className="text-xs text-danger">{error}</p>}
-        <Button variant="secondary" size="sm" onClick={addWindow} type="button">
-          + Add window
-        </Button>
       </div>
 
-      {windows.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-muted uppercase tracking-wide">Added windows</p>
-          {windows.map((win) => (
-            <div
-              key={win.id}
-              className="flex items-center justify-between bg-accent-subtle border border-accent-light rounded-input px-4 py-3 animate-fade-in"
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0" />
-                <span className="text-sm text-text font-medium">{formatWindowDisplay(win, timezone)}</span>
+      {/* Date rows */}
+      <div className="space-y-0">
+        {dates.map((dateStr) => {
+          const dateFmt = new Intl.DateTimeFormat("en-CA", {
+            timeZone: tz,
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          });
+          const dayWindows = windows.filter(
+            (w) => dateFmt.format(new Date(w.start_time * 1000)) === dateStr
+          );
+          const customWindows = dayWindows.filter(
+            (w) => !isExactBlock(w, blocks, dateStr, tz)
+          );
+          const isOpen = openDay === dateStr;
+          const draft = drafts[dateStr];
+          const durOpts = draft ? getDurationOptions(draft.startH, draft.startM) : [];
+          const endOpts = draft ? getEndOptions(dateStr, draft.startH, draft.startM) : [];
+          const computedEnd = draft ? computeEnd(draft) : null;
+
+          return (
+            <div key={dateStr} className="border-b border-border last:border-0 py-3">
+              {/* Row: label + blocks + custom button */}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <span className="text-sm font-medium text-text w-24 flex-shrink-0">
+                  {fmtDayLabel(dateStr, tz)}
+                </span>
+
+                <div className="flex flex-wrap gap-1.5 flex-1">
+                  {blocks.map((block) => {
+                    const s = toUnix(dateStr, block.sh, 0, tz);
+                    const e = toUnix(dateStr, block.eh, 0, tz);
+                    return (
+                      <BlockPill
+                        key={block.key}
+                        block={block}
+                        selected={isBlockSelected(windows, s, e)}
+                        onClick={() => toggleBlock(dateStr, block)}
+                      />
+                    );
+                  })}
+
+                  <button
+                    type="button"
+                    onClick={() => openCustom(dateStr)}
+                    className={cn(
+                      "inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium border transition-all duration-150 active:scale-[0.97]",
+                      isOpen
+                        ? "bg-surface-alt border-border-strong text-text"
+                        : "bg-surface border-border text-muted hover:text-text hover:border-border-strong"
+                    )}
+                  >
+                    <svg
+                      className={cn("w-3 h-3 transition-transform duration-150", isOpen && "rotate-45")}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Custom
+                  </button>
+                </div>
               </div>
-              <button
-                type="button"
-                onClick={() => removeWindow(win.id)}
-                className="text-muted hover:text-danger transition-colors p-1 rounded"
-                aria-label="Remove window"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+
+              {/* Custom time expander */}
+              {isOpen && draft && (
+                <div className="mt-2 ml-0 sm:ml-[108px] p-3 bg-surface-alt rounded-input border border-border space-y-3">
+                  {/* Start time */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-medium text-muted block mb-1">Start</label>
+                      <select
+                        className="input text-sm"
+                        value={`${draft.startH}:${draft.startM}`}
+                        onChange={(e) => {
+                          const [h, m] = e.target.value.split(":").map(Number);
+                          const newDurOpts = getDurationOptions(h, m);
+                          const newDur =
+                            draft.durMins !== "custom" && newDurOpts.includes(draft.durMins)
+                              ? draft.durMins
+                              : newDurOpts[0] ?? meetingDurationMinutes;
+                          updateDraft(dateStr, { startH: h, startM: m, durMins: newDur });
+                        }}
+                      >
+                        {getStartOptions(dateStr).map((o) => (
+                          <option key={`${o.h}:${o.m}`} value={`${o.h}:${o.m}`}>
+                            {o.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Duration buttons */}
+                    <div>
+                      <label className="text-xs font-medium text-muted block mb-1">Duration</label>
+                      <div className="flex flex-wrap gap-1">
+                        {durOpts.map((d) => (
+                          <button
+                            key={d}
+                            type="button"
+                            onClick={() => updateDraft(dateStr, { durMins: d })}
+                            className={cn(
+                              "px-2 py-1 rounded text-xs font-medium border transition-all duration-100 active:scale-[0.97]",
+                              draft.durMins === d
+                                ? "bg-accent text-white border-accent"
+                                : "bg-surface border-border text-text hover:border-accent/40"
+                            )}
+                          >
+                            {durLabels[d] ?? `${d}m`}
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const end = computeEnd(draft);
+                            updateDraft(dateStr, {
+                              durMins: "custom",
+                              endH: end?.h ?? allowedHoursEnd,
+                              endM: end?.m ?? 0,
+                            });
+                          }}
+                          className={cn(
+                            "px-2 py-1 rounded text-xs font-medium border transition-all duration-100 active:scale-[0.97]",
+                            draft.durMins === "custom"
+                              ? "bg-accent text-white border-accent"
+                              : "bg-surface border-border text-text hover:border-accent/40"
+                          )}
+                        >
+                          Custom
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Custom end time */}
+                  {draft.durMins === "custom" && (
+                    <div>
+                      <label className="text-xs font-medium text-muted block mb-1">End time</label>
+                      <select
+                        className="input text-sm"
+                        value={`${draft.endH}:${draft.endM}`}
+                        onChange={(e) => {
+                          const [h, m] = e.target.value.split(":").map(Number);
+                          updateDraft(dateStr, { endH: h, endM: m });
+                        }}
+                      >
+                        {endOpts.map((o) => (
+                          <option key={`${o.h}:${o.m}`} value={`${o.h}:${o.m}`}>
+                            {o.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Preview + actions */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted">
+                      {computedEnd
+                        ? `${fmtTime(toUnix(dateStr, draft.startH, draft.startM, tz), tz)} – ${fmtTime(toUnix(dateStr, computedEnd.h, computedEnd.m, tz), tz)}`
+                        : "Select a duration"}
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setOpenDay(null)}
+                        className="text-xs text-muted hover:text-text transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => addCustomWindow(dateStr)}
+                        disabled={!computedEnd}
+                        className="btn-primary text-xs px-3 py-1 disabled:opacity-40"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Custom window chips */}
+              {customWindows.length > 0 && (
+                <div className="mt-2 ml-0 sm:ml-[108px] flex flex-wrap gap-1.5">
+                  {customWindows.map((w) => (
+                    <WindowChip
+                      key={w.id}
+                      label={`${fmtTime(w.start_time, tz)} – ${fmtTime(w.end_time, tz)}`}
+                      onRemove={() => onChange(windows.filter((x) => x.id !== w.id))}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          ))}
-        </div>
-      )}
+          );
+        })}
+      </div>
 
       {windows.length === 0 && (
-        <div className="text-center py-8 text-muted text-sm">
-          No availability windows added yet. Add at least one to continue.
-        </div>
+        <p className="text-center py-6 text-muted text-sm mt-2">
+          Tap a time block above to mark when you're free.
+        </p>
       )}
 
-      <p className="text-xs text-muted">
-        All times shown in <span className="font-medium text-text">{timezone}</span>
-      </p>
+      {windows.length > 0 && (
+        <p className="text-xs text-muted mt-3 text-center">
+          {windows.length} window{windows.length !== 1 ? "s" : ""} selected
+        </p>
+      )}
     </div>
   );
 }

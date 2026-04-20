@@ -142,8 +142,8 @@ function buildExplanation(m: ScoredMeeting): string {
 }
 
 function tierWeight(tier: number | undefined): number {
-  if (tier === 2) return 4; // ★★ key person
-  if (tier === 1) return 2; // ★ important
+  if (tier === 2) return 4;
+  if (tier === 1) return 2;
   return 1;
 }
 
@@ -236,7 +236,6 @@ export function computeRecommendations(
           0.2 * attendanceScore + 0.55 * requiredScore + 0.15 * timePrefScore + 0.1 * dayTypePrefScore;
         break;
       case "vip_priority":
-        // ★★ attendees weighted 4x, ★ weighted 2x — slot is boosted heavily if key people can make it
         compositeScore =
           0.15 * attendanceScore +
           0.15 * requiredScore +

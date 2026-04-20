@@ -4,17 +4,19 @@ interface ShareButtonsProps {
   path: string;
   title: string;
   description?: string | null;
+  organizerName?: string;
   participantName?: string;
   participantEmail?: string | null;
 }
 
-export function ShareButtons({ path, title, description, participantName, participantEmail }: ShareButtonsProps) {
+export function ShareButtons({ path, title, description, organizerName, participantName, participantEmail }: ShareButtonsProps) {
   const url = typeof window !== "undefined" ? `${window.location.origin}${path}` : path;
   const greeting = participantName ? `Hey ${participantName}! ` : "";
-  const body = `${greeting}You're invited to ${title}.\n\n${description ? description + "\n\n" : ""}Respond here: ${url}`;
+  const invite = organizerName ? `${organizerName} is inviting you to ${title}.` : `You're invited to ${title}.`;
+  const body = `${greeting}${invite}\n\n${description ? description + "\n\n" : ""}Respond here: ${url}`;
 
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(body)}`;
-  const mailtoUrl = `mailto:${participantEmail ?? ""}?subject=${encodeURIComponent(`You're invited: ${title}`)}&body=${encodeURIComponent(body)}`;
+  const mailtoUrl = `mailto:${participantEmail ?? ""}?subject=${encodeURIComponent(`${organizerName ?? "Someone"} invited you: ${title}`)}&body=${encodeURIComponent(body)}`;
 
   return (
     <div className="flex items-center gap-2">

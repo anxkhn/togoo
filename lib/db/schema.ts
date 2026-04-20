@@ -40,6 +40,7 @@ export const participants = sqliteTable(
       .references(() => events.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     email: text("email"),
+    phone: text("phone"),
     role: text("role").notNull().default("participant"),
     is_required: integer("is_required").notNull().default(0),
     priority_tier: integer("priority_tier").notNull().default(0),

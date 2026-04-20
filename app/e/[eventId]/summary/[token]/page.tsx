@@ -37,10 +37,10 @@ export default async function SummaryPage({
   const tokenRecord = await db.query.invite_tokens.findFirst({
     where: and(eq(schema.invite_tokens.token, token), eq(schema.invite_tokens.is_active, 1)),
   });
-  if (!tokenRecord) notFound();
+  if (!tokenRecord) return notFound();
 
   const event = await db.query.events.findFirst({ where: eq(schema.events.id, eventId) });
-  if (!event) notFound();
+  if (!event) return notFound();
 
   const participants = await db.select().from(schema.participants).where(eq(schema.participants.event_id, eventId));
   const slots = await db.select().from(schema.normalized_slots).where(eq(schema.normalized_slots.event_id, eventId));
@@ -77,15 +77,11 @@ export default async function SummaryPage({
   const totalParticipants = participants.filter((p) => p.role !== "organizer").length;
   const responded = participants.filter((p) => p.role !== "organizer" && p.response_status === "responded").length;
 
-  // Top 3 by attendance count (most people can make it)
   const popularTimings = [...recommendations.top_candidates]
     .sort((a, b) => b.attendingCount - a.attendingCount)
     .slice(0, 3);
 
-  // Top 3 by composite score (best overall fit — may overlap with popular)
   const suggestedTimings = recommendations.top_candidates.slice(0, 3);
-
-  // Deduplicate suggested from popular by start time
   const popularStarts = new Set(popularTimings.map((t) => t.start));
   const uniqueSuggested = suggestedTimings.filter((t) => !popularStarts.has(t.start));
 

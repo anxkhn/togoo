@@ -76,7 +76,7 @@ export async function POST(
       return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
     }
 
-    const { name, email, is_required, priority_tier, token_expires_hours } = parsed.data;
+    const { name, email, phone, is_required, priority_tier, token_expires_hours } = parsed.data;
     const now = unixNow();
     const participantId = generateId();
     const inviteToken = generateSecureToken();
@@ -87,6 +87,7 @@ export async function POST(
       event_id: eventId,
       name,
       email: email || null,
+      phone: phone || null,
       role: "participant",
       is_required: is_required ? 1 : 0,
       priority_tier,
@@ -116,9 +117,9 @@ export async function POST(
     });
 
     return NextResponse.json({
-      participant: { id: participantId, name, email: email || null, is_required, priority_tier },
+      participant: { id: participantId, name, email: email || null, phone: phone || null, is_required, priority_tier },
       invite_token: inviteToken,
-      invite_url: `/e/${eventId}/respond/${inviteToken}`,
+      invite_url: `/r/${inviteToken}`,
     });
   } catch (err) {
     console.error("Add participant error:", err);

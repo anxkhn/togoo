@@ -7,9 +7,11 @@ export default function LandingPage() {
       <header className="border-b border-border bg-surface/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-5 h-14 flex items-center justify-between">
           <span className="font-display text-xl font-semibold text-text">Togoo</span>
-          <Link href="/events/new" className="btn-primary text-sm">
-            Plan a meetup
-          </Link>
+          <nav className="flex items-center gap-4">
+            <Link href="/faq" className="text-sm text-muted hover:text-text transition-colors">FAQ</Link>
+            <a href="https://github.com/anxkhn/togoo" target="_blank" rel="noopener noreferrer" className="text-sm text-muted hover:text-text transition-colors">GitHub</a>
+            <Link href="/events/new" className="btn-primary text-sm">Plan a meetup</Link>
+          </nav>
         </div>
       </header>
 
@@ -110,8 +112,12 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className="border-t border-border py-8 text-center text-sm text-muted">
+      <footer className="border-t border-border py-8 text-center text-sm text-muted space-y-2">
         <p>Togoo — group scheduling made simple</p>
+        <div className="flex items-center justify-center gap-4 text-xs">
+          <Link href="/faq" className="hover:text-accent transition-colors">FAQ</Link>
+          <a href="https://github.com/anxkhn/togoo" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors">GitHub</a>
+        </div>
       </footer>
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
-import { Select } from "@/components/ui/select";
 import { Input, Textarea } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 export interface PreferenceValues {
   preferred_area: string;
@@ -27,116 +27,189 @@ export const defaultPreferences: PreferenceValues = {
   notes: "",
 };
 
+// All known preference field keys
+export const ALL_PREFERENCE_FIELDS = [
+  "food",
+  "budget",
+  "location",
+  "day_type",
+  "time_of_day",
+  "indoor_outdoor",
+] as const;
+
+export type PreferenceFieldKey = (typeof ALL_PREFERENCE_FIELDS)[number];
+
 interface PreferenceFormProps {
   values: PreferenceValues;
   onChange: (values: PreferenceValues) => void;
+  // If empty or undefined, show all fields
+  enabledFields?: string[];
 }
 
-const foodOptions = [
+function set(values: PreferenceValues, field: keyof PreferenceValues, value: string): PreferenceValues {
+  return { ...values, [field]: value };
+}
+
+// ─── pill group ───────────────────────────────────────────────────────────────
+
+interface PillOption {
+  value: string;
+  label: string;
+}
+
+function PillGroup({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: PillOption[];
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div>
+      <p className="text-xs font-medium text-muted mb-2">{label}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onChange(opt.value === value ? "no_preference" : opt.value)}
+            className={cn(
+              "px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-150 active:scale-[0.97]",
+              value === opt.value
+                ? "bg-accent text-white border-accent"
+                : "bg-surface border-border text-text hover:border-accent/50 hover:bg-accent-subtle/20"
+            )}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── option data ──────────────────────────────────────────────────────────────
+
+const FOOD_OPTS: PillOption[] = [
   { value: "no_preference", label: "No preference" },
-  { value: "veg", label: "Vegetarian" },
+  { value: "veg", label: "Veg" },
   { value: "vegan", label: "Vegan" },
-  { value: "non_veg", label: "Non-vegetarian" },
+  { value: "non_veg", label: "Non-veg" },
   { value: "halal", label: "Halal" },
   { value: "jain", label: "Jain" },
   { value: "eggetarian", label: "Eggetarian" },
-  { value: "custom", label: "Custom (describe in notes)" },
+  { value: "custom", label: "Other" },
 ];
 
-const budgetOptions = [
+const BUDGET_OPTS: PillOption[] = [
   { value: "no_preference", label: "No preference" },
-  { value: "low", label: "Budget-friendly" },
+  { value: "low", label: "Budget" },
   { value: "medium", label: "Mid-range" },
   { value: "high", label: "Upscale" },
 ];
 
-const dayTypeOptions = [
+const DAY_OPTS: PillOption[] = [
   { value: "no_preference", label: "No preference" },
   { value: "weekday", label: "Weekday" },
   { value: "weekend", label: "Weekend" },
 ];
 
-const timeOfDayOptions = [
+const TIME_OPTS: PillOption[] = [
   { value: "no_preference", label: "No preference" },
-  { value: "morning", label: "Morning (5am–12pm)" },
-  { value: "afternoon", label: "Afternoon (12pm–5pm)" },
-  { value: "evening", label: "Evening (5pm–9pm)" },
-  { value: "late_night", label: "Late night (9pm+)" },
+  { value: "morning", label: "Morning" },
+  { value: "afternoon", label: "Afternoon" },
+  { value: "evening", label: "Evening" },
+  { value: "late_night", label: "Late night" },
 ];
 
-const indoorOutdoorOptions = [
+const SETTING_OPTS: PillOption[] = [
   { value: "no_preference", label: "No preference" },
   { value: "indoor", label: "Indoor" },
   { value: "outdoor", label: "Outdoor" },
 ];
 
-export function PreferenceForm({ values, onChange }: PreferenceFormProps) {
-  const set = (field: keyof PreferenceValues, value: string) => {
-    onChange({ ...values, [field]: value });
-  };
+// ─── main component ───────────────────────────────────────────────────────────
+
+export function PreferenceForm({ values, onChange, enabledFields }: PreferenceFormProps) {
+  // Empty enabledFields means show everything (backward compat)
+  const show = (key: string) =>
+    !enabledFields || enabledFields.length === 0 || enabledFields.includes(key);
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {show("food") && (
+        <PillGroup
+          label="Food"
+          value={values.food_preference}
+          options={FOOD_OPTS}
+          onChange={(v) => onChange(set(values, "food_preference", v))}
+        />
+      )}
+
+      {show("food") && values.food_preference === "custom" && (
         <Input
-          label="Preferred area / location"
+          label="Describe your preference"
+          placeholder="e.g., gluten-free, nut allergy..."
+          value={values.food_note}
+          onChange={(e) => onChange(set(values, "food_note", e.target.value))}
+        />
+      )}
+
+      {show("budget") && (
+        <PillGroup
+          label="Budget"
+          value={values.budget_preference}
+          options={BUDGET_OPTS}
+          onChange={(v) => onChange(set(values, "budget_preference", v))}
+        />
+      )}
+
+      {show("day_type") && (
+        <PillGroup
+          label="Day"
+          value={values.preferred_day_type}
+          options={DAY_OPTS}
+          onChange={(v) => onChange(set(values, "preferred_day_type", v))}
+        />
+      )}
+
+      {show("time_of_day") && (
+        <PillGroup
+          label="Time of day"
+          value={values.preferred_time_of_day}
+          options={TIME_OPTS}
+          onChange={(v) => onChange(set(values, "preferred_time_of_day", v))}
+        />
+      )}
+
+      {show("indoor_outdoor") && (
+        <PillGroup
+          label="Setting"
+          value={values.indoor_outdoor}
+          options={SETTING_OPTS}
+          onChange={(v) => onChange(set(values, "indoor_outdoor", v))}
+        />
+      )}
+
+      {show("location") && (
+        <Input
+          label="Preferred area"
           placeholder="e.g., Downtown, East Side..."
           value={values.preferred_area}
-          onChange={(e) => set("preferred_area", e.target.value)}
+          onChange={(e) => onChange(set(values, "preferred_area", e.target.value))}
         />
-        <Input
-          label="Max travel distance (km)"
-          type="number"
-          min="0"
-          max="200"
-          placeholder="e.g., 10"
-          value={values.max_travel_distance}
-          onChange={(e) => set("max_travel_distance", e.target.value)}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Select
-          label="Food preference"
-          options={foodOptions}
-          value={values.food_preference}
-          onChange={(e) => set("food_preference", e.target.value)}
-        />
-        <Select
-          label="Budget"
-          options={budgetOptions}
-          value={values.budget_preference}
-          onChange={(e) => set("budget_preference", e.target.value)}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Select
-          label="Day preference"
-          options={dayTypeOptions}
-          value={values.preferred_day_type}
-          onChange={(e) => set("preferred_day_type", e.target.value)}
-        />
-        <Select
-          label="Time of day"
-          options={timeOfDayOptions}
-          value={values.preferred_time_of_day}
-          onChange={(e) => set("preferred_time_of_day", e.target.value)}
-        />
-        <Select
-          label="Setting"
-          options={indoorOutdoorOptions}
-          value={values.indoor_outdoor}
-          onChange={(e) => set("indoor_outdoor", e.target.value)}
-        />
-      </div>
+      )}
 
       <Textarea
-        label="Notes"
+        label="Notes (optional)"
         placeholder="Anything else? e.g., 'prefer somewhere with parking', 'need to leave by 9pm'..."
-        rows={3}
+        rows={2}
         value={values.notes}
-        onChange={(e) => set("notes", e.target.value)}
+        onChange={(e) => onChange(set(values, "notes", e.target.value))}
       />
     </div>
   );

@@ -49,15 +49,13 @@ export default async function FinalPage({
     where: eq(schema.events.id, eventId),
   });
 
-  if (!event || event.status !== "finalized") {
-    notFound();
-  }
+  if (!event || event.status !== "finalized") return notFound();
 
   const finalSelection = await db.query.final_selections.findFirst({
     where: eq(schema.final_selections.event_id, eventId),
   });
 
-  if (!finalSelection) notFound();
+  if (!finalSelection) return notFound();
 
   const startDate = new Intl.DateTimeFormat("en-US", {
     weekday: "long",

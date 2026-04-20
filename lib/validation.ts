@@ -16,6 +16,9 @@ export const CreateEventSchema = z.object({
   allow_participant_edit: z.boolean().default(true),
   show_results_to_participants: z.boolean().default(false),
   preferences_required: z.boolean().default(false),
+  enabled_preferences: z
+    .array(z.string())
+    .default(["food", "budget", "location", "day_type", "time_of_day", "indoor_outdoor"]),
   scoring_mode: z
     .enum(["maximize_attendance", "prioritize_required", "vip_priority", "time_optimized"])
     .default("maximize_attendance"),
@@ -27,6 +30,7 @@ export const CreateEventSchema = z.object({
 export const AddParticipantSchema = z.object({
   name: z.string().min(1).max(100),
   email: z.string().email().optional().or(z.literal("")),
+  phone: z.string().max(20).optional().or(z.literal("")),
   is_required: z.boolean().default(false),
   priority_tier: z.union([z.literal(0), z.literal(1), z.literal(2)]).default(0),
   token_expires_hours: z.number().int().positive().optional(),

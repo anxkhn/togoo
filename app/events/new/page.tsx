@@ -1,39 +1,38 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { getTimeZones } from "@vvo/tzdb";
 import { saveEvent } from "@/components/my-events";
+import type { CreateEventResponse, AddParticipantInviteResponse, ApiError } from "@/lib/api-types";
 
-const TIMEZONES = [
-  "UTC",
-  "America/New_York",
-  "America/Chicago",
-  "America/Denver",
-  "America/Los_Angeles",
-  "America/Toronto",
-  "America/Vancouver",
-  "Europe/London",
-  "Europe/Paris",
-  "Europe/Berlin",
-  "Europe/Rome",
-  "Europe/Madrid",
-  "Europe/Amsterdam",
-  "Europe/Zurich",
-  "Asia/Dubai",
-  "Asia/Kolkata",
-  "Asia/Singapore",
-  "Asia/Tokyo",
-  "Asia/Shanghai",
-  "Asia/Seoul",
-  "Asia/Bangkok",
-  "Australia/Sydney",
-  "Australia/Melbourne",
-  "Pacific/Auckland",
-];
+const ALL_TIMEZONES = getTimeZones({ includeUtc: true });
+
+const TZ_ALIAS_TO_CANONICAL = new Map<string, string>(
+  ALL_TIMEZONES.flatMap((tz) => tz.group.map((alias) => [alias, tz.name]))
+);
+
+const TIMEZONE_OPTIONS = ALL_TIMEZONES.map((tz) => ({
+  value: tz.name,
+  label: `(${tz.abbreviation}, UTC${tz.rawOffsetInMinutes >= 0 ? "+" : ""}${Math.floor(tz.rawOffsetInMinutes / 60)}:${String(Math.abs(tz.rawOffsetInMinutes) % 60).padStart(2, "0")}) ${tz.name.replace(/_/g, " ")} — ${tz.alternativeName}`,
+}));
+
+function detectTimezone(): string {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return TZ_ALIAS_TO_CANONICAL.get(tz) ?? tz ?? "UTC";
+}
+
+const ALL_PREF_FIELDS = [
+  { key: "food", label: "Food preferences" },
+  { key: "budget", label: "Budget" },
+  { key: "location", label: "Preferred area" },
+  { key: "time_of_day", label: "Time of day" },
+  { key: "indoor_outdoor", label: "Indoor / outdoor" },
+] as const;
 
 interface FormState {
   title: string;
@@ -49,7 +48,12 @@ interface FormState {
   scoring_mode: string;
   allow_participant_edit: boolean;
   organizer_name: string;
-  organizer_email: string;
+  enabled_preferences: string[];
+}
+
+interface AddedParticipant {
+  name: string;
+  invite_url: string;
 }
 
 function localDateToUnix(localDate: string): number {
@@ -72,7 +76,7 @@ export default function NewEventPage() {
     title: "",
     description: "",
     event_type: "meetup",
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+    timezone: "UTC",
     date_range_start_local: todayPlus(1),
     date_range_end_local: todayPlus(14),
     allowed_hours_start: "9",
@@ -82,8 +86,30 @@ export default function NewEventPage() {
     scoring_mode: "maximize_attendance",
     allow_participant_edit: true,
     organizer_name: "",
-    organizer_email: "",
+    enabled_preferences: ["food"],
   });
+
+  // Post-creation invite state
+  const [createdEventId, setCreatedEventId] = useState<string | null>(null);
+  const [createdOrganizerToken, setCreatedOrganizerToken] = useState<string | null>(null);
+  const [inviteName, setInviteName] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteEmailTouched, setInviteEmailTouched] = useState(false);
+  const [addingInvite, setAddingInvite] = useState(false);
+  const [inviteError, setInviteError] = useState("");
+  const [addedParticipants, setAddedParticipants] = useState<AddedParticipant[]>([]);
+
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const inviteEmailError =
+    inviteEmailTouched && inviteEmail.trim() && !EMAIL_RE.test(inviteEmail.trim())
+      ? "Enter a valid email address"
+      : "";
+
+  useEffect(() => {
+    const tz = detectTimezone();
+    setForm((f) => ({ ...f, timezone: tz }));
+  }, []);
+
 
   const set = (field: keyof FormState, value: string | boolean) => {
     setForm((f) => ({ ...f, [field]: value }));
@@ -110,8 +136,8 @@ export default function NewEventPage() {
         show_results_to_participants: false,
         participants_required_by_default: false,
         preferences_required: false,
+        enabled_preferences: form.enabled_preferences,
         organizer_name: form.organizer_name.trim(),
-        organizer_email: form.organizer_email.trim() || undefined,
       };
 
       const res = await fetch("/api/events", {
@@ -120,21 +146,24 @@ export default function NewEventPage() {
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+      const data = await res.json() as CreateEventResponse | ApiError;
       if (!res.ok) {
-        setError(data.error ?? "Failed to create event. Please try again.");
+        setError(("error" in data ? data.error : null) ?? "Failed to create event. Please try again.");
         return;
       }
+      const created = data as CreateEventResponse;
 
       saveEvent({
-        id: data.event_id,
+        id: created.event_id,
         title: payload.title,
         role: "organizer",
-        token: data.organizer_token,
+        token: created.organizer_token,
         created_at: Math.floor(Date.now() / 1000),
       });
 
-      router.push(data.dashboard_url);
+      setCreatedEventId(created.event_id);
+      setCreatedOrganizerToken(created.organizer_token);
+      setStep(4);
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -142,10 +171,51 @@ export default function NewEventPage() {
     }
   }
 
+  async function handleAddParticipant() {
+    if (!inviteName.trim() || !createdEventId || !createdOrganizerToken) return;
+    setAddingInvite(true);
+    setInviteError("");
+
+    try {
+      const res = await fetch(`/api/events/${createdEventId}/participants`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-organizer-token": createdOrganizerToken,
+        },
+        body: JSON.stringify({
+          name: inviteName.trim(),
+          email: inviteEmail.trim() || undefined,
+          is_required: false,
+          priority_tier: 0,
+        }),
+      });
+
+      const data = await res.json() as AddParticipantInviteResponse | ApiError;
+      if (!res.ok) {
+        setInviteError(("error" in data ? data.error : null) ?? "Failed to add participant.");
+        return;
+      }
+      const added = data as AddParticipantInviteResponse;
+
+      setAddedParticipants((prev) => [
+        ...prev,
+        { name: inviteName.trim(), invite_url: `${window.location.origin}${added.invite_url}` },
+      ]);
+      setInviteName("");
+      setInviteEmail("");
+    } catch {
+      setInviteError("Failed to add participant. Try again.");
+    } finally {
+      setAddingInvite(false);
+    }
+  }
+
   const steps = [
-    { n: 1, label: "Event details" },
+    { n: 1, label: "Details" },
     { n: 2, label: "Schedule" },
     { n: 3, label: "Review" },
+    { n: 4, label: "Invite" },
   ];
 
   return (
@@ -160,8 +230,14 @@ export default function NewEventPage() {
 
       <main className="max-w-2xl mx-auto px-5 py-12">
         <div className="mb-10">
-          <h1 className="font-display text-4xl font-bold text-text mb-2">Plan a meetup</h1>
-          <p className="text-muted">Set up your event and invite people to respond.</p>
+          <h1 className="font-display text-4xl font-bold text-text mb-2">
+            {step === 4 ? "Invite your people" : "Plan a meetup"}
+          </h1>
+          <p className="text-muted">
+            {step === 4
+              ? "Add everyone who should respond. You can always do this later from the dashboard."
+              : "Set up your event and invite people to respond."}
+          </p>
         </div>
 
         <div className="flex items-center gap-2 mb-8">
@@ -201,13 +277,6 @@ export default function NewEventPage() {
                 required
               />
               <Input
-                label="Your email (optional)"
-                type="email"
-                placeholder="alex@example.com"
-                value={form.organizer_email}
-                onChange={(e) => set("organizer_email", e.target.value)}
-              />
-              <Input
                 label="Event title"
                 placeholder="e.g., Team dinner, Birthday hangout..."
                 value={form.title}
@@ -240,7 +309,7 @@ export default function NewEventPage() {
             <div className="space-y-5">
               <Select
                 label="Timezone"
-                options={TIMEZONES.map((tz) => ({ value: tz, label: tz.replace(/_/g, " ") }))}
+                options={TIMEZONE_OPTIONS}
                 value={form.timezone}
                 onChange={(e) => set("timezone", e.target.value)}
                 hint="Detected from your browser. Participants will see times in this timezone."
@@ -295,13 +364,14 @@ export default function NewEventPage() {
                   onChange={(e) => set("meeting_duration_minutes", e.target.value)}
                 />
                 <Select
-                  label="Slot precision"
+                  label="Slot granularity"
                   options={[
                     { value: "30", label: "30 minutes" },
                     { value: "15", label: "15 minutes" },
                   ]}
                   value={form.slot_granularity_minutes}
                   onChange={(e) => set("slot_granularity_minutes", e.target.value)}
+                  hint="How often candidate slots are generated."
                 />
               </div>
               <Select
@@ -316,6 +386,40 @@ export default function NewEventPage() {
                 onChange={(e) => set("scoring_mode", e.target.value)}
                 hint="Controls how recommendations are ranked."
               />
+
+              <div>
+                <p className="text-sm font-medium text-text mb-1">What to ask participants</p>
+                <p className="text-xs text-muted mb-3">Choose which preference fields to show when participants respond.</p>
+                <div className="flex flex-wrap gap-2">
+                  {ALL_PREF_FIELDS.map(({ key, label }) => {
+                    const enabled = form.enabled_preferences.includes(key);
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => {
+                          const next = enabled
+                            ? form.enabled_preferences.filter((k) => k !== key)
+                            : [...form.enabled_preferences, key];
+                          setForm((f) => ({ ...f, enabled_preferences: next }));
+                        }}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-150 ${
+                          enabled
+                            ? "bg-accent text-white border-accent"
+                            : "bg-surface border-border text-text hover:border-accent/40"
+                        }`}
+                      >
+                        {enabled && (
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           )}
 
@@ -374,10 +478,90 @@ export default function NewEventPage() {
               )}
             </div>
           )}
+
+          {step === 4 && (
+            <div className="space-y-5">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Input
+                    label="Name"
+                    placeholder="e.g., Jamie"
+                    value={inviteName}
+                    onChange={(e) => setInviteName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && inviteName.trim() && !inviteEmailError) handleAddParticipant();
+                    }}
+                  />
+                </div>
+                <div>
+                  <Input
+                    label="Email (optional)"
+                    type="email"
+                    placeholder="jamie@example.com"
+                    value={inviteEmail}
+                    onChange={(e) => {
+                      setInviteEmail(e.target.value);
+                      setInviteEmailTouched(false);
+                    }}
+                    onBlur={() => setInviteEmailTouched(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && inviteName.trim() && !inviteEmailError) handleAddParticipant();
+                    }}
+                  />
+                  {inviteEmailError && (
+                    <p className="text-xs text-danger mt-1">{inviteEmailError}</p>
+                  )}
+                </div>
+              </div>
+
+              {inviteError && (
+                <p className="text-sm text-danger">{inviteError}</p>
+              )}
+
+              <Button
+                onClick={handleAddParticipant}
+                loading={addingInvite}
+                disabled={!inviteName.trim() || !!inviteEmailError}
+                variant="secondary"
+                className="w-full"
+              >
+                Add person
+              </Button>
+
+              {addedParticipants.length > 0 && (
+                <div className="border-t border-border pt-4 space-y-1">
+                  <p className="text-xs font-medium text-muted uppercase tracking-wide mb-3">
+                    Added ({addedParticipants.length})
+                  </p>
+                  {addedParticipants.map((p) => (
+                    <div key={p.invite_url} className="flex items-center justify-between gap-3 py-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-7 h-7 rounded-full bg-accent-subtle flex items-center justify-center text-accent text-xs font-semibold flex-shrink-0">
+                          {p.name[0].toUpperCase()}
+                        </div>
+                        <span className="text-sm text-text font-medium truncate">{p.name}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => navigator.clipboard.writeText(p.invite_url)}
+                        className="text-xs text-accent hover:underline flex-shrink-0"
+                      >
+                        Copy link
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex justify-between mt-6">
-          {step > 1 ? (
+          {step === 4 ? (
+            <p className="text-sm text-muted self-center">
+              {addedParticipants.length === 0 ? "You can add people from the dashboard too." : `${addedParticipants.length} added`}
+            </p>
+          ) : step > 1 ? (
             <Button variant="secondary" onClick={() => setStep(step - 1)}>
               Back
             </Button>
@@ -387,7 +571,7 @@ export default function NewEventPage() {
             </Link>
           )}
 
-          {step < 3 ? (
+          {step < 3 && (
             <Button
               onClick={() => {
                 if (step === 1 && (!form.organizer_name.trim() || !form.title.trim())) {
@@ -400,13 +584,19 @@ export default function NewEventPage() {
             >
               Continue
             </Button>
-          ) : (
+          )}
+          {step === 3 && (
             <Button
               loading={loading}
               onClick={handleSubmit}
               disabled={!form.title.trim() || !form.organizer_name.trim()}
             >
               Create event
+            </Button>
+          )}
+          {step === 4 && (
+            <Button onClick={() => router.push(`/e/${createdEventId}/organizer/${createdOrganizerToken}`)}>
+              {addedParticipants.length === 0 ? "Skip to dashboard" : "Go to dashboard"}
             </Button>
           )}
         </div>

@@ -13,22 +13,24 @@ import type { ValidateTokenResponse, ApiError, EventData, ParticipantData } from
 type Step = "availability" | "preferences" | "review" | "success";
 
 export default function RespondPage() {
-  const params = useParams<{ eventId: string; token: string }>();
-  const { eventId, token } = params;
+  const { token } = useParams<{ token: string }>();
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [tokenError, setTokenError] = useState("");
 
+  const [eventId, setEventId] = useState<string | null>(null);
   const [event, setEvent] = useState<EventData | null>(null);
   const [participant, setParticipant] = useState<ParticipantData | null>(null);
   const [step, setStep] = useState<Step>("availability");
   const [windows, setWindows] = useState<TimeWindow[]>([]);
   const [preferences, setPreferences] = useState<PreferenceValues>(defaultPreferences);
-  const [localTimezone] = useState(() =>
-    typeof window !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC"
-  );
+  const [localTimezone, setLocalTimezone] = useState("UTC");
+
+  useEffect(() => {
+    setLocalTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  }, []);
 
   useEffect(() => {
     if (!token) return;
@@ -42,6 +44,7 @@ export default function RespondPage() {
           return;
         }
 
+        setEventId(data.event_id);
         setEvent(data.event);
         setParticipant(data.participant);
 
@@ -83,6 +86,7 @@ export default function RespondPage() {
       setError("Please add at least one availability window.");
       return;
     }
+    if (!eventId) return;
     setSubmitting(true);
     setError("");
 

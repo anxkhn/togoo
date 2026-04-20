@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
       allow_participant_edit: data.allow_participant_edit ? 1 : 0,
       show_results_to_participants: data.show_results_to_participants ? 1 : 0,
       preferences_required: data.preferences_required ? 1 : 0,
+      enabled_preferences: JSON.stringify(data.enabled_preferences),
       scoring_mode: data.scoring_mode,
       organizer_participant_id: organizerParticipantId,
       status: "active",
