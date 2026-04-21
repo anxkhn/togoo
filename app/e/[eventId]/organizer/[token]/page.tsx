@@ -17,7 +17,6 @@ import { cn, formatDate, formatEventDate } from "@/lib/utils";
 import type { RecommendationSet, ScoredMeeting } from "@/lib/scheduling";
 import type { AddParticipantInviteResponse } from "@/lib/api-types";
 import { clientApi } from "@/lib/client-api";
-import { fromZonedTime } from "date-fns-tz";
 import { getTimeZones } from "@vvo/tzdb";
 import { removeEventShortcut } from "@/components/my-events";
 
@@ -264,10 +263,6 @@ function unixToDateTimeInput(unix: number, timezone: string): string {
 
 function localDateToUnix(localDate: string): number {
   return Math.floor(new Date(localDate).getTime() / 1000);
-}
-
-function zonedDateTimeToUnix(date: string, time: string, timezone: string): number {
-  return Math.floor(fromZonedTime(`${date}T${time}:00`, timezone).getTime() / 1000);
 }
 
 function eventToPlanForm(event: Event): PlanFormState {
@@ -785,6 +780,11 @@ export default function OrganizerDashboard() {
   const handleSavePlan = async () => {
     if (!planForm) return;
 
+    if (localDateToUnix(planForm.date_range_end_local) <= localDateToUnix(planForm.date_range_start_local)) {
+      setPlanError("End date and time must be after the start date and time.");
+      return;
+    }
+
     const hasAnySuggestedField = Boolean(
       planForm.suggested_time_start_local || planForm.suggested_time_end_local
     );
@@ -794,6 +794,15 @@ export default function OrganizerDashboard() {
       !(planForm.suggested_time_start_local && planForm.suggested_time_end_local)
     ) {
       setPlanError("Complete all suggested-time fields, or leave all of them empty.");
+      return;
+    }
+
+    if (
+      planForm.suggested_time_start_local &&
+      planForm.suggested_time_end_local &&
+      localDateToUnix(planForm.suggested_time_end_local) <= localDateToUnix(planForm.suggested_time_start_local)
+    ) {
+      setPlanError("Suggested end time must be after the suggested start time.");
       return;
     }
 

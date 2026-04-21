@@ -26,6 +26,14 @@ export const CreateEventSchema = z.object({
   organizer_name: z.string().min(1).max(100),
   organizer_email: z.string().email().optional(),
 }).superRefine((data, ctx) => {
+  if (data.date_range_end <= data.date_range_start) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "End date and time must be after the start date and time",
+      path: ["date_range_end"],
+    });
+  }
+
   const hasSuggestedStart = data.suggested_time_start !== undefined;
   const hasSuggestedEnd = data.suggested_time_end !== undefined;
 
@@ -42,6 +50,30 @@ export const CreateEventSchema = z.object({
       code: z.ZodIssueCode.custom,
       message: "Suggested end time must be after the start time",
       path: ["suggested_time_end"],
+    });
+  }
+
+  if (hasSuggestedStart && data.suggested_time_start! < data.date_range_start) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Suggested start must be inside the event range",
+      path: ["suggested_time_start"],
+    });
+  }
+
+  if (hasSuggestedEnd && data.suggested_time_end! > data.date_range_end) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Suggested end must be inside the event range",
+      path: ["suggested_time_end"],
+    });
+  }
+
+  if (data.response_deadline !== undefined && data.response_deadline < data.date_range_start) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Reply deadline cannot be before the event starts",
+      path: ["response_deadline"],
     });
   }
 });
@@ -65,6 +97,14 @@ export const UpdateEventSchema = z.object({
   response_deadline: z.number().int().positive().nullable().optional(),
   enabled_preferences: z.array(z.string()),
 }).superRefine((data, ctx) => {
+  if (data.date_range_end <= data.date_range_start) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "End date and time must be after the start date and time",
+      path: ["date_range_end"],
+    });
+  }
+
   const hasSuggestedStart = data.suggested_time_start !== undefined && data.suggested_time_start !== null;
   const hasSuggestedEnd = data.suggested_time_end !== undefined && data.suggested_time_end !== null;
 
@@ -81,6 +121,30 @@ export const UpdateEventSchema = z.object({
       code: z.ZodIssueCode.custom,
       message: "Suggested end time must be after the start time",
       path: ["suggested_time_end"],
+    });
+  }
+
+  if (hasSuggestedStart && data.suggested_time_start! < data.date_range_start) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Suggested start must be inside the event range",
+      path: ["suggested_time_start"],
+    });
+  }
+
+  if (hasSuggestedEnd && data.suggested_time_end! > data.date_range_end) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Suggested end must be inside the event range",
+      path: ["suggested_time_end"],
+    });
+  }
+
+  if (data.response_deadline !== undefined && data.response_deadline !== null && data.response_deadline < data.date_range_start) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Reply deadline cannot be before the event starts",
+      path: ["response_deadline"],
     });
   }
 });

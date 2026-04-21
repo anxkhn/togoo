@@ -105,10 +105,6 @@ function localDateToUnix(localDate: string): number {
   return Math.floor(new Date(localDate).getTime() / 1000);
 }
 
-function zonedDateTimeToUnix(date: string, time: string, timezone: string): number {
-  return Math.floor(fromZonedTime(`${date}T${time}:00`, timezone).getTime() / 1000);
-}
-
 function zonedLocalDateTimeToUnix(dateTime: string, timezone: string): number {
   return Math.floor(fromZonedTime(`${dateTime}:00`, timezone).getTime() / 1000);
 }
@@ -296,6 +292,18 @@ export default function NewEventPage() {
   }
 
   async function handleSubmit() {
+    const now = Math.floor(Date.now() / 1000);
+
+    if (localDateToUnix(form.date_range_start_local) < now) {
+      setError("Start date and time cannot be in the past.");
+      return;
+    }
+
+    if (localDateToUnix(form.date_range_end_local) <= localDateToUnix(form.date_range_start_local)) {
+      setError("End date and time must be after the start date and time.");
+      return;
+    }
+
     const hasAnySuggestedField = Boolean(
       form.suggested_time_start_local || form.suggested_time_end_local
     );
@@ -304,6 +312,16 @@ export default function NewEventPage() {
       !(form.suggested_time_start_local && form.suggested_time_end_local)
     ) {
       setError("Complete all suggested-time fields, or leave all of them empty.");
+      return;
+    }
+
+    if (
+      form.suggested_time_start_local &&
+      form.suggested_time_end_local &&
+      zonedLocalDateTimeToUnix(form.suggested_time_end_local, form.timezone) <=
+        zonedLocalDateTimeToUnix(form.suggested_time_start_local, form.timezone)
+    ) {
+      setError("Suggested end time must be after the suggested start time.");
       return;
     }
 

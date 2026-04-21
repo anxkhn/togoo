@@ -5,7 +5,7 @@ function InfoTooltip({ text }: { text: string }) {
     <span className="group/tooltip relative inline-flex items-center">
       <button
         type="button"
-        className="-m-2 inline-flex h-10 w-10 items-center justify-center rounded-full text-muted transition-[color,background-color] duration-150 ease hover:bg-surface-alt hover:text-text focus-visible:bg-surface-alt focus-visible:text-text active:scale-[0.96]"
+        className="-m-1 inline-flex h-8 w-8 items-center justify-center rounded-full text-muted transition-[color,background-color] duration-150 ease hover:bg-surface-alt hover:text-text focus-visible:bg-surface-alt focus-visible:text-text active:scale-[0.96]"
         aria-label={text}
       >
         <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -14,7 +14,7 @@ function InfoTooltip({ text }: { text: string }) {
       </button>
       <span
         role="tooltip"
-        className="pointer-events-none absolute left-0 top-full z-30 mt-2 w-64 rounded-xl bg-text px-3 py-2 text-xs leading-relaxed text-white opacity-0 shadow-[0_14px_34px_rgba(26,23,20,0.18)] transition-[opacity,transform] duration-160 [transition-timing-function:cubic-bezier(0.165,0.84,0.44,1)] group-hover/tooltip:translate-y-0 group-hover/tooltip:opacity-100 group-focus-within/tooltip:translate-y-0 group-focus-within/tooltip:opacity-100 translate-y-1"
+        className="pointer-events-none absolute left-0 top-full z-30 mt-2 w-64 rounded-input bg-text px-3 py-2 text-xs leading-relaxed text-white opacity-0 shadow-[0_14px_34px_rgba(26,23,20,0.18)] transition-[opacity,transform] duration-160 [transition-timing-function:cubic-bezier(0.165,0.84,0.44,1)] group-hover/tooltip:translate-y-0 group-hover/tooltip:opacity-100 group-focus-within/tooltip:translate-y-0 group-focus-within/tooltip:opacity-100 translate-y-1"
       >
         {text}
       </span>
