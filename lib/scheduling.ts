@@ -62,8 +62,6 @@ export interface EventSettings {
   date_range_end?: number;
   meeting_duration_minutes: number;
   slot_granularity_minutes: number;
-  allowed_hours_start: number;
-  allowed_hours_end: number;
   scoring_mode: string;
   min_attendance_threshold?: number;
 }
@@ -79,8 +77,6 @@ export function normalizeAvailabilityWindows(
 ): NormalizedSlot[] {
   const {
     slot_granularity_minutes,
-    allowed_hours_start,
-    allowed_hours_end,
     timezone,
     date_range_start,
     date_range_end,
@@ -91,17 +87,12 @@ export function normalizeAvailabilityWindows(
   for (const win of windows) {
     let current = Math.ceil(win.start_time / granularitySec) * granularitySec;
     while (current + granularitySec <= win.end_time) {
-      const hour = getHourInTimezone(current, timezone);
       const slotEnd = current + granularitySec;
       const withinDateRange =
         (date_range_start === undefined || current >= date_range_start) &&
         (date_range_end === undefined || slotEnd - 1 <= date_range_end);
 
-      if (
-        withinDateRange &&
-        hour >= allowed_hours_start &&
-        hour + slot_granularity_minutes / 60 <= allowed_hours_end
-      ) {
+      if (withinDateRange) {
         slots.push({
           participant_id: win.participant_id,
           slot_start: current,

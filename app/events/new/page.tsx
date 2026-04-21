@@ -46,8 +46,6 @@ interface FormState {
   timezone: string;
   date_range_start_local: string;
   date_range_end_local: string;
-  allowed_hours_start: string;
-  allowed_hours_end: string;
   meeting_duration_minutes: string;
   slot_granularity_minutes: string;
   scoring_mode: string;
@@ -130,6 +128,16 @@ const EVENING_FIRST_HALF_HOUR_OPTIONS = Array.from({ length: 48 }, (_, offset) =
 });
 
 const DURATION_OPTIONS = [
+  { value: "30", label: "30 minutes" },
+  { value: "60", label: "1 hour" },
+  { value: "90", label: "1.5 hours" },
+  { value: "120", label: "2 hours" },
+  { value: "180", label: "3 hours" },
+  { value: "240", label: "4 hours" },
+  { value: "480", label: "Full day (8h)" },
+];
+
+const SPACING_OPTIONS = [
   { value: "15", label: "15 minutes" },
   { value: "30", label: "30 minutes" },
   { value: "60", label: "1 hour" },
@@ -145,12 +153,10 @@ function createDefaultForm(): FormState {
     description: "",
     event_type: "dinner",
     timezone: "UTC",
-    date_range_start_local: todayPlus(1),
-    date_range_end_local: todayPlus(7),
-    allowed_hours_start: "12",
-    allowed_hours_end: "23",
-    meeting_duration_minutes: "60",
-    slot_granularity_minutes: "30",
+    date_range_start_local: `${todayPlus(1)}T17:00`,
+    date_range_end_local: `${todayPlus(7)}T23:00`,
+    meeting_duration_minutes: "180",
+    slot_granularity_minutes: "60",
     scoring_mode: "maximize_attendance",
     suggested_date_local: "",
     suggested_start_local: "",
@@ -319,12 +325,10 @@ export default function NewEventPage() {
         description: form.description.trim() || undefined,
         event_type: form.event_type,
         timezone: form.timezone,
-        date_range_start: localDateToUnix(form.date_range_start_local + "T00:00:00"),
-        date_range_end: localDateToUnix(form.date_range_end_local + "T23:59:59"),
-        allowed_hours_start: parseInt(form.allowed_hours_start),
-        allowed_hours_end: parseInt(form.allowed_hours_end),
+        date_range_start: localDateToUnix(form.date_range_start_local),
+        date_range_end: localDateToUnix(form.date_range_end_local),
         meeting_duration_minutes: parseInt(form.meeting_duration_minutes),
-        slot_granularity_minutes: parseInt(form.slot_granularity_minutes) as 15 | 30,
+        slot_granularity_minutes: parseInt(form.slot_granularity_minutes),
         scoring_mode: form.scoring_mode,
         min_attendance_threshold: 0,
         suggested_time_start:
@@ -532,38 +536,18 @@ export default function NewEventPage() {
                   value={form.timezone}
                   onChange={(e) => set("timezone", e.target.value)}
                 />
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <Input
-                  label="First possible date"
-                  type="date"
+                  label="Start date and time"
+                  type="datetime-local"
                   value={form.date_range_start_local}
                   onChange={(e) => set("date_range_start_local", e.target.value)}
                 />
                 <Input
-                  label="Last possible date"
-                  type="date"
+                  label="End date and time"
+                  type="datetime-local"
                   value={form.date_range_end_local}
                   onChange={(e) => set("date_range_end_local", e.target.value)}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <Select
-                  label="Earliest start"
-                  options={Array.from({ length: 24 }, (_, i) => ({
-                    value: String(i),
-                    label: `${i === 0 ? "12 AM" : i < 12 ? `${i} AM` : i === 12 ? "12 PM" : `${i - 12} PM`}`,
-                  }))}
-                  value={form.allowed_hours_start}
-                  onChange={(e) => set("allowed_hours_start", e.target.value)}
-                />
-                <Select
-                  label="Latest finish"
-                  options={Array.from({ length: 24 }, (_, i) => ({
-                    value: String(i + 1),
-                    label: `${i + 1 === 12 ? "12 PM" : i + 1 < 12 ? `${i + 1} AM` : i + 1 === 24 ? "12 AM" : `${i + 1 - 12} PM`}`,
-                  }))}
-                  value={form.allowed_hours_end}
-                  onChange={(e) => set("allowed_hours_end", e.target.value)}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -576,10 +560,7 @@ export default function NewEventPage() {
                 <Select
                   label="Suggestion spacing"
                   tooltip="Smaller spacing gives you more candidate start times. Use 15 minutes for tighter scheduling, 30 minutes for simpler options."
-                  options={[
-                    { value: "15", label: "15 minutes" },
-                    { value: "30", label: "30 minutes" },
-                  ]}
+                  options={SPACING_OPTIONS}
                   value={form.slot_granularity_minutes}
                   onChange={(e) => set("slot_granularity_minutes", e.target.value)}
                 />
@@ -767,7 +748,7 @@ export default function NewEventPage() {
                   </div>
                   <div className="flex justify-between">
                     <dt>Date window</dt>
-                    <dd className="text-text tabular-nums">{form.date_range_start_local} – {form.date_range_end_local}</dd>
+                    <dd className="text-right text-text tabular-nums">{form.date_range_start_local.replace("T", " ")} – {form.date_range_end_local.replace("T", " ")}</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt>Duration</dt>
@@ -848,7 +829,7 @@ export default function NewEventPage() {
                   />
                 </div>
                 <div className="col-span-2 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_220px]">
-                  <label className="flex min-h-12 items-center gap-3 rounded-[18px] bg-surface-alt px-4 py-3 text-sm text-text shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
+                  <label className="flex min-h-12 items-center gap-3 rounded-input border border-border bg-surface px-4 py-3 text-sm text-text">
                     <input
                       type="checkbox"
                       checked={inviteIsRequired}
@@ -880,15 +861,10 @@ export default function NewEventPage() {
               )}
 
               {pendingParticipants.length > 0 && (
-                <div className="rounded-input bg-surface-alt px-4 py-3 text-sm text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
+                <div className="animate-fade-in rounded-input bg-surface-alt px-4 py-3 text-sm text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
                   <div className="flex items-center gap-2">
-                    <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    <span>
-                      Saving {pendingParticipants.length} invitee{pendingParticipants.length === 1 ? "" : "s"} in the background.
-                    </span>
+                    <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-muted/30 border-t-accent" />
+                    <span>Saving attendee...</span>
                   </div>
                 </div>
               )}
@@ -928,10 +904,10 @@ export default function NewEventPage() {
               )}
 
               {pendingParticipants.length > 0 && (
-                <div className="border-t border-border pt-4 space-y-2">
+                <div className="animate-fade-in border-t border-border pt-4 space-y-2">
                   <p className="text-xs font-medium uppercase tracking-wide text-muted">Saving now</p>
                   {pendingParticipants.map((participant) => (
-                    <div key={participant.id} className="flex items-center justify-between gap-3 py-2">
+                    <div key={participant.id} className="flex items-center justify-between gap-3 py-2 animate-scale-in">
                       <div className="flex min-w-0 items-center gap-2">
                         <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold ${avatarColor(participant.name)}`}>
                           {participant.name[0]?.toUpperCase() ?? "?"}
@@ -939,10 +915,7 @@ export default function NewEventPage() {
                         <span className="truncate text-sm text-text font-medium">{participant.name}</span>
                       </div>
                       <span className="inline-flex min-h-10 items-center gap-2 rounded-full px-3 text-xs text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
-                        <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                        </svg>
+                        <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-muted/30 border-t-accent" />
                         Creating link...
                       </span>
                     </div>

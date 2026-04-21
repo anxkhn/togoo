@@ -8,8 +8,6 @@ CREATE TABLE IF NOT EXISTS `events` (
   `timezone` text NOT NULL DEFAULT 'UTC',
   `date_range_start` integer NOT NULL,
   `date_range_end` integer NOT NULL,
-  `allowed_hours_start` integer NOT NULL DEFAULT 9,
-  `allowed_hours_end` integer NOT NULL DEFAULT 22,
   `meeting_duration_minutes` integer NOT NULL DEFAULT 120,
   `slot_granularity_minutes` integer NOT NULL DEFAULT 30,
   `min_attendance_threshold` integer NOT NULL DEFAULT 0,

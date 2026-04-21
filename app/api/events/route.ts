@@ -36,8 +36,6 @@ export async function POST(request: NextRequest) {
       timezone: data.timezone,
       date_range_start: data.date_range_start,
       date_range_end: data.date_range_end,
-      allowed_hours_start: data.allowed_hours_start,
-      allowed_hours_end: data.allowed_hours_end,
       meeting_duration_minutes: data.meeting_duration_minutes,
       slot_granularity_minutes: data.slot_granularity_minutes,
       min_attendance_threshold: data.min_attendance_threshold,

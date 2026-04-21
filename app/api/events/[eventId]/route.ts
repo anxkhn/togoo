@@ -99,8 +99,6 @@ export async function PUT(
       event.timezone !== data.timezone ||
       event.date_range_start !== data.date_range_start ||
       event.date_range_end !== data.date_range_end ||
-      event.allowed_hours_start !== data.allowed_hours_start ||
-      event.allowed_hours_end !== data.allowed_hours_end ||
       event.meeting_duration_minutes !== data.meeting_duration_minutes ||
       event.slot_granularity_minutes !== data.slot_granularity_minutes ||
       event.scoring_mode !== data.scoring_mode ||
@@ -120,8 +118,6 @@ export async function PUT(
         timezone: data.timezone,
         date_range_start: data.date_range_start,
         date_range_end: data.date_range_end,
-        allowed_hours_start: data.allowed_hours_start,
-        allowed_hours_end: data.allowed_hours_end,
         meeting_duration_minutes: data.meeting_duration_minutes,
         slot_granularity_minutes: data.slot_granularity_minutes,
         scoring_mode: data.scoring_mode,
@@ -151,8 +147,6 @@ export async function PUT(
       date_range_end: data.date_range_end,
       meeting_duration_minutes: data.meeting_duration_minutes,
       slot_granularity_minutes: data.slot_granularity_minutes,
-      allowed_hours_start: data.allowed_hours_start,
-      allowed_hours_end: data.allowed_hours_end,
       scoring_mode: data.scoring_mode,
       min_attendance_threshold: event.min_attendance_threshold,
     });

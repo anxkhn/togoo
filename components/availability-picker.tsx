@@ -15,8 +15,6 @@ interface AvailabilityPickerProps {
   dateRangeStart: number;
   dateRangeEnd: number;
   timezone: string;
-  allowedHoursStart?: number;
-  allowedHoursEnd?: number;
   meetingDurationMinutes?: number;
   slotGranularityMinutes?: number;
   suggestedWindow?: { start_time: number; end_time: number } | null;
@@ -89,27 +87,30 @@ function formatDayLabel(dateStr: string, tz: string): string {
 function buildSlotOptions(
   dateStr: string,
   tz: string,
-  allowedHoursStart: number,
-  allowedHoursEnd: number,
+  dateRangeStart: number,
+  dateRangeEnd: number,
   meetingDurationMinutes: number,
   slotGranularityMinutes: number
 ): SlotOption[] {
   const options: SlotOption[] = [];
-  const latestStart = allowedHoursEnd * 60 - meetingDurationMinutes;
+  const dayStart = toUnix(dateStr, 0, 0, tz);
+  const dayEnd = dayStart + 24 * 60 * 60;
+  const earliestStart = Math.max(dayStart, dateRangeStart);
+  const latestStart = Math.min(dayEnd, dateRangeEnd + 1) - meetingDurationMinutes * 60;
+  const stepSeconds = slotGranularityMinutes * 60;
 
-  for (let totalMinutes = allowedHoursStart * 60; totalMinutes <= latestStart; totalMinutes += slotGranularityMinutes) {
-    const startH = Math.floor(totalMinutes / 60);
-    const startM = totalMinutes % 60;
-    const endTotal = totalMinutes + meetingDurationMinutes;
-    const endH = Math.floor(endTotal / 60);
-    const endM = endTotal % 60;
-    const start_time = toUnix(dateStr, startH, startM, tz);
-    const end_time = toUnix(dateStr, endH, endM, tz);
-    options.push({
-      id: `${start_time}-${end_time}`,
-      start_time,
-      end_time,
-    });
+  let current = Math.ceil(earliestStart / stepSeconds) * stepSeconds;
+  while (current <= latestStart) {
+    const start_time = current;
+    const end_time = current + meetingDurationMinutes * 60;
+    if (start_time >= dateRangeStart && end_time <= dateRangeEnd + 1) {
+      options.push({
+        id: `${start_time}-${end_time}`,
+        start_time,
+        end_time,
+      });
+    }
+    current += stepSeconds;
   }
 
   return options;
@@ -152,8 +153,6 @@ export function AvailabilityPicker({
   dateRangeStart,
   dateRangeEnd,
   timezone,
-  allowedHoursStart = 9,
-  allowedHoursEnd = 22,
   meetingDurationMinutes = 60,
   slotGranularityMinutes = 30,
   suggestedWindow = null,
@@ -192,8 +191,8 @@ export function AvailabilityPicker({
       for (const slot of buildSlotOptions(
         dateStr,
         timezone,
-        allowedHoursStart,
-        allowedHoursEnd,
+        dateRangeStart,
+        dateRangeEnd,
         meetingDurationMinutes,
         slotGranularityMinutes
       )) {
@@ -239,8 +238,8 @@ export function AvailabilityPicker({
           const slotOptions = buildSlotOptions(
             dateStr,
             timezone,
-            allowedHoursStart,
-            allowedHoursEnd,
+            dateRangeStart,
+            dateRangeEnd,
             meetingDurationMinutes,
             slotGranularityMinutes
           );

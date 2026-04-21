@@ -5,7 +5,6 @@
 INSERT OR IGNORE INTO events (
   id, title, description, event_type, timezone,
   date_range_start, date_range_end,
-  allowed_hours_start, allowed_hours_end,
   meeting_duration_minutes, slot_granularity_minutes,
   min_attendance_threshold, allow_participant_edit,
   show_results_to_participants, scoring_mode,
@@ -16,9 +15,8 @@ INSERT OR IGNORE INTO events (
   'Catching up over a nice dinner — open to anywhere in the city.',
   'dinner',
   'America/New_York',
-  1749600000,  -- ~2025-06-11
-  1750204800,  -- ~2025-06-18
-  17, 22,      -- 5pm to 10pm
+  1749841200,  -- Fri 5:00pm
+  1750035600,  -- Sun 11:00pm
   120, 30,
   2, 1, 1,
   'maximize_attendance',

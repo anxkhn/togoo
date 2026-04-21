@@ -11,8 +11,6 @@ export const events = sqliteTable(
     timezone: text("timezone").notNull().default("UTC"),
     date_range_start: integer("date_range_start").notNull(),
     date_range_end: integer("date_range_end").notNull(),
-    allowed_hours_start: integer("allowed_hours_start").notNull().default(9),
-    allowed_hours_end: integer("allowed_hours_end").notNull().default(22),
     meeting_duration_minutes: integer("meeting_duration_minutes").notNull().default(120),
     slot_granularity_minutes: integer("slot_granularity_minutes").notNull().default(30),
     min_attendance_threshold: integer("min_attendance_threshold").notNull().default(0),

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -73,14 +73,6 @@ export default function RespondPage() {
         const filteredExistingWindows = filterWindowsToDateRange(data.existing_windows ?? [], data.event);
         if (filteredExistingWindows.length > 0) {
           setWindows(filteredExistingWindows);
-        } else if (data.event?.suggested_time_start && data.event?.suggested_time_end) {
-          setWindows([
-            {
-              id: "suggested-window",
-              start_time: data.event.suggested_time_start,
-              end_time: data.event.suggested_time_end,
-            },
-          ]);
         }
 
         if (data.existing_preferences) {
@@ -105,6 +97,56 @@ export default function RespondPage() {
     }
     loadToken();
   }, [token]);
+
+  const suggestedWindow = useMemo(() => {
+    if (!event?.suggested_time_start || !event?.suggested_time_end) return null;
+    return {
+      id: "suggested-window",
+      start_time: event.suggested_time_start,
+      end_time: event.suggested_time_end,
+    };
+  }, [event?.suggested_time_start, event?.suggested_time_end]);
+
+  const suggestedSelected = Boolean(
+    suggestedWindow &&
+      windows.some(
+        (window) =>
+          window.start_time === suggestedWindow.start_time &&
+          window.end_time === suggestedWindow.end_time
+      )
+  );
+
+  function chooseSuggestedWindow() {
+    if (!suggestedWindow) return;
+    setWindows((current) => {
+      if (
+        current.some(
+          (window) =>
+            window.start_time === suggestedWindow.start_time &&
+            window.end_time === suggestedWindow.end_time
+        )
+      ) {
+        return current;
+      }
+
+      return [...current, suggestedWindow];
+    });
+    setError("");
+  }
+
+  function chooseCustomTimes() {
+    if (!suggestedWindow) return;
+    setWindows((current) =>
+      current.filter(
+        (window) =>
+          !(
+            window.start_time === suggestedWindow.start_time &&
+            window.end_time === suggestedWindow.end_time
+          )
+      )
+    );
+    setError("");
+  }
 
   const handleSubmit = async () => {
     if (windows.length === 0) {
@@ -263,10 +305,10 @@ export default function RespondPage() {
             <p className="text-xs font-medium text-accent uppercase tracking-wide mb-1">{event.event_type}</p>
             <h1 className="font-display text-3xl font-bold text-text mb-1">{event.title}</h1>
             {event.description && <p className="text-muted text-sm mb-2">{event.description}</p>}
-            <p className="text-sm text-muted tabular-nums">
-              {formatDate(event.date_range_start, event.timezone)} &mdash; {formatDate(event.date_range_end, event.timezone)}
-              <span className="ml-2 text-xs">({event.timezone})</span>
-            </p>
+              <p className="text-sm text-muted tabular-nums">
+                {formatEventDate(event.date_range_start, event.timezone)} &mdash; {formatEventDate(event.date_range_end, event.timezone)}
+                <span className="ml-2 text-xs">({event.timezone})</span>
+              </p>
             {event.response_deadline && (
               <p className="mt-1 text-sm text-muted tabular-nums">
                 Reply by <span className="font-medium text-text">{formatDate(event.response_deadline, event.timezone)}</span>
@@ -324,8 +366,26 @@ export default function RespondPage() {
                   <p className="font-medium text-accent">Organizer suggestion</p>
                   <p className="mt-1 text-sm text-muted tabular-nums">
                     The organizer suggested {formatEventDate(event.suggested_time_start, event.timezone)} to {formatEventDate(event.suggested_time_end, event.timezone)}.
-                    Would you be able to make it? It is highlighted below, but not preselected.
+                    Would you be able to make it?
                   </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={suggestedSelected ? "primary" : "secondary"}
+                      onClick={chooseSuggestedWindow}
+                    >
+                      Yes, this works
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={chooseCustomTimes}
+                    >
+                      Choose my own times
+                    </Button>
+                  </div>
                 </div>
               )}
               <AvailabilityPicker
@@ -334,8 +394,6 @@ export default function RespondPage() {
                 dateRangeStart={event.date_range_start}
                 dateRangeEnd={event.date_range_end}
                 timezone={event.timezone}
-                allowedHoursStart={event.allowed_hours_start}
-                allowedHoursEnd={event.allowed_hours_end}
                 meetingDurationMinutes={event.meeting_duration_minutes}
                 slotGranularityMinutes={event.slot_granularity_minutes}
                 suggestedWindow={

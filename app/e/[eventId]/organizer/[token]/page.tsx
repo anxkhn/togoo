@@ -40,8 +40,6 @@ interface Event {
   timezone: string;
   date_range_start: number;
   date_range_end: number;
-   allowed_hours_start: number;
-   allowed_hours_end: number;
   meeting_duration_minutes: number;
    slot_granularity_minutes: number;
    scoring_mode: string;
@@ -63,8 +61,6 @@ interface PlanFormState {
   timezone: string;
   date_range_start_local: string;
   date_range_end_local: string;
-  allowed_hours_start: string;
-  allowed_hours_end: string;
   meeting_duration_minutes: string;
   slot_granularity_minutes: string;
   scoring_mode: string;
@@ -236,6 +232,16 @@ const HALF_HOUR_OPTIONS = Array.from({ length: 48 }, (_, i) => {
 });
 
 const DURATION_OPTIONS = [
+  { value: "30", label: "30 minutes" },
+  { value: "60", label: "1 hour" },
+  { value: "90", label: "1.5 hours" },
+  { value: "120", label: "2 hours" },
+  { value: "180", label: "3 hours" },
+  { value: "240", label: "4 hours" },
+  { value: "480", label: "Full day (8h)" },
+];
+
+const SPACING_OPTIONS = [
   { value: "15", label: "15 minutes" },
   { value: "30", label: "30 minutes" },
   { value: "60", label: "1 hour" },
@@ -252,28 +258,20 @@ const ALL_PREF_FIELDS = [
   { key: "indoor_outdoor", label: "Indoor / outdoor" },
 ] as const;
 
-function unixToDateInput(unix: number, timezone: string): string {
+function unixToDateTimeInput(unix: number, timezone: string): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: timezone,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).formatToParts(new Date(unix * 1000));
-
-  const get = (type: "year" | "month" | "day") => parts.find((part) => part.type === type)?.value ?? "";
-  return `${get("year")}-${get("month")}-${get("day")}`;
-}
-
-function unixToTimeInput(unix: number, timezone: string): string {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
   }).formatToParts(new Date(unix * 1000));
 
-  const get = (type: "hour" | "minute") => parts.find((part) => part.type === type)?.value ?? "00";
-  return `${get("hour")}:${get("minute")}`;
+  const get = (type: "year" | "month" | "day" | "hour" | "minute") =>
+    parts.find((part) => part.type === type)?.value ?? (type === "hour" || type === "minute" ? "00" : "");
+  return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
 }
 
 function localDateToUnix(localDate: string): number {
@@ -297,21 +295,19 @@ function eventToPlanForm(event: Event): PlanFormState {
     description: event.description ?? "",
     event_type: event.event_type,
     timezone: event.timezone,
-    date_range_start_local: unixToDateInput(event.date_range_start, event.timezone),
-    date_range_end_local: unixToDateInput(event.date_range_end, event.timezone),
-    allowed_hours_start: String(event.allowed_hours_start),
-    allowed_hours_end: String(event.allowed_hours_end),
+    date_range_start_local: unixToDateTimeInput(event.date_range_start, event.timezone),
+    date_range_end_local: unixToDateTimeInput(event.date_range_end, event.timezone),
     meeting_duration_minutes: String(event.meeting_duration_minutes),
     slot_granularity_minutes: String(event.slot_granularity_minutes),
     scoring_mode: event.scoring_mode,
-    suggested_date_local: event.suggested_time_start ? unixToDateInput(event.suggested_time_start, event.timezone) : "",
-    suggested_start_local: event.suggested_time_start ? unixToTimeInput(event.suggested_time_start, event.timezone) : "",
-    suggested_end_local: event.suggested_time_end ? unixToTimeInput(event.suggested_time_end, event.timezone) : "",
+    suggested_date_local: event.suggested_time_start ? unixToDateTimeInput(event.suggested_time_start, event.timezone).slice(0, 10) : "",
+    suggested_start_local: event.suggested_time_start ? unixToDateTimeInput(event.suggested_time_start, event.timezone).slice(11, 16) : "",
+    suggested_end_local: event.suggested_time_end ? unixToDateTimeInput(event.suggested_time_end, event.timezone).slice(11, 16) : "",
     participants_required_by_default: event.participants_required_by_default === 1,
     allow_participant_edit: event.allow_participant_edit === 1,
     show_results_to_participants: event.show_results_to_participants === 1,
     preferences_required: event.preferences_required === 1,
-    response_deadline_local: event.response_deadline ? unixToDateInput(event.response_deadline, event.timezone) : "",
+    response_deadline_local: event.response_deadline ? unixToDateTimeInput(event.response_deadline, event.timezone).slice(0, 10) : "",
     enabled_preferences: enabledPreferences,
   };
 }
@@ -826,10 +822,8 @@ export default function OrganizerDashboard() {
           description: planForm.description.trim() || undefined,
           event_type: planForm.event_type,
           timezone: planForm.timezone,
-          date_range_start: localDateToUnix(`${planForm.date_range_start_local}T00:00:00`),
-          date_range_end: localDateToUnix(`${planForm.date_range_end_local}T23:59:59`),
-          allowed_hours_start: parseInt(planForm.allowed_hours_start),
-          allowed_hours_end: parseInt(planForm.allowed_hours_end),
+          date_range_start: localDateToUnix(planForm.date_range_start_local),
+          date_range_end: localDateToUnix(planForm.date_range_end_local),
           meeting_duration_minutes: parseInt(planForm.meeting_duration_minutes),
           slot_granularity_minutes: parseInt(planForm.slot_granularity_minutes),
           scoring_mode: planForm.scoring_mode,
@@ -927,7 +921,7 @@ export default function OrganizerDashboard() {
           <h1 className="font-display text-3xl sm:text-4xl font-bold text-text">{event.title}</h1>
           {event.description && <p className="mt-2 text-muted">{event.description}</p>}
           <p className="mt-2 text-sm text-muted tabular-nums">
-            {formatDate(event.date_range_start, event.timezone)} &mdash; {formatDate(event.date_range_end, event.timezone)}
+            {formatEventDate(event.date_range_start, event.timezone)} &mdash; {formatEventDate(event.date_range_end, event.timezone)}
             <span className="mx-2">&middot;</span>
             {event.timezone}
           </p>
@@ -989,37 +983,16 @@ export default function OrganizerDashboard() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
-                label="First possible date"
-                type="date"
+                label="Start date and time"
+                type="datetime-local"
                 value={planForm.date_range_start_local}
                 onChange={(e) => setPlanForm((current) => current ? { ...current, date_range_start_local: e.target.value } : current)}
               />
               <Input
-                label="Last possible date"
-                type="date"
+                label="End date and time"
+                type="datetime-local"
                 value={planForm.date_range_end_local}
                 onChange={(e) => setPlanForm((current) => current ? { ...current, date_range_end_local: e.target.value } : current)}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Select
-                label="Earliest start"
-                options={Array.from({ length: 24 }, (_, i) => ({
-                  value: String(i),
-                  label: `${i === 0 ? "12 AM" : i < 12 ? `${i} AM` : i === 12 ? "12 PM" : `${i - 12} PM`}`,
-                }))}
-                value={planForm.allowed_hours_start}
-                onChange={(e) => setPlanForm((current) => current ? { ...current, allowed_hours_start: e.target.value } : current)}
-              />
-              <Select
-                label="Latest finish"
-                options={Array.from({ length: 24 }, (_, i) => ({
-                  value: String(i + 1),
-                  label: `${i + 1 === 12 ? "12 PM" : i + 1 < 12 ? `${i + 1} AM` : i + 1 === 24 ? "12 AM" : `${i + 1 - 12} PM`}`,
-                }))}
-                value={planForm.allowed_hours_end}
-                onChange={(e) => setPlanForm((current) => current ? { ...current, allowed_hours_end: e.target.value } : current)}
               />
             </div>
 
@@ -1030,16 +1003,13 @@ export default function OrganizerDashboard() {
                 value={planForm.meeting_duration_minutes}
                 onChange={(e) => setPlanForm((current) => current ? { ...current, meeting_duration_minutes: e.target.value } : current)}
               />
-              <Select
-                label="Suggestion spacing"
-                tooltip="Smaller spacing gives you more candidate start times. Use 15 minutes for tighter scheduling, 30 minutes for simpler options."
-                options={[
-                  { value: "30", label: "30 minutes" },
-                  { value: "15", label: "15 minutes" },
-                ]}
-                value={planForm.slot_granularity_minutes}
-                onChange={(e) => setPlanForm((current) => current ? { ...current, slot_granularity_minutes: e.target.value } : current)}
-              />
+                <Select
+                  label="Suggestion spacing"
+                  tooltip="Smaller spacing gives you more candidate start times. Use 15 minutes for tighter scheduling, 30 minutes for simpler options."
+                  options={SPACING_OPTIONS}
+                  value={planForm.slot_granularity_minutes}
+                  onChange={(e) => setPlanForm((current) => current ? { ...current, slot_granularity_minutes: e.target.value } : current)}
+                />
               <Select
                 label="Ranking mode"
                 tooltip="This decides how Togoo weighs attendance, required people, and time preferences when ranking options."
@@ -1248,7 +1218,7 @@ export default function OrganizerDashboard() {
                     value={newPhone}
                     onChange={(e) => setNewPhone(e.target.value)}
                   />
-                  <label className="flex min-h-12 items-center gap-3 rounded-[18px] bg-surface-alt px-4 py-3 text-sm text-text shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
+                  <label className="flex min-h-12 items-center gap-3 rounded-input border border-border bg-surface px-4 py-3 text-sm text-text">
                     <input
                       type="checkbox"
                       checked={newIsRequired}
@@ -1276,13 +1246,10 @@ export default function OrganizerDashboard() {
                 </div>
                 {addParticipantError && <p className="text-sm text-danger mb-3">{addParticipantError}</p>}
                 {pendingInvites.length > 0 && (
-                  <div className="mb-3 rounded-input bg-surface-alt px-4 py-3 text-sm text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
+                  <div className="mb-3 animate-fade-in rounded-input bg-surface-alt px-4 py-3 text-sm text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
                     <div className="flex items-center gap-2">
-                      <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                      Saving {pendingInvites.length} invitee{pendingInvites.length === 1 ? "" : "s"} in the background.
+                      <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-muted/30 border-t-accent" />
+                      Saving attendee...
                     </div>
                   </div>
                 )}
@@ -1299,7 +1266,7 @@ export default function OrganizerDashboard() {
               ) : (
                 <div className="p-4">
                   {pendingInvites.map((participant) => (
-                    <div key={participant.id} className="flex items-start gap-3 py-3.5 border-b border-border">
+                    <div key={participant.id} className="flex items-start gap-3 py-3.5 border-b border-border animate-scale-in">
                       <Avatar name={participant.name} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -1308,10 +1275,7 @@ export default function OrganizerDashboard() {
                         </div>
                         <p className="mt-1 text-xs text-muted">You can keep adding people while this finishes.</p>
                       </div>
-                      <svg className="h-4 w-4 animate-spin text-muted" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
+                      <span className="mt-0.5 inline-block h-4 w-4 animate-spin rounded-full border-2 border-muted/30 border-t-accent" />
                     </div>
                   ))}
                   {nonOrganizerParticipants.map((p) => (

@@ -6,8 +6,6 @@ export interface EventData {
   timezone: string;
   date_range_start: number;
   date_range_end: number;
-  allowed_hours_start: number;
-  allowed_hours_end: number;
   meeting_duration_minutes: number;
   slot_granularity_minutes: number;
   min_attendance_threshold: number;
