@@ -945,11 +945,13 @@ export default function OrganizerDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
                 label="Plan title"
+                required
                 value={planForm.title}
                 onChange={(e) => setPlanForm((current) => current ? { ...current, title: e.target.value } : current)}
               />
               <Select
                 label="Plan type"
+                required
                 options={[
                   { value: "meetup", label: "Meetup" },
                   { value: "dinner", label: "Dinner" },
@@ -964,6 +966,7 @@ export default function OrganizerDashboard() {
 
             <Textarea
               label="Description"
+              optional
               rows={3}
               value={planForm.description}
               onChange={(e) => setPlanForm((current) => current ? { ...current, description: e.target.value } : current)}
@@ -971,6 +974,7 @@ export default function OrganizerDashboard() {
 
             <Select
               label="Timezone"
+              required
               tooltip="Togoo scores suggestions against this timezone, and invitees see the plan using the same reference timezone."
               options={TIMEZONE_OPTIONS}
               value={planForm.timezone}
@@ -980,11 +984,13 @@ export default function OrganizerDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <DateTimePickerField
                 label="Start date and time"
+                required
                 value={planForm.date_range_start_local}
                 onChange={(value) => setPlanForm((current) => current ? { ...current, date_range_start_local: value } : current)}
               />
               <DateTimePickerField
                 label="End date and time"
+                required
                 value={planForm.date_range_end_local}
                 onChange={(value) => setPlanForm((current) => current ? { ...current, date_range_end_local: value } : current)}
               />
@@ -993,12 +999,14 @@ export default function OrganizerDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Select
                 label="Duration"
+                required
                 options={DURATION_OPTIONS}
                 value={planForm.meeting_duration_minutes}
                 onChange={(e) => setPlanForm((current) => current ? { ...current, meeting_duration_minutes: e.target.value } : current)}
               />
                 <Select
                   label="Suggestion spacing"
+                  required
                   tooltip="Smaller spacing gives you more candidate start times. Use 15 minutes for tighter scheduling, 30 minutes for simpler options."
                   options={SPACING_OPTIONS}
                   value={planForm.slot_granularity_minutes}
@@ -1006,6 +1014,7 @@ export default function OrganizerDashboard() {
                 />
               <Select
                 label="Ranking mode"
+                required
                 tooltip="This decides how Togoo weighs attendance, required people, and time preferences when ranking options."
                 options={[
                   { value: "maximize_attendance", label: "Maximize attendance" },
@@ -1022,19 +1031,22 @@ export default function OrganizerDashboard() {
               <DateTimePickerField
                 label="Suggested start"
                 tooltip="Optional. Pre-fill a proposed slot so invitees can react to something concrete right away."
+                optional
                 value={planForm.suggested_time_start_local}
                 onChange={(value) => setPlanForm((current) => current ? { ...current, suggested_time_start_local: value } : current)}
               />
               <DateTimePickerField
                 label="Suggested end"
+                optional
                 value={planForm.suggested_time_end_local}
                 onChange={(value) => setPlanForm((current) => current ? { ...current, suggested_time_end_local: value } : current)}
               />
             </div>
 
             <DatePickerField
-              label="Reply deadline (optional)"
+              label="Reply deadline"
               tooltip="After this date, new replies are closed. Existing invitees can still open the plan, but they cannot send fresh availability."
+              optional
               value={planForm.response_deadline_local}
               onChange={(value) => setPlanForm((current) => current ? { ...current, response_deadline_local: value } : current)}
             />

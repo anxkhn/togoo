@@ -9,6 +9,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: string;
   hint?: string;
   tooltip?: string;
+  optional?: boolean;
 }
 
 function formatDateValue(value: string): string {
@@ -23,7 +24,7 @@ function formatDateValue(value: string): string {
   }).format(new Date(Date.UTC(year, month - 1, day)));
 }
 
-export function Input({ label, error, hint, tooltip, className, id, ...props }: InputProps) {
+export function Input({ label, error, hint, tooltip, className, id, optional, ...props }: InputProps) {
   const inputId = id ?? label?.toLowerCase().replace(/\s+/g, "-");
   const isDateInput = props.type === "date";
   const dateValue = typeof props.value === "string" ? props.value : "";
@@ -31,7 +32,7 @@ export function Input({ label, error, hint, tooltip, className, id, ...props }: 
   return (
     <div className="w-full">
       {label && (
-        <FieldLabel htmlFor={inputId} label={label} tooltip={tooltip} />
+        <FieldLabel htmlFor={inputId} label={label} tooltip={tooltip} required={props.required} optional={optional} />
       )}
 
       {isDateInput ? (
@@ -79,15 +80,16 @@ interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement
   error?: string;
   hint?: string;
   tooltip?: string;
+  optional?: boolean;
 }
 
-export function Textarea({ label, error, hint, tooltip, className, id, ...props }: TextareaProps) {
+export function Textarea({ label, error, hint, tooltip, className, id, optional, ...props }: TextareaProps) {
   const inputId = id ?? label?.toLowerCase().replace(/\s+/g, "-");
 
   return (
     <div className="w-full">
       {label && (
-        <FieldLabel htmlFor={inputId} label={label} tooltip={tooltip} />
+        <FieldLabel htmlFor={inputId} label={label} tooltip={tooltip} required={props.required} optional={optional} />
       )}
       <textarea
         id={inputId}

@@ -28,6 +28,8 @@ interface BaseFieldProps {
   tooltip?: string;
   className?: string;
   placeholder?: string;
+  required?: boolean;
+  optional?: boolean;
 }
 
 interface DatePickerFieldProps extends BaseFieldProps {
@@ -68,11 +70,13 @@ function PickerFieldShell({
   tooltip,
   hint,
   error,
+  required,
+  optional,
   children,
 }: BaseFieldProps & { children: React.ReactNode }) {
   return (
     <div className="w-full">
-      {label && <FieldLabel label={label} tooltip={tooltip} />}
+      {label && <FieldLabel label={label} tooltip={tooltip} required={required} optional={optional} />}
       {children}
       {hint && !error && <p className="mt-1.5 text-pretty text-xs text-muted">{hint}</p>}
       {error && <p className="mt-1.5 text-pretty text-xs text-danger">{error}</p>}
@@ -119,7 +123,7 @@ function PickerCalendar({ bare = false }: { bare?: boolean }) {
             </AriaButton>
           </header>
 
-          <CalendarGrid className="w-full border-separate border-spacing-[3px] table-fixed">
+          <CalendarGrid offset={{ months: 1 }} className="w-full border-separate border-spacing-[3px] table-fixed">
             <CalendarGridHeader>
               {(day) => (
                 <CalendarHeaderCell className="pb-1 text-center text-[10px] font-medium uppercase tracking-wide text-muted">
@@ -204,7 +208,7 @@ export function DatePickerField({ label, tooltip, hint, error, value, onChange }
   );
 }
 
-export function DateTimePickerField({ label, tooltip, hint, error, value, onChange }: DateTimePickerFieldProps) {
+export function DateTimePickerField({ label, tooltip, hint, error, value, onChange, required, optional }: DateTimePickerFieldProps) {
   const parsedValue = value ? parseDateTime(value) : null;
   const selectedTime = value ? value.slice(11, 16) : "09:00";
 
@@ -215,7 +219,7 @@ export function DateTimePickerField({ label, tooltip, hint, error, value, onChan
   }
 
   return (
-    <PickerFieldShell label={label} tooltip={tooltip} hint={hint} error={error}>
+    <PickerFieldShell label={label} tooltip={tooltip} hint={hint} error={error} required={required} optional={optional}>
       <AriaDatePicker
         value={parsedValue}
         onChange={(next) => onChange(next ? formatCalendarDateTime(next as CalendarDateTime) : "")}

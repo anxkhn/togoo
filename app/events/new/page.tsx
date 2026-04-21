@@ -516,6 +516,7 @@ export default function NewEventPage() {
               />
               <Textarea
                 label="What should people know?"
+                optional
                 placeholder="Add the area, occasion, or any details people should know before they reply."
                 rows={3}
                 value={form.description}
@@ -523,6 +524,7 @@ export default function NewEventPage() {
               />
               <Select
                 label="What kind of plan is this?"
+                required
                 options={[
                   { value: "meetup", label: "Meetup" },
                   { value: "dinner", label: "Dinner" },
@@ -548,11 +550,13 @@ export default function NewEventPage() {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <DateTimePickerField
                   label="Start date and time"
+                  required
                   value={form.date_range_start_local}
                   onChange={(value) => set("date_range_start_local", value)}
                 />
                 <DateTimePickerField
                   label="End date and time"
+                  required
                   value={form.date_range_end_local}
                   onChange={(value) => set("date_range_end_local", value)}
                 />
@@ -560,12 +564,14 @@ export default function NewEventPage() {
               <div className="grid grid-cols-2 gap-4">
                 <Select
                   label="How long will it last?"
+                  required
                   options={DURATION_OPTIONS}
                   value={form.meeting_duration_minutes}
                   onChange={(e) => set("meeting_duration_minutes", e.target.value)}
                 />
                 <Select
                   label="Suggestion spacing"
+                  required
                   tooltip="Smaller spacing gives you more candidate start times. Use 15 minutes for tighter scheduling, 30 minutes for simpler options."
                   options={SPACING_OPTIONS}
                   value={form.slot_granularity_minutes}
@@ -575,6 +581,7 @@ export default function NewEventPage() {
 
               <Select
                 label="What should Togoo optimize for?"
+                required
                 tooltip="This decides how ranked times are scored. Pick the mode that best matches how you want Togoo to break tradeoffs for this plan."
                 options={[
                   { value: "maximize_attendance", label: "Maximize attendance" },
@@ -590,11 +597,13 @@ export default function NewEventPage() {
                 <DateTimePickerField
                   label="Suggested start"
                   tooltip="Optional. Pre-fill a proposed slot so invitees can react to something concrete right away."
+                  optional
                   value={form.suggested_time_start_local}
                   onChange={(value) => set("suggested_time_start_local", value)}
                 />
                 <DateTimePickerField
                   label="Suggested end"
+                  optional
                   value={form.suggested_time_end_local}
                   onChange={(value) => set("suggested_time_end_local", value)}
                 />
@@ -602,8 +611,9 @@ export default function NewEventPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <DatePickerField
-                  label="Reply deadline (optional)"
+                  label="Reply deadline"
                   tooltip="After this date, new replies are closed. People can still view the plan, but they cannot submit new availability."
+                  optional
                   value={form.response_deadline_local}
                   onChange={(value) => set("response_deadline_local", value)}
                 />

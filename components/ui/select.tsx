@@ -9,16 +9,17 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   error?: string;
   hint?: string;
   tooltip?: string;
+  optional?: boolean;
   options: Array<{ value: string; label: string }>;
 }
 
-export function Select({ label, error, hint, tooltip, className, id, options, ...props }: SelectProps) {
+export function Select({ label, error, hint, tooltip, className, id, options, optional, ...props }: SelectProps) {
   const inputId = id ?? label?.toLowerCase().replace(/\s+/g, "-");
 
   return (
     <div className="w-full">
       {label && (
-        <FieldLabel htmlFor={inputId} label={label} tooltip={tooltip} />
+        <FieldLabel htmlFor={inputId} label={label} tooltip={tooltip} required={props.required} optional={optional} />
       )}
       <div className="relative">
         <select

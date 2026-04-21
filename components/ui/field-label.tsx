@@ -26,16 +26,24 @@ export function FieldLabel({
   htmlFor,
   label,
   tooltip,
+  required,
+  optional,
   className,
 }: {
   htmlFor?: string;
   label: string;
   tooltip?: string;
+  required?: boolean;
+  optional?: boolean;
   className?: string;
 }) {
   return (
     <div className={cn("label flex items-center gap-1.5", className)}>
-      <label htmlFor={htmlFor}>{label}</label>
+      <label htmlFor={htmlFor} className="inline-flex items-center gap-1.5">
+        <span>{label}</span>
+        {required ? <span className="text-danger/75">*</span> : null}
+        {optional ? <span className="text-muted-light">(optional)</span> : null}
+      </label>
       {tooltip ? <InfoTooltip text={tooltip} /> : null}
     </div>
   );
