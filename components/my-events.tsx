@@ -32,21 +32,21 @@ function ConfirmDeleteDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in" onClick={onCancel} />
-      <div className="relative card p-6 max-w-sm w-full shadow-xl animate-scale-in">
-        <h3 className="font-display text-base font-semibold text-text mb-1">Remove this shortcut?</h3>
-        <p className="text-sm text-muted mb-5">
-          <span className="font-medium text-text">{title}</span> will be removed from your recent events on this device only.
-        </p>
+        <div className="relative card p-6 max-w-sm w-full shadow-xl animate-scale-in">
+          <h3 className="font-display text-base font-semibold text-text mb-1">Remove this shortcut?</h3>
+          <p className="text-sm text-muted mb-5">
+            <span className="font-medium text-text">{title}</span> will be removed from your recent plans on this device only.
+          </p>
         <div className="flex gap-3 justify-end">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-sm rounded-lg border border-border text-muted hover:text-text hover:bg-surface-alt active:scale-[0.97] transition-[background-color,color,border-color] duration-150 ease"
+            className="inline-flex min-h-10 items-center justify-center rounded-lg border border-transparent px-4 py-2 text-sm text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)] transition-[background-color,color,border-color,transform] duration-150 ease hover:bg-surface-alt hover:text-text active:scale-[0.96]"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
-            className="px-4 py-2 text-sm rounded-lg bg-danger text-white hover:bg-danger/90 active:scale-[0.97] transition-[background-color] duration-150 ease font-medium"
+            className="inline-flex min-h-10 items-center justify-center rounded-lg bg-danger px-4 py-2 text-sm font-medium text-white shadow-[0_10px_24px_rgba(185,28,28,0.14),inset_0_1px_0_rgba(255,255,255,0.14)] transition-[background-color,box-shadow,transform] duration-150 ease hover:bg-danger/90 active:scale-[0.96]"
           >
             Remove
           </button>
@@ -91,27 +91,27 @@ export function MyEvents() {
         />
       )}
       <section className="max-w-5xl mx-auto px-5 pb-2">
-        <h2 className="font-display text-xl font-semibold text-text mb-3">Recent events</h2>
+        <h2 className="font-display text-xl font-semibold text-text mb-3">Recent plans</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {events.map((ev) => (
-            <div key={ev.id + ev.role} className="card p-4 hover:shadow-card-hover transition-shadow duration-200 relative">
+            <div key={ev.id + ev.role} className="card card-interactive relative p-4">
               <Link
                 href={ev.role === "organizer" ? `/e/${ev.id}/organizer/${ev.token}` : `/r/${ev.token}`}
                 className="block pr-8"
               >
                 <div className="flex items-start justify-between gap-2">
                   <p className="text-sm font-medium text-text truncate">{ev.title}</p>
-                  <span className="text-xs text-muted bg-surface-alt border border-border rounded-full px-2 py-0.5 flex-shrink-0">
-                    {ev.role === "organizer" ? "Hosting" : "Invited"}
+                  <span className="flex-shrink-0 rounded-full bg-surface-alt px-2.5 py-1 text-xs text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
+                    {ev.role === "organizer" ? "Organizer" : "Invitee"}
                   </span>
                 </div>
                 <p className="text-xs text-muted mt-1">
-                  {ev.role === "organizer" ? "Open dashboard" : "Update your response"}
+                  {ev.role === "organizer" ? "Open organizer dashboard" : "Review or update your reply"}
                 </p>
               </Link>
               <button
                 onClick={() => setPendingDelete(ev)}
-                className="absolute top-3 right-3 w-6 h-6 flex items-center justify-center rounded-md text-muted hover:text-danger hover:bg-danger/10 transition-[color,background-color] duration-150 ease"
+                className="absolute right-2 top-2 inline-flex h-10 w-10 items-center justify-center rounded-full text-muted transition-[color,background-color,transform] duration-150 ease hover:bg-danger/10 hover:text-danger active:scale-[0.96]"
                 title="Remove shortcut"
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

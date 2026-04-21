@@ -183,7 +183,7 @@ export default function NewEventPage() {
 
         const data = await res.json() as CreateEventResponse | ApiError;
         if (!res.ok) {
-          setError(("error" in data ? data.error : null) ?? "We could not create your plan. Please try again.");
+          setError(("error" in data ? data.error : null) ?? "We couldn't create your plan. Please try again.");
           return;
         }
       const created = data as CreateEventResponse;
@@ -202,7 +202,7 @@ export default function NewEventPage() {
       setInvitePriorityTier("0");
       setStep(4);
     } catch {
-      setError("We hit a snag creating your plan. Please try again.");
+      setError("We couldn't create your plan. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -231,7 +231,7 @@ export default function NewEventPage() {
 
       const data = await res.json() as AddParticipantInviteResponse | ApiError;
       if (!res.ok) {
-        setInviteError(("error" in data ? data.error : null) ?? "We could not add that invitee.");
+        setInviteError(("error" in data ? data.error : null) ?? "We couldn't add that person.");
           return;
         }
       const added = data as AddParticipantInviteResponse;
@@ -246,16 +246,16 @@ export default function NewEventPage() {
       setInviteIsRequired(form.participants_required_by_default);
       setInvitePriorityTier("0");
     } catch {
-      setInviteError("We could not add that invitee. Try again.");
+      setInviteError("We couldn't add that person. Try again.");
     } finally {
       setAddingInvite(false);
     }
   }
 
   const steps = [
-    { n: 1, label: "Basics" },
-    { n: 2, label: "Schedule" },
-    { n: 3, label: "Check" },
+    { n: 1, label: "Setup" },
+    { n: 2, label: "Timing" },
+    { n: 3, label: "Review" },
     { n: 4, label: "Invite" },
   ];
 
@@ -272,12 +272,12 @@ export default function NewEventPage() {
       <main className="max-w-2xl mx-auto px-5 py-12">
         <div className="mb-10">
           <h1 className="font-display text-4xl font-bold text-text mb-2">
-            {step === 4 ? "Invite your group" : "Start your plan"}
+            {step === 4 ? "Add your group" : "Create your plan"}
           </h1>
           <p className="text-muted">
             {step === 4
-              ? "Add the people who should reply. You can always invite more later from the dashboard."
-              : "Tell Togoo what you're planning so it can surface the best options."}
+              ? "Add the people who should reply. Every invite gets a private link, and you can always add more later from the dashboard."
+              : "Set the window, choose what to ask, and Togoo will rank the best time once replies come in."}
           </p>
         </div>
 
@@ -285,9 +285,9 @@ export default function NewEventPage() {
           {steps.map((s, i) => (
             <div key={s.n} className="flex items-center gap-2">
               <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all duration-200 ${
+                className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold tabular-nums transition-[background-color,color,box-shadow] duration-200 ${
                   step === s.n
-                    ? "bg-accent text-white"
+                    ? "bg-accent text-white shadow-[0_8px_20px_rgba(47,104,68,0.16)]"
                     : step > s.n
                     ? "bg-accent-light text-accent"
                     : "bg-border text-muted"
@@ -311,7 +311,7 @@ export default function NewEventPage() {
           {step === 1 && (
             <div className="space-y-5">
               <Input
-                label="Your name"
+                label="Organizer name"
                 placeholder="e.g., Alex"
                 value={form.organizer_name}
                 onChange={(e) => set("organizer_name", e.target.value)}
@@ -325,14 +325,14 @@ export default function NewEventPage() {
                 required
               />
               <Textarea
-                label="What should people know? (optional)"
-                placeholder="Add context, goals, or a note for the group."
+                label="What should people know?"
+                placeholder="Add context, a goal, or any details people should see before they reply."
                 rows={3}
                 value={form.description}
                 onChange={(e) => set("description", e.target.value)}
               />
               <Select
-                label="Plan type"
+                label="What kind of plan is this?"
                 options={[
                   { value: "meetup", label: "Meetup" },
                   { value: "dinner", label: "Dinner" },
@@ -353,17 +353,17 @@ export default function NewEventPage() {
                 options={TIMEZONE_OPTIONS}
                 value={form.timezone}
                 onChange={(e) => set("timezone", e.target.value)}
-                hint="Detected from your browser. Invitees will answer against this timezone."
+                hint="Detected from your browser. Togoo scores suggestions against this timezone."
               />
               <div className="grid grid-cols-2 gap-4">
                 <Input
-                  label="Earliest date"
+                  label="First possible date"
                   type="date"
                   value={form.date_range_start_local}
                   onChange={(e) => set("date_range_start_local", e.target.value)}
                 />
                 <Input
-                  label="Latest date"
+                  label="Last possible date"
                   type="date"
                   value={form.date_range_end_local}
                   onChange={(e) => set("date_range_end_local", e.target.value)}
@@ -371,7 +371,7 @@ export default function NewEventPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <Select
-                  label="Earliest start time"
+                  label="Earliest start"
                   options={Array.from({ length: 24 }, (_, i) => ({
                     value: String(i),
                     label: `${i === 0 ? "12 AM" : i < 12 ? `${i} AM` : i === 12 ? "12 PM" : `${i - 12} PM`}`,
@@ -380,7 +380,7 @@ export default function NewEventPage() {
                   onChange={(e) => set("allowed_hours_start", e.target.value)}
                 />
                 <Select
-                  label="Latest end time"
+                  label="Latest finish"
                   options={Array.from({ length: 24 }, (_, i) => ({
                     value: String(i + 1),
                     label: `${i + 1 === 12 ? "12 PM" : i + 1 < 12 ? `${i + 1} AM` : i + 1 === 24 ? "12 AM" : `${i + 1 - 12} PM`}`,
@@ -391,7 +391,7 @@ export default function NewEventPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <Select
-                  label="How long should it be?"
+                  label="How long will it last?"
                   options={[
                     { value: "30", label: "30 minutes" },
                     { value: "60", label: "1 hour" },
@@ -405,18 +405,18 @@ export default function NewEventPage() {
                   onChange={(e) => set("meeting_duration_minutes", e.target.value)}
                 />
                 <Select
-                  label="Suggestion spacing"
+                  label="How precise should suggestions be?"
                   options={[
                     { value: "30", label: "30 minutes" },
                     { value: "15", label: "15 minutes" },
                   ]}
                   value={form.slot_granularity_minutes}
                   onChange={(e) => set("slot_granularity_minutes", e.target.value)}
-                  hint="Smaller spacing gives you more candidate options."
+                  hint="Smaller spacing gives Togoo more possible time slots to rank."
                 />
               </div>
               <Select
-                label="How should Togoo rank options?"
+                label="What should Togoo optimize for?"
                 options={[
                   { value: "maximize_attendance", label: "Maximize attendance" },
                   { value: "prioritize_required", label: "Prioritize required attendees" },
@@ -425,12 +425,12 @@ export default function NewEventPage() {
                 ]}
                 value={form.scoring_mode}
                 onChange={(e) => set("scoring_mode", e.target.value)}
-                hint="Choose what matters most when it scores the best time."
+                hint="Choose the tradeoff that matters most for this plan."
               />
 
               <div className="grid grid-cols-2 gap-4">
                 <Input
-                  label="Minimum people needed"
+                  label="Minimum attendees"
                   type="number"
                   min="0"
                   value={form.min_attendance_threshold}
@@ -442,13 +442,13 @@ export default function NewEventPage() {
                   type="date"
                   value={form.response_deadline_local}
                   onChange={(e) => set("response_deadline_local", e.target.value)}
-                  hint="After this date, replies are closed."
+                  hint="After this date, new replies are closed."
                 />
               </div>
 
               <div>
-                <p className="text-sm font-medium text-text mb-1">What should people weigh in on?</p>
-                <p className="text-xs text-muted mb-3">Turn on only the preferences that matter for this plan.</p>
+                <p className="text-sm font-medium text-text mb-1">What else should people weigh in on?</p>
+                <p className="text-xs text-muted mb-3">Turn on only the questions that matter for this plan.</p>
                 <div className="flex flex-wrap gap-2">
                   {ALL_PREF_FIELDS.map(({ key, label }) => {
                     const enabled = form.enabled_preferences.includes(key);
@@ -462,10 +462,10 @@ export default function NewEventPage() {
                             : [...form.enabled_preferences, key];
                           setForm((f) => ({ ...f, enabled_preferences: next }));
                         }}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-150 ${
+                        className={`pill-toggle ${
                           enabled
-                            ? "bg-accent text-white border-accent"
-                            : "bg-surface border-border text-text hover:border-accent/40"
+                            ? "bg-accent text-white shadow-[0_10px_24px_rgba(47,104,68,0.16),inset_0_1px_0_rgba(255,255,255,0.12)]"
+                            : "bg-surface text-text hover:border-accent/40"
                         }`}
                       >
                         {enabled && (
@@ -487,18 +487,18 @@ export default function NewEventPage() {
               <div className="flex items-start justify-between py-3 border-b border-border">
                 <div>
                   <p className="text-sm font-medium text-text">Mark new invitees as required by default</p>
-                  <p className="text-xs text-muted mt-0.5">Useful when a small core group needs to be present.</p>
+                  <p className="text-xs text-muted mt-0.5">Useful when a small core group has to be there.</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => set("participants_required_by_default", !form.participants_required_by_default)}
-                  className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors duration-200 focus-visible:outline-accent flex-shrink-0 ${
+                  className={`toggle-switch ${
                     form.participants_required_by_default ? "bg-accent" : "bg-border"
                   }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
-                      form.participants_required_by_default ? "translate-x-5" : "translate-x-1"
+                    className={`toggle-thumb ${
+                      form.participants_required_by_default ? "translate-x-5" : "translate-x-0"
                     }`}
                   />
                 </button>
@@ -507,18 +507,18 @@ export default function NewEventPage() {
               <div className="flex items-start justify-between py-3 border-b border-border">
                 <div>
                   <p className="text-sm font-medium text-text">Allow participants to edit</p>
-                  <p className="text-xs text-muted mt-0.5">Let people update their availability after they submit</p>
+                  <p className="text-xs text-muted mt-0.5">Let people update their reply after they submit.</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => set("allow_participant_edit", !form.allow_participant_edit)}
-                  className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors duration-200 focus-visible:outline-accent flex-shrink-0 ${
+                  className={`toggle-switch ${
                     form.allow_participant_edit ? "bg-accent" : "bg-border"
                   }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
-                      form.allow_participant_edit ? "translate-x-5" : "translate-x-1"
+                    className={`toggle-thumb ${
+                      form.allow_participant_edit ? "translate-x-5" : "translate-x-0"
                     }`}
                   />
                 </button>
@@ -527,18 +527,18 @@ export default function NewEventPage() {
               <div className="flex items-start justify-between py-3 border-b border-border">
                 <div>
                   <p className="text-sm font-medium text-text">Require at least one preference</p>
-                  <p className="text-xs text-muted mt-0.5">If on, people must fill one preference before they can submit.</p>
+                  <p className="text-xs text-muted mt-0.5">If this is on, people must share at least one preference before they can submit.</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => set("preferences_required", !form.preferences_required)}
-                  className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors duration-200 focus-visible:outline-accent flex-shrink-0 ${
+                  className={`toggle-switch ${
                     form.preferences_required ? "bg-accent" : "bg-border"
                   }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
-                      form.preferences_required ? "translate-x-5" : "translate-x-1"
+                    className={`toggle-thumb ${
+                      form.preferences_required ? "translate-x-5" : "translate-x-0"
                     }`}
                   />
                 </button>
@@ -547,41 +547,41 @@ export default function NewEventPage() {
               <div className="flex items-start justify-between py-3 border-b border-border">
                 <div>
                   <p className="text-sm font-medium text-text">Let participants view the live summary</p>
-                  <p className="text-xs text-muted mt-0.5">They can see the current overlap and top timings from their own invite link.</p>
+                  <p className="text-xs text-muted mt-0.5">They can see the current overlap and top suggestions from their own invite link.</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => set("show_results_to_participants", !form.show_results_to_participants)}
-                  className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors duration-200 focus-visible:outline-accent flex-shrink-0 ${
+                  className={`toggle-switch ${
                     form.show_results_to_participants ? "bg-accent" : "bg-border"
                   }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
-                      form.show_results_to_participants ? "translate-x-5" : "translate-x-1"
+                    className={`toggle-thumb ${
+                      form.show_results_to_participants ? "translate-x-5" : "translate-x-0"
                     }`}
                   />
                 </button>
               </div>
 
               <div className="card bg-surface-alt p-4">
-                <p className="text-sm font-medium text-text mb-1">Quick review</p>
+                <p className="text-sm font-medium text-text mb-1">Plan summary</p>
                 <dl className="text-sm space-y-1 text-muted">
                   <div className="flex justify-between">
                     <dt>Plan</dt>
-                    <dd className="text-text font-medium">{form.title || "(untitled)"}</dd>
+                        <dd className="text-text font-medium">{form.title || "(untitled)"}</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt>Host</dt>
-                    <dd className="text-text">{form.organizer_name || "(no name)"}</dd>
+                        <dd className="text-text">{form.organizer_name || "(no name)"}</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt>Date window</dt>
-                    <dd className="text-text">{form.date_range_start_local} – {form.date_range_end_local}</dd>
+                    <dd className="text-text tabular-nums">{form.date_range_start_local} – {form.date_range_end_local}</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt>Duration</dt>
-                    <dd className="text-text">{parseInt(form.meeting_duration_minutes) / 60}h</dd>
+                    <dd className="text-text tabular-nums">{parseInt(form.meeting_duration_minutes) / 60}h</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt>Timezone</dt>
@@ -589,12 +589,12 @@ export default function NewEventPage() {
                   </div>
                   <div className="flex justify-between">
                     <dt>Minimum people</dt>
-                    <dd className="text-text">{form.min_attendance_threshold}</dd>
+                    <dd className="text-text tabular-nums">{form.min_attendance_threshold}</dd>
                   </div>
                   {form.response_deadline_local && (
                     <div className="flex justify-between">
                       <dt>Reply deadline</dt>
-                      <dd className="text-text">{form.response_deadline_local}</dd>
+                      <dd className="text-text tabular-nums">{form.response_deadline_local}</dd>
                     </div>
                   )}
                 </dl>
@@ -653,9 +653,9 @@ export default function NewEventPage() {
                     }}
                   />
                 </div>
-                <label className="col-span-1 flex items-center gap-2 rounded-input border border-border px-3 py-2 text-sm text-text">
+                <label className="col-span-1 flex min-h-10 items-center gap-2 rounded-input border border-transparent px-3 py-2 text-sm text-text shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
                   <input type="checkbox" checked={inviteIsRequired} onChange={(e) => setInviteIsRequired(e.target.checked)} />
-                  Required attendee
+                  Must attend
                 </label>
                 <div className="col-span-1">
                   <Select
@@ -687,13 +687,13 @@ export default function NewEventPage() {
 
               {addedParticipants.length > 0 && (
                 <div className="border-t border-border pt-4 space-y-1">
-                  <p className="text-xs font-medium text-muted uppercase tracking-wide mb-3">
-                    Invite links ready ({addedParticipants.length})
+                <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted tabular-nums">
+                    Private invite links ({addedParticipants.length})
                   </p>
                   {addedParticipants.map((p) => (
                     <div key={p.invite_url} className="flex items-center justify-between gap-3 py-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 ${avatarColor(p.name)}`}>
+                        <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold ${avatarColor(p.name)}`}>
                           {p.name[0].toUpperCase()}
                         </div>
                         <span className="text-sm text-text font-medium truncate">{p.name}</span>
@@ -701,7 +701,7 @@ export default function NewEventPage() {
                       <button
                         type="button"
                         onClick={() => navigator.clipboard.writeText(p.invite_url)}
-                        className="text-xs text-accent hover:underline flex-shrink-0"
+                        className="inline-flex min-h-10 flex-shrink-0 items-center rounded-full px-3 text-xs font-medium text-accent shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)] transition-[color,background-color,transform] duration-150 hover:bg-accent-subtle active:scale-[0.96]"
                       >
                         Copy link
                       </button>
@@ -716,7 +716,11 @@ export default function NewEventPage() {
         <div className="flex justify-between mt-6">
           {step === 4 ? (
             <p className="text-sm text-muted self-center">
-              {addedParticipants.length === 0 ? "You can always invite more people from the dashboard." : `${addedParticipants.length} invitee${addedParticipants.length === 1 ? "" : "s"} added`}
+              {addedParticipants.length === 0 ? (
+                "You can always add more people from the dashboard."
+              ) : (
+                <span className="tabular-nums">{addedParticipants.length} invitee{addedParticipants.length === 1 ? "" : "s"} added</span>
+              )}
             </p>
           ) : step > 1 ? (
             <Button variant="secondary" onClick={() => setStep(step - 1)}>
@@ -753,7 +757,7 @@ export default function NewEventPage() {
           )}
           {step === 4 && (
             <Button onClick={() => router.push(`/e/${createdEventId}/organizer/${createdOrganizerToken}`)}>
-              Open dashboard
+              Open organizer dashboard
             </Button>
           )}
         </div>

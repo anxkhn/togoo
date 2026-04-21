@@ -19,10 +19,10 @@ export async function generateMetadata({
 
   if (!event) return { title: "Togoo" };
 
-  const desc = event.description ?? `The plan is set for ${event.title}. See the confirmed date and time.`;
+  const desc = event.description ?? `${event.title} is confirmed. See the final date and time.`;
 
   return {
-    title: `${event.title} | Confirmed on Togoo`,
+    title: `${event.title} | Confirmed plan on Togoo`,
     description: desc,
     openGraph: {
       title: event.title,
@@ -77,13 +77,13 @@ export default async function FinalPage({
     timeZone: event.timezone,
   }).format(new Date(finalSelection.slot_end * 1000));
 
-  const shareText = `The plan is set: ${event.title} is on ${startDate}, ${startTime}-${endTime} (${event.timezone})`;
+  const shareText = `${event.title} is confirmed for ${startDate}, ${startTime}-${endTime} (${event.timezone})`;
 
   return (
     <div className="min-h-screen bg-bg flex items-center justify-center px-5">
       <div className="max-w-md w-full">
         <div className="text-center mb-10 animate-slide-up">
-          <div className="w-14 h-14 rounded-full bg-accent-subtle flex items-center justify-center mx-auto mb-5">
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-accent-subtle shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)]">
             <svg className="w-7 h-7 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
@@ -101,15 +101,15 @@ export default async function FinalPage({
         </div>
 
         <div className="card p-8 text-center shadow-card-elevated animate-scale-in">
-          <p className="text-sm text-muted mb-1">Locked in for</p>
-          <p className="font-display text-3xl font-bold text-text mb-2">{startDate}</p>
-          <div className="inline-flex items-center gap-2 bg-accent-subtle border border-accent-light rounded-full px-4 py-2 mb-4">
+          <p className="text-sm text-muted mb-1">Confirmed for</p>
+          <p className="mb-2 font-display text-3xl font-bold text-text">{startDate}</p>
+          <div className="mb-4 inline-flex min-h-10 items-center gap-2 rounded-full bg-accent-subtle px-4 py-2 shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)]">
             <svg className="w-4 h-4 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span className="font-medium text-accent">{startTime} &ndash; {endTime}</span>
+            <span className="font-medium text-accent tabular-nums">{startTime} &ndash; {endTime}</span>
           </div>
-          <p className="text-sm text-muted">
+          <p className="text-sm text-muted tabular-nums">
             {event.timezone} &middot; {formatDuration(event.meeting_duration_minutes)}
           </p>
           {finalSelection.notes && (
@@ -119,7 +119,7 @@ export default async function FinalPage({
           )}
 
           <div className="mt-6 pt-5 border-t border-border flex items-center justify-center gap-2">
-            <span className="text-xs text-muted">Share the plan</span>
+            <span className="text-xs text-muted">Share the confirmed plan</span>
             <ShareButtons
               path={`/e/${eventId}/final`}
               title={event.title}

@@ -125,7 +125,7 @@ function CopyButton({ text, label }: { readonly text: string; readonly label: st
   return (
     <button onClick={copy} className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-accent transition-[color,background-color] duration-150 ease py-1 px-2 rounded hover:bg-accent-subtle flex-shrink-0">
       {copied ? (
-        <><svg className="w-3.5 h-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>Copied</>
+        <><svg className="w-3.5 h-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>Link copied</>
       ) : (
         <><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>{label}</>
       )}
@@ -139,7 +139,7 @@ function QRModal({ url, name, onClose }: { readonly url: string; readonly name: 
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in" onClick={onClose} />
       <div className="relative card p-6 max-w-xs w-full shadow-xl flex flex-col items-center gap-4 animate-scale-in">
         <div className="flex items-center justify-between w-full">
-          <p className="text-sm font-medium text-text">Invite QR for {name}</p>
+          <p className="text-sm font-medium text-text">Invite QR code for {name}</p>
           <button
             onClick={onClose}
             className="text-muted hover:text-text transition-[color] duration-150 ease"
@@ -211,7 +211,7 @@ function ParticipantRow({
                 <input className="input text-sm col-span-2" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="Phone for WhatsApp (optional)" type="tel" />
                 <label className="col-span-1 flex items-center gap-2 rounded-input border border-border px-3 py-2 text-sm text-text">
                   <input type="checkbox" checked={editIsRequired} onChange={(e) => setEditIsRequired(e.target.checked)} />
-                  Required attendee
+                  Must attend
                 </label>
                 <select className="input text-sm col-span-1" value={editTier} onChange={(e) => setEditTier(e.target.value)}>
                   <option value="0">Regular</option>
@@ -242,7 +242,7 @@ function ParticipantRow({
                 <TierBadge tier={participant.priority_tier} />
                 {participant.is_required === 1 && <Badge variant="warning" className="text-xs">Required</Badge>}
                 <Badge variant={participant.response_status === "responded" ? "success" : "default"}>
-                  {participant.response_status === "responded" ? "Replied" : "Waiting"}
+                  {participant.response_status === "responded" ? "Replied" : "Awaiting reply"}
                 </Badge>
               </div>
               {participant.email && <p className="text-xs text-muted mt-0.5">{participant.email}</p>}
@@ -361,7 +361,7 @@ export default function OrganizerDashboard() {
       ]);
 
       if (!eventRes.ok || !participantsRes.ok) {
-        setPageError("We could not open this event.");
+        setPageError("We couldn't open this plan.");
         return;
       }
 
@@ -376,7 +376,7 @@ export default function OrganizerDashboard() {
       setParticipants(participantsData.participants ?? []);
       setNewIsRequired(eventData.event.participants_required_by_default === 1);
     } catch {
-      setPageError("We could not load this plan. Try refreshing.");
+      setPageError("We couldn't load this plan. Try refreshing.");
     } finally {
       setLoading(false);
     }
@@ -530,8 +530,8 @@ export default function OrganizerDashboard() {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center">
         <div className="text-center">
-          <p className="text-danger mb-4">{pageError || "We could not find that event."}</p>
-          <Link href="/" className="btn-secondary">Back home</Link>
+          <p className="text-danger mb-4">{pageError || "We couldn't find that plan."}</p>
+          <Link href="/" className="btn-secondary">Go home</Link>
         </div>
       </div>
     );
@@ -553,10 +553,10 @@ export default function OrganizerDashboard() {
               </Link>
             )}
             <Badge variant={event.status === "finalized" ? "success" : "default"}>
-              {event.status === "finalized" ? "Confirmed" : "Open"}
+              {event.status === "finalized" ? "Confirmed" : "Collecting replies"}
             </Badge>
             {event.status === "finalized" && (
-              <Button variant="secondary" size="sm" onClick={handleReopen}>Reopen plan</Button>
+              <Button variant="secondary" size="sm" onClick={handleReopen}>Reopen replies</Button>
             )}
           </div>
         </div>
@@ -567,29 +567,29 @@ export default function OrganizerDashboard() {
           <p className="text-xs font-medium text-muted uppercase tracking-wide mb-1">{event.event_type}</p>
           <h1 className="font-display text-3xl sm:text-4xl font-bold text-text">{event.title}</h1>
           {event.description && <p className="mt-2 text-muted">{event.description}</p>}
-          <p className="mt-2 text-sm text-muted">
+          <p className="mt-2 text-sm text-muted tabular-nums">
             {formatDate(event.date_range_start, event.timezone)} &mdash; {formatDate(event.date_range_end, event.timezone)}
             <span className="mx-2">&middot;</span>
             {event.timezone}
           </p>
-          {event.response_deadline && (
-            <p className="mt-1 text-sm text-muted">
-              Reply deadline: <span className="font-medium text-text">{formatDate(event.response_deadline, event.timezone)}</span>
-            </p>
-          )}
+            {event.response_deadline && (
+              <p className="mt-1 text-sm text-muted tabular-nums">
+                Reply by <span className="font-medium text-text">{formatDate(event.response_deadline, event.timezone)}</span>
+              </p>
+            )}
         </div>
 
         <div className="grid grid-cols-3 gap-4 mb-8">
-          {[
-            { label: "Invited", value: stats.total_invited },
-            { label: "Replied", value: stats.total_responded },
-            { label: "Reply rate", value: `${responseRate}%` },
-          ].map((stat) => (
-            <div key={stat.label} className="card p-4 text-center">
-              <p className="font-display text-3xl font-bold text-text">{stat.value}</p>
-              <p className="text-xs text-muted mt-1">{stat.label}</p>
-            </div>
-          ))}
+            {[
+              { label: "Invited", value: stats.total_invited },
+              { label: "Replied", value: stats.total_responded },
+              { label: "Reply rate", value: `${responseRate}%` },
+            ].map((stat) => (
+              <div key={stat.label} className="card p-4 text-center">
+                <p className="font-display text-3xl font-bold text-text tabular-nums">{stat.value}</p>
+                <p className="text-xs text-muted mt-1">{stat.label}</p>
+              </div>
+            ))}
         </div>
 
         <div className="flex items-center gap-1 mb-6 border-b border-border">
@@ -598,25 +598,25 @@ export default function OrganizerDashboard() {
               key={t}
               onClick={() => setTab(t)}
               className={cn(
-                "px-4 py-2.5 text-sm font-medium capitalize border-b-2 -mb-px motion-safe:transition-[color,border-color] motion-safe:duration-150 motion-safe:ease",
+                "-mb-px min-h-10 border-b-2 px-4 py-2.5 text-sm font-medium capitalize motion-safe:transition-[color,border-color] motion-safe:duration-150 motion-safe:ease",
                 tab === t ? "border-accent text-accent" : "border-transparent text-muted hover:text-text"
               )}
             >
-              {t === "participants" ? "people" : t === "recommendations" ? "best options" : "activity"}
-            </button>
-          ))}
+                {t === "participants" ? "people" : t === "recommendations" ? "best times" : "activity"}
+              </button>
+            ))}
         </div>
 
         {tab === "participants" && (
           <div className="animate-fade-in">
             <div className="flex items-center justify-between mb-4">
               <h2 className="section-title">People ({nonOrganizerParticipants.length})</h2>
-              <Button size="sm" variant="secondary" onClick={() => setAddingParticipant(true)}>+ Add person</Button>
+              <Button size="sm" variant="secondary" onClick={() => setAddingParticipant(true)}>+ Add invitee</Button>
             </div>
 
             {addingParticipant && (
-              <div className="card p-4 mb-4 animate-scale-in">
-                <p className="text-sm font-medium text-text mb-3">Add someone to this plan</p>
+                <div className="card p-4 mb-4 animate-scale-in">
+                  <p className="text-sm font-medium text-text mb-3">Add someone to this plan</p>
                 <div className="grid grid-cols-2 gap-3 mb-3">
                   <Input placeholder="Name" value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleAddParticipant()} />
                   <div>
@@ -637,9 +637,9 @@ export default function OrganizerDashboard() {
                     value={newPhone}
                     onChange={(e) => setNewPhone(e.target.value)}
                   />
-                  <label className="flex items-center gap-2 rounded-input border border-border px-3 py-2 text-sm text-text">
+                  <label className="flex min-h-10 items-center gap-2 rounded-input border border-transparent px-3 py-2 text-sm text-text shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
                     <input type="checkbox" checked={newIsRequired} onChange={(e) => setNewIsRequired(e.target.checked)} />
-                    Required attendee
+                    Must attend
                   </label>
                 </div>
                 <div className="grid grid-cols-2 gap-3 mb-3">
@@ -667,7 +667,7 @@ export default function OrganizerDashboard() {
                   />
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" loading={addLoading} onClick={handleAddParticipant} disabled={!!newEmailError}>Add invitee</Button>
+                  <Button size="sm" loading={addLoading} onClick={handleAddParticipant} disabled={!!newEmailError}>Create invite link</Button>
                   <Button size="sm" variant="ghost" onClick={() => setAddingParticipant(false)}>Cancel</Button>
                 </div>
               </div>
@@ -700,17 +700,17 @@ export default function OrganizerDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
             <div className="lg:col-span-2">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="section-title">Best options</h2>
+                <h2 className="section-title">Best times</h2>
                 <div className="flex items-center gap-3">
-                  {recStats && <span className="text-xs text-muted">Based on {recStats.response_rate}% reply rate</span>}
-                  <button onClick={fetchRecommendations} disabled={recLoading} className="text-xs text-muted hover:text-accent transition-colors">
+                  {recStats && <span className="text-xs text-muted tabular-nums">Based on a {recStats.response_rate}% reply rate</span>}
+                  <button onClick={fetchRecommendations} disabled={recLoading} className="inline-flex min-h-10 items-center text-xs text-muted transition-[color] duration-150 hover:text-accent">
                     {recLoading ? "Refreshing..." : "Refresh"}
                   </button>
                 </div>
               </div>
 
               {recLoading ? (
-                <div className="text-center py-12 text-muted animate-pulse">Scoring the best options...</div>
+                <div className="text-center py-12 text-muted animate-pulse">Ranking the best times...</div>
               ) : recommendations ? (
                 <RecommendationCards
                   recommendations={recommendations}
@@ -722,7 +722,7 @@ export default function OrganizerDashboard() {
               ) : (
                 <div className="text-center py-12 text-muted">
                   <p className="font-medium text-text mb-1">No replies yet</p>
-                  <p className="text-sm">Suggestions appear after people start responding.</p>
+                  <p className="text-sm">Ranked times appear after people start replying.</p>
                 </div>
               )}
             </div>
@@ -730,14 +730,14 @@ export default function OrganizerDashboard() {
             <div className="space-y-5">
               {event.status === "finalized" && finalSelection && (
                 <div className="card bg-accent-subtle border-accent/30 p-4 animate-scale-in">
-                  <p className="text-xs font-medium text-accent mb-2">Confirmed time</p>
-                  <p className="font-display text-base font-semibold text-text">
+                  <p className="text-xs font-medium text-accent mb-2">Confirmed plan</p>
+                  <p className="font-display text-base font-semibold text-text tabular-nums">
                     {new Intl.DateTimeFormat("en-US", {
                       weekday: "short", month: "short", day: "numeric",
                       hour: "numeric", minute: "2-digit", timeZone: event.timezone,
                     }).format(new Date(finalSelection.slot_start * 1000))}
                   </p>
-                  <p className="text-sm text-muted mt-0.5">
+                  <p className="mt-0.5 text-sm text-muted tabular-nums">
                     Ends {new Intl.DateTimeFormat("en-US", {
                       hour: "numeric", minute: "2-digit", timeZone: event.timezone,
                     }).format(new Date(finalSelection.slot_end * 1000))}
@@ -762,24 +762,24 @@ export default function OrganizerDashboard() {
 
               {selectedMeeting && (
                 <div className="card bg-accent-subtle border-accent/30 p-4 animate-scale-in">
-                  <p className="text-xs font-medium text-accent mb-2">Selected option</p>
-                  <p className="font-display text-base font-semibold text-text">
+                  <p className="text-xs font-medium text-accent mb-2">Selected time</p>
+                  <p className="font-display text-base font-semibold text-text tabular-nums">
                     {new Intl.DateTimeFormat("en-US", {
                       weekday: "short", month: "short", day: "numeric",
                       hour: "numeric", minute: "2-digit", timeZone: event.timezone,
                     }).format(new Date(selectedMeeting.start * 1000))}
                   </p>
-                  <p className="text-sm text-muted mt-0.5">
+                  <p className="mt-0.5 text-sm text-muted tabular-nums">
                     {selectedMeeting.attendingCount} of {selectedMeeting.totalParticipants} can make it
                   </p>
                   <Button className="w-full mt-3" size="sm" loading={finalizing} onClick={handleFinalize} disabled={event.status === "finalized"}>
-                    {event.status === "finalized" ? "Already confirmed" : "Confirm this time"}
+                    {event.status === "finalized" ? "Already confirmed" : "Confirm this plan"}
                   </Button>
                 </div>
               )}
 
               <div className="card p-4">
-                <h3 className="text-sm font-medium text-text mb-3">Where replies overlap</h3>
+                <h3 className="text-sm font-medium text-text mb-3">Where availability overlaps</h3>
                 <OverlapHeatmap
                   slots={heatmapSlots}
                   timezone={event.timezone}
@@ -795,7 +795,7 @@ export default function OrganizerDashboard() {
             <h2 className="section-title mb-4">Recent activity</h2>
             {activityLog.length === 0 ? (
               <div className="card p-8 text-center text-muted text-sm">
-                Replies and changes will show up here.
+                New replies and changes will show up here.
               </div>
             ) : (
               <div className="card divide-y divide-border">
@@ -804,7 +804,7 @@ export default function OrganizerDashboard() {
                     <div className="w-1.5 h-1.5 rounded-full bg-accent-light flex-shrink-0 mt-0.5" />
                     <div>
                       <p className="text-sm text-text">{entry.action.replace(/_/g, " ")}</p>
-                      <p className="text-xs text-muted">
+                      <p className="text-xs text-muted tabular-nums">
                         {new Intl.DateTimeFormat("en-US", {
                           month: "short", day: "numeric",
                           hour: "numeric", minute: "2-digit", timeZone: event.timezone,

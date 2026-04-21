@@ -1,6 +1,6 @@
 # Togoo
 
-Plan group meetups without the back-and-forth.
+Plan group meetups without chasing people for replies.
 
 Togoo helps a group go from "what time works?" to a confirmed plan. Send one link, collect availability and preferences, and review ranked suggestions in a private dashboard before you lock in the final time.
 
@@ -17,7 +17,7 @@ Togoo helps a group go from "what time works?" to a confirmed plan. Send one lin
 ## Why use it
 
 - Replace long scheduling threads with a single response flow
-- Let guests respond quickly without creating an account
+- Let guests reply quickly without creating an account
 - Make a better decision than "whoever replied first"
 - Keep the organizer in control of tradeoffs such as attendance, key people, and time preferences
 - Share the final answer back to the group in one place

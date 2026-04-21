@@ -27,7 +27,7 @@ export function OverlapHeatmap({ slots, timezone, totalParticipants }: OverlapHe
   if (slots.length === 0) {
     return (
       <div className="text-center py-8 text-muted text-sm">
-        No replies yet. This heatmap fills in as people respond.
+        No replies yet. This view fills in as people respond.
       </div>
     );
   }

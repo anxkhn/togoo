@@ -8,15 +8,15 @@ interface FaqItem {
 const FAQS = [
   {
     q: "Do people need an account to reply?",
-    a: "No. Everyone gets a private link and can respond right away without signing up.",
+    a: "No. Everyone gets a private link and can reply right away without creating an account.",
   },
   {
     q: "What do invitees actually fill out?",
-    a: "They share when they could make it and, if you want, details like food, budget, area, and indoor or outdoor preferences.",
+    a: "They share when they could make it and, if you want, details like food, budget, preferred area, and indoor or outdoor preferences.",
   },
   {
     q: "Can someone change their response later?",
-    a: "Yes, as long as you allow edits when you create the event. They can reopen their link and update their availability.",
+    a: "Yes, as long as you allow edits when you create the plan. They can reopen their link and update their availability.",
   },
   {
     q: "What does the organizer see?",
@@ -28,15 +28,15 @@ const FAQS = [
   },
   {
     q: "Can I choose which preferences to ask about?",
-    a: "Yes. Turn on only the fields that matter for that plan, like food, budget, location, weekday versus weekend, time of day, or indoor versus outdoor.",
+    a: "Yes. Turn on only the questions that matter for that plan, like food, budget, location, weekday versus weekend, time of day, or indoor versus outdoor.",
   },
   {
     q: "Is this private?",
-    a: "Yes. Events are not publicly listed. Only people with the organizer link or an invite link can open the event. Invite links can also expire if you set a deadline.",
+    a: "Yes. Plans are not publicly listed. Only people with the organizer link or an invite link can open the plan. Invite links can also expire if you set a deadline.",
   },
   {
     q: "Can invitees see the live summary?",
-    a: "Only if you turn that on. When enabled, invitees can open a token-gated live summary from their own invite link.",
+    a: "Only if you turn that on. When enabled, invitees can open a private live summary from their own invite link.",
   },
   {
     q: "What happens after I confirm a time?",
@@ -58,19 +58,19 @@ export default function FAQPage() {
       <header className="border-b border-border bg-surface/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-5 h-14 flex items-center justify-between">
           <Link href="/" className="font-display text-xl font-semibold text-text">Togoo</Link>
-          <Link href="/events/new" className="btn-primary text-sm">Plan my meetup</Link>
+          <Link href="/events/new" className="btn-primary text-sm">Create a plan</Link>
         </div>
       </header>
 
       <main className="max-w-3xl mx-auto px-5 py-16">
         <h1 className="font-display text-4xl font-bold text-text mb-2 animate-slide-up">FAQ</h1>
         <p className="text-muted mb-12 animate-slide-up" style={{ animationDelay: "0.05s" }}>
-          Everything people usually ask before they trust a group planning tool.
+          Questions people usually ask before they trust a planning link with their group.
         </p>
 
         <div className="space-y-4 animate-fade-in" style={{ animationDelay: "0.1s" }}>
           {FAQS.map((item) => (
-            <div key={item.q} className="card p-6">
+            <div key={item.q} className="card card-interactive p-6">
               <h2 className="font-display text-base font-semibold text-text mb-2">{item.q}</h2>
               <p className="text-sm text-muted leading-relaxed">{item.a}</p>
             </div>
@@ -79,12 +79,12 @@ export default function FAQPage() {
       </main>
 
       <footer className="border-t border-border py-8 text-center text-xs text-muted space-y-2">
-        <p>Togoo | group plans without the back-and-forth</p>
+        <p>Togoo | group plans without the chasing</p>
         <a
           href="https://github.com/anxkhn/togoo"
           target="_blank"
           rel="noopener noreferrer"
-          className="hover:text-accent transition-[color] duration-150 ease inline-block"
+          className="inline-flex min-h-10 items-center px-2 hover:text-accent transition-[color] duration-150 ease"
         >
           GitHub
         </a>

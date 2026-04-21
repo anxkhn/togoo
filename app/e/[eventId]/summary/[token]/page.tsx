@@ -99,7 +99,7 @@ export default async function SummaryPage({
           <p className="text-xs font-medium text-accent uppercase tracking-wide mb-1">{event.event_type}</p>
           <h1 className="font-display text-3xl font-bold text-text">{event.title}</h1>
           {event.description && <p className="text-sm text-muted mt-1">{event.description}</p>}
-          <p className="text-sm text-muted mt-2">
+          <p className="mt-2 text-sm text-muted tabular-nums">
             {formatDate(event.date_range_start, event.timezone)} &mdash; {formatDate(event.date_range_end, event.timezone)}
             <span className="ml-2 text-xs">({event.timezone})</span>
           </p>
@@ -107,41 +107,41 @@ export default async function SummaryPage({
 
         <div className="grid grid-cols-2 gap-4 mb-8">
           <div className="card p-4 text-center">
-            <p className="font-display text-3xl font-bold text-text">{responded}</p>
+            <p className="font-display text-3xl font-bold text-text tabular-nums">{responded}</p>
             <p className="text-xs text-muted mt-1">Replied</p>
           </div>
           <div className="card p-4 text-center">
-            <p className="font-display text-3xl font-bold text-text">{totalParticipants - responded}</p>
+            <p className="font-display text-3xl font-bold text-text tabular-nums">{totalParticipants - responded}</p>
             <p className="text-xs text-muted mt-1">Still waiting</p>
           </div>
         </div>
 
         {responded < totalParticipants && (
-          <div className="bg-warning-light border border-warning/20 rounded-input px-4 py-3 text-sm text-warning mb-6">
-            <span className="font-medium">Still waiting on replies.</span> {totalParticipants - responded} {totalParticipants - responded === 1 ? "person has not" : "people have not"} replied yet, so these results may change.
+          <div className="mb-6 rounded-input bg-warning-light px-4 py-3 text-sm text-warning shadow-[inset_0_0_0_1px_rgba(180,83,9,0.12)]">
+            <span className="font-medium">More replies are still coming in.</span> {totalParticipants - responded} {totalParticipants - responded === 1 ? "person has not" : "people have not"} replied yet, so these results may change.
           </div>
         )}
 
         {popularTimings.length > 0 && (
           <div className="mb-8">
-            <h2 className="section-title mb-3">Best overlap</h2>
-            <p className="text-xs text-muted mb-4">Times when the largest number of people can make it.</p>
+            <h2 className="section-title mb-3">Most people can make these</h2>
+            <p className="text-xs text-muted mb-4">These are the times with the strongest overlap so far.</p>
             <div className="space-y-3">
               {popularTimings.map((slot, i) => (
-                <div key={slot.start} className="card card-interactive p-4 flex items-center gap-4">
-                  <div className="w-8 h-8 rounded-full bg-accent-subtle flex items-center justify-center flex-shrink-0 font-display font-bold text-accent text-sm">
+                <div key={slot.start} className="card card-interactive flex items-center gap-4 p-4">
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-accent-subtle font-display text-sm font-bold text-accent shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)] tabular-nums">
                     {i + 1}
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-text">
+                    <p className="text-sm font-medium text-text tabular-nums">
                       {formatSlotTime(slot.start, event.timezone)} &ndash; {formatSlotEnd(slot.end, event.timezone)}
                     </p>
-                    <p className="text-xs text-muted mt-0.5">
+                    <p className="mt-0.5 text-xs text-muted tabular-nums">
                       {slot.attendingCount} of {slot.totalParticipants} people can make it
                     </p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-semibold text-text">
+                    <p className="text-sm font-semibold text-text tabular-nums">
                       {Math.round((slot.attendingCount / slot.totalParticipants) * 100)}%
                     </p>
                     <p className="text-xs text-muted">can make it</p>
@@ -154,19 +154,19 @@ export default async function SummaryPage({
 
         {uniqueSuggested.length > 0 && (
           <div className="mb-8">
-            <h2 className="section-title mb-3">Best fit</h2>
-            <p className="text-xs text-muted mb-4">Times that balance attendance with the group&apos;s preferences.</p>
+            <h2 className="section-title mb-3">Best fit for the group</h2>
+            <p className="text-xs text-muted mb-4">These times balance attendance with the group's stated preferences.</p>
             <div className="space-y-3">
               {uniqueSuggested.map((slot, i) => (
-                <div key={slot.start} className="card p-4 flex items-center gap-4">
-                  <div className="w-8 h-8 rounded-full bg-surface-alt border border-border flex items-center justify-center flex-shrink-0 font-display font-bold text-muted text-sm">
+                <div key={slot.start} className="card flex items-center gap-4 p-4">
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-surface-alt font-display text-sm font-bold text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)] tabular-nums">
                     {i + 1}
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-text">
+                    <p className="text-sm font-medium text-text tabular-nums">
                       {formatSlotTime(slot.start, event.timezone)} &ndash; {formatSlotEnd(slot.end, event.timezone)}
                     </p>
-                    <p className="text-xs text-muted mt-0.5">
+                    <p className="mt-0.5 text-xs text-muted tabular-nums">
                       {slot.attendingCount} of {slot.totalParticipants} people can make it
                       {slot.isWeekend ? " · weekend" : " · weekday"}
                     </p>
@@ -180,7 +180,7 @@ export default async function SummaryPage({
         {popularTimings.length === 0 && (
           <div className="card p-8 text-center text-muted text-sm">
             <p className="font-medium text-text mb-1">No replies yet</p>
-            <p>Suggestions will appear after people start responding.</p>
+            <p>Suggestions will appear after people start replying.</p>
           </div>
         )}
       </main>

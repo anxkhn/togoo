@@ -50,7 +50,7 @@ export default function RespondPage() {
         }
 
         if (data.role !== "participant") {
-          setTokenError("This link is for organizer access, not participant replies.");
+          setTokenError("This link is for the organizer dashboard, not guest replies.");
           return;
         }
 
@@ -83,7 +83,7 @@ export default function RespondPage() {
           });
         }
       } catch {
-        setTokenError("We could not load this invite. Try refreshing.");
+        setTokenError("We couldn't load this invite. Try refreshing.");
       } finally {
         setLoading(false);
       }
@@ -97,11 +97,11 @@ export default function RespondPage() {
       return;
     }
     if (responseClosed) {
-      setError("Responses are closed for this event.");
+      setError("Replies are closed for this plan.");
       return;
     }
     if (!preferencesSatisfied) {
-      setError("Please add at least one preference before submitting.");
+      setError("Please add at least one preference before sending your reply.");
       return;
     }
     if (!eventId) return;
@@ -138,7 +138,7 @@ export default function RespondPage() {
 
       const data = await res.json() as ApiError;
       if (!res.ok) {
-        setError(data.error ?? "We could not save your response. Please try again.");
+        setError(data.error ?? "We couldn't save your reply. Please try again.");
         return;
       }
 
@@ -154,7 +154,7 @@ export default function RespondPage() {
 
       setStep("success");
     } catch {
-      setError("We could not save your response. Please try again.");
+      setError("We couldn't save your reply. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -163,7 +163,7 @@ export default function RespondPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center">
-        <div className="text-center text-muted animate-pulse">Loading your invite...</div>
+          <div className="text-center text-muted animate-pulse">Loading your invite...</div>
       </div>
     );
   }
@@ -177,9 +177,9 @@ export default function RespondPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
-          <h1 className="font-display text-2xl font-semibold text-text mb-2">This invite link is not working</h1>
+          <h1 className="font-display text-2xl font-semibold text-text mb-2">This invite link cannot be opened</h1>
           <p className="text-muted mb-6">{tokenError}</p>
-          <Link href="/" className="btn-secondary">Back home</Link>
+          <Link href="/" className="btn-secondary">Go home</Link>
         </div>
       </div>
     );
@@ -194,12 +194,12 @@ export default function RespondPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h1 className="font-display text-3xl font-bold text-text mb-2">Response saved</h1>
+          <h1 className="font-display text-3xl font-bold text-text mb-2">You're in</h1>
           <p className="text-muted mb-2">
-            Thanks, <span className="font-medium text-text">{participant?.name}</span>. Your availability is in.
+            Thanks, <span className="font-medium text-text">{participant?.name}</span>. Your reply is saved.
           </p>
           <p className="text-sm text-muted mb-8">
-            The organizer will use everyone&apos;s replies to lock in the best time.
+            The organizer can now factor your availability into the final decision.
           </p>
           <div className="flex flex-col gap-3">
             {event?.show_results_to_participants === 1 && eventId && (
@@ -212,11 +212,11 @@ export default function RespondPage() {
                 onClick={() => setStep("availability")}
                 className="btn-secondary text-sm"
               >
-                Update my response
+                Edit my reply
               </button>
             )}
             <Link href="/" className="text-sm text-muted hover:text-accent transition-colors">
-              Back home
+              Go home
             </Link>
           </div>
         </div>
@@ -235,10 +235,10 @@ export default function RespondPage() {
         <div className="max-w-xl mx-auto px-5 h-14 flex items-center justify-between">
           <Link href="/" className="font-display text-xl font-semibold text-text">Togoo</Link>
           {isUpdate && (
-            <span className="text-xs text-muted bg-surface-alt border border-border rounded-full px-3 py-1">
-              Updating reply
-            </span>
-          )}
+              <span className="inline-flex min-h-10 items-center rounded-full bg-surface-alt px-3 py-1 text-xs text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
+                Editing reply
+              </span>
+            )}
         </div>
       </header>
 
@@ -248,12 +248,12 @@ export default function RespondPage() {
             <p className="text-xs font-medium text-accent uppercase tracking-wide mb-1">{event.event_type}</p>
             <h1 className="font-display text-3xl font-bold text-text mb-1">{event.title}</h1>
             {event.description && <p className="text-muted text-sm mb-2">{event.description}</p>}
-            <p className="text-sm text-muted">
+            <p className="text-sm text-muted tabular-nums">
               {formatDate(event.date_range_start, event.timezone)} &mdash; {formatDate(event.date_range_end, event.timezone)}
               <span className="ml-2 text-xs">({event.timezone})</span>
             </p>
             {event.response_deadline && (
-              <p className="text-sm text-muted mt-1">
+              <p className="mt-1 text-sm text-muted tabular-nums">
                 Reply by <span className="font-medium text-text">{formatDate(event.response_deadline, event.timezone)}</span>
               </p>
             )}
@@ -266,17 +266,21 @@ export default function RespondPage() {
         )}
 
         {responseClosed && (
-          <div className="mb-5 bg-warning-light border border-warning/20 rounded-input px-4 py-3 text-sm text-warning">
-            Responses are closed for this event.
-          </div>
+            <div className="mb-5 rounded-input bg-warning-light px-4 py-3 text-sm text-warning shadow-[inset_0_0_0_1px_rgba(180,83,9,0.12)]">
+             Replies are closed for this plan.
+            </div>
         )}
 
         <div className="flex items-center gap-2 mb-6">
           {(["availability", "preferences", "review"] as const).map((s, i) => (
             <div key={s} className="flex items-center gap-2">
               <div className={cn(
-                "w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold transition-all",
-                step === s ? "bg-accent text-white" : stepIndex > i ? "bg-accent-light text-accent" : "bg-border text-muted"
+                "flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold tabular-nums transition-[background-color,color,box-shadow] duration-200",
+                step === s
+                  ? "bg-accent text-white shadow-[0_8px_20px_rgba(47,104,68,0.16)]"
+                  : stepIndex > i
+                    ? "bg-accent-light text-accent"
+                    : "bg-border text-muted"
               )}>
                 {stepIndex > i ? (
                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -297,7 +301,7 @@ export default function RespondPage() {
             <div>
               <h2 className="font-display text-xl font-semibold text-text mb-1">When could you make it?</h2>
               <p className="text-sm text-muted mb-5">
-                Choose broad windows when you could join. The more flexibility you share, the easier it is to find a time that works for the group.
+                Pick the windows when you could realistically make it. The more flexibility you share, the easier it is to find a time that works for everyone.
                 Times are shown in <strong>{event.timezone}</strong>.
               </p>
               <AvailabilityPicker
@@ -315,10 +319,10 @@ export default function RespondPage() {
 
           {step === "preferences" && (
             <div>
-              <h2 className="font-display text-xl font-semibold text-text mb-1">Anything to keep in mind?</h2>
+              <h2 className="font-display text-xl font-semibold text-text mb-1">Any preferences?</h2>
               <p className="text-sm text-muted mb-5">
                 {event?.preferences_required === 1
-                  ? "Required for this event. Add at least one preference so the organizer can weigh tradeoffs."
+                  ? "Required for this plan. Add at least one preference so the organizer can weigh tradeoffs."
                   : "Optional, but helpful when the organizer is weighing tradeoffs."}
               </p>
               <PreferenceForm
@@ -331,12 +335,12 @@ export default function RespondPage() {
 
           {step === "review" && event && (
             <div>
-              <h2 className="font-display text-xl font-semibold text-text mb-1">Ready to send?</h2>
+              <h2 className="font-display text-xl font-semibold text-text mb-1">Ready to send your reply?</h2>
               <p className="text-sm text-muted mb-5">Check your availability and preferences before you submit.</p>
 
               <div className="space-y-3">
                 <div>
-                  <p className="text-xs font-medium text-muted uppercase tracking-wide mb-2">
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted tabular-nums">
                     Your availability ({windows.length} window{windows.length !== 1 ? "s" : ""})
                   </p>
                   {windows.map((win) => {
@@ -356,13 +360,13 @@ export default function RespondPage() {
                     const localEnd = localFmt.format(new Date(win.end_time * 1000));
                     return (
                       <div key={win.id} className="py-1.5">
-                        <div className="flex items-center gap-2 text-sm text-text">
+                        <div className="flex items-center gap-2 text-sm text-text tabular-nums">
                           <div className="w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0" />
                           {start} – {end}
                           <span className="text-xs text-muted">({event.timezone})</span>
                         </div>
                         {showDualTimezone && (
-                          <p className="text-xs text-muted ml-3.5 mt-0.5">
+                          <p className="ml-3.5 mt-0.5 text-xs text-muted tabular-nums">
                             {localStart} – {localEnd} your time ({localTimezone})
                           </p>
                         )}
@@ -402,7 +406,7 @@ export default function RespondPage() {
               </div>
 
               {error && (
-                <div className="mt-4 bg-danger-light border border-danger/20 rounded-input px-4 py-3 text-sm text-danger">
+                <div className="mt-4 rounded-input bg-danger-light px-4 py-3 text-sm text-danger shadow-[inset_0_0_0_1px_rgba(185,28,28,0.12)]">
                   {error}
                 </div>
               )}
@@ -444,7 +448,7 @@ export default function RespondPage() {
           )}
           {step === "review" && (
             <Button loading={submitting} disabled={responseClosed || !preferencesSatisfied} onClick={handleSubmit}>
-              {isUpdate ? "Update my availability" : "Send my availability"}
+              {isUpdate ? "Update my reply" : "Send my reply"}
             </Button>
           )}
         </div>

@@ -78,10 +78,10 @@ function PillGroup({
             type="button"
             onClick={() => onChange(opt.value === value ? "no_preference" : opt.value)}
             className={cn(
-              "px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-150 active:scale-[0.97]",
+              "pill-toggle",
               value === opt.value
-                ? "bg-accent text-white border-accent"
-                : "bg-surface border-border text-text hover:border-accent/50 hover:bg-accent-subtle/20"
+                ? "bg-accent text-white shadow-[0_10px_24px_rgba(47,104,68,0.16),inset_0_1px_0_rgba(255,255,255,0.12)]"
+                : "bg-surface text-text hover:border-accent/50 hover:bg-accent-subtle/20"
             )}
           >
             {opt.label}
@@ -152,7 +152,7 @@ export function PreferenceForm({ values, onChange, enabledFields }: PreferenceFo
 
       {show("food") && values.food_preference === "custom" && (
         <Input
-          label="Tell us more"
+          label="Share more detail"
           placeholder="Gluten-free, nut allergy, etc."
           value={values.food_note}
           onChange={(e) => onChange(set(values, "food_note", e.target.value))}
@@ -205,8 +205,8 @@ export function PreferenceForm({ values, onChange, enabledFields }: PreferenceFo
       )}
 
       <Textarea
-        label="Anything else? (optional)"
-        placeholder="Parking, a hard stop time, accessibility needs, or anything else the organizer should know."
+        label="Anything else the organizer should know?"
+        placeholder="Parking, a hard stop time, accessibility needs, or anything else that matters."
         rows={2}
         value={values.notes}
         onChange={(e) => onChange(set(values, "notes", e.target.value))}

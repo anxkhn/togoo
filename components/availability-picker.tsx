@@ -158,10 +158,10 @@ function BlockPill({
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-150 active:scale-[0.97]",
+        "pill-toggle",
         selected
-          ? "bg-accent text-white border-accent shadow-sm"
-          : "bg-surface border-border text-text hover:border-accent/50 hover:bg-accent-subtle/30"
+          ? "bg-accent text-white shadow-[0_10px_24px_rgba(47,104,68,0.16),inset_0_1px_0_rgba(255,255,255,0.12)]"
+          : "bg-surface text-text hover:border-accent/50 hover:bg-accent-subtle/30"
       )}
     >
       {selected && (
@@ -170,7 +170,7 @@ function BlockPill({
         </svg>
       )}
       <span>{block.label}</span>
-      <span className={cn("text-[10px]", selected ? "text-white/70" : "text-muted")}>
+      <span className={cn("tabular-nums text-[10px]", selected ? "text-white/70" : "text-muted")}>
         {fmtHour(block.sh)}–{fmtHour(block.eh)}
       </span>
     </button>
@@ -179,12 +179,12 @@ function BlockPill({
 
 function WindowChip({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
-    <span className="inline-flex items-center gap-1 bg-accent-subtle border border-accent-light rounded-full px-2.5 py-1 text-xs text-accent font-medium">
-      {label}
+    <span className="inline-flex min-h-10 items-center gap-1 rounded-full bg-accent-subtle pl-3 pr-1.5 text-xs font-medium text-accent shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)]">
+      <span className="tabular-nums">{label}</span>
       <button
         type="button"
         onClick={onRemove}
-        className="text-accent/70 hover:text-danger transition-colors ml-0.5"
+        className="-my-1 inline-flex h-10 w-10 items-center justify-center rounded-full text-accent/70 transition-[color,background-color,transform] duration-150 hover:bg-white/70 hover:text-danger active:scale-[0.96]"
         aria-label="Remove"
       >
         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -322,17 +322,17 @@ export function AvailabilityPicker({
             <button
               type="button"
               onClick={() => onChange([])}
-              className="text-xs text-muted hover:text-danger transition-colors"
+              className="inline-flex min-h-10 items-center text-xs text-muted transition-[color] duration-150 hover:text-danger"
             >
-              Clear all
+              Clear selection
             </button>
           )}
           <button
             type="button"
             onClick={selectAll}
-            className="text-xs font-medium text-accent hover:underline"
+            className="inline-flex min-h-10 items-center text-xs font-medium text-accent transition-[color] duration-150 hover:text-accent-hover"
           >
-            Select all blocks
+            Select all time blocks
           </button>
         </div>
       </div>
@@ -362,7 +362,7 @@ export function AvailabilityPicker({
             <div key={dateStr} className="border-b border-border last:border-0 py-3">
               {/* Row: label + blocks + custom button */}
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                <span className="text-sm font-medium text-text w-24 flex-shrink-0">
+                <span className="w-24 flex-shrink-0 text-sm font-medium text-text">
                   {fmtDayLabel(dateStr, tz)}
                 </span>
 
@@ -380,32 +380,32 @@ export function AvailabilityPicker({
                     );
                   })}
 
-                  <button
-                    type="button"
-                    onClick={() => openCustom(dateStr)}
-                    className={cn(
-                      "inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium border transition-all duration-150 active:scale-[0.97]",
-                      isOpen
-                        ? "bg-surface-alt border-border-strong text-text"
-                        : "bg-surface border-border text-muted hover:text-text hover:border-border-strong"
-                    )}
-                  >
-                    <svg
-                      className={cn("w-3 h-3 transition-transform duration-150", isOpen && "rotate-45")}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
+                    <button
+                      type="button"
+                      onClick={() => openCustom(dateStr)}
+                      className={cn(
+                        "pill-toggle px-3",
+                        isOpen
+                          ? "bg-surface-alt text-text shadow-[inset_0_0_0_1px_rgba(26,23,20,0.12)]"
+                          : "bg-surface text-muted hover:border-border-strong hover:text-text"
+                      )}
+                    >
+                      <svg
+                        className={cn("h-3 w-3 transition-transform duration-150", isOpen && "rotate-45")}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
                     >
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
-                    Add custom time
+                    Add a custom time
                   </button>
                 </div>
               </div>
 
               {/* Custom time expander */}
               {isOpen && draft && (
-                <div className="mt-2 ml-0 sm:ml-[108px] p-3 bg-surface-alt rounded-input border border-border space-y-3">
+                <div className="mt-2 ml-0 space-y-3 rounded-[18px] bg-surface-alt p-3 shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)] sm:ml-[108px]">
                   {/* Start time */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -441,10 +441,10 @@ export function AvailabilityPicker({
                             type="button"
                             onClick={() => updateDraft(dateStr, { durMins: d })}
                             className={cn(
-                              "px-2 py-1 rounded text-xs font-medium border transition-all duration-100 active:scale-[0.97]",
+                              "pill-toggle rounded-input px-2.5 py-1",
                               draft.durMins === d
-                                ? "bg-accent text-white border-accent"
-                                : "bg-surface border-border text-text hover:border-accent/40"
+                                ? "bg-accent text-white shadow-[0_8px_20px_rgba(47,104,68,0.16),inset_0_1px_0_rgba(255,255,255,0.12)]"
+                                : "bg-surface text-text hover:border-accent/40"
                             )}
                           >
                             {durLabels[d] ?? `${d}m`}
@@ -461,13 +461,13 @@ export function AvailabilityPicker({
                             });
                           }}
                           className={cn(
-                            "px-2 py-1 rounded text-xs font-medium border transition-all duration-100 active:scale-[0.97]",
+                            "pill-toggle rounded-input px-2.5 py-1",
                             draft.durMins === "custom"
-                              ? "bg-accent text-white border-accent"
-                              : "bg-surface border-border text-text hover:border-accent/40"
+                              ? "bg-accent text-white shadow-[0_8px_20px_rgba(47,104,68,0.16),inset_0_1px_0_rgba(255,255,255,0.12)]"
+                              : "bg-surface text-text hover:border-accent/40"
                           )}
                         >
-                          Set end time
+                          Choose end time
                         </button>
                       </div>
                     </div>
@@ -496,16 +496,16 @@ export function AvailabilityPicker({
 
                   {/* Preview + actions */}
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted">
-                      {computedEnd
-                        ? `${fmtTime(toUnix(dateStr, draft.startH, draft.startM, tz), tz)} – ${fmtTime(toUnix(dateStr, computedEnd.h, computedEnd.m, tz), tz)}`
-                        : "Choose a length"}
+                    <span className="tabular-nums text-xs text-muted">
+                        {computedEnd
+                          ? `${fmtTime(toUnix(dateStr, draft.startH, draft.startM, tz), tz)} – ${fmtTime(toUnix(dateStr, computedEnd.h, computedEnd.m, tz), tz)}`
+                          : "Choose a length"}
                     </span>
                     <div className="flex gap-2">
                       <button
                         type="button"
                         onClick={() => setOpenDay(null)}
-                        className="text-xs text-muted hover:text-text transition-colors"
+                        className="inline-flex min-h-10 items-center text-xs text-muted transition-[color] duration-150 hover:text-text"
                       >
                         Close
                       </button>
@@ -541,12 +541,12 @@ export function AvailabilityPicker({
 
       {windows.length === 0 && (
         <p className="text-center py-6 text-muted text-sm mt-2">
-          Choose the blocks when you could make it.
+          Choose the times when you could make it.
         </p>
       )}
 
       {windows.length > 0 && (
-        <p className="text-xs text-muted mt-3 text-center">
+        <p className="mt-3 text-center text-xs text-muted tabular-nums">
           {windows.length} window{windows.length !== 1 ? "s" : ""} selected
         </p>
       )}
