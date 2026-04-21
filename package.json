@@ -17,6 +17,7 @@
     "seed:remote": "wrangler d1 execute togoo-db --remote --file=./scripts/seed.sql"
   },
   "dependencies": {
+    "@internationalized/date": "^3.12.1",
     "@vvo/tzdb": "^6.198.0",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
@@ -25,6 +26,7 @@
     "next": "^15.5.5",
     "qrcode.react": "^4.2.0",
     "react": "^19.0.0",
+    "react-aria-components": "^1.17.0",
     "react-dom": "^19.0.0",
     "react-server-dom-webpack": "^19.2.5",
     "tailwind-merge": "^2.5.4",

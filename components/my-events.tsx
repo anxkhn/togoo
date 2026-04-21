@@ -48,13 +48,13 @@ function ConfirmDeleteDialog({
         <div className="flex gap-3 justify-end">
           <button
             onClick={onCancel}
-            className="inline-flex min-h-10 items-center justify-center rounded-lg border border-transparent px-4 py-2 text-sm text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)] transition-[background-color,color,border-color] duration-150 ease hover:bg-surface-alt hover:text-text active:scale-[0.97]"
+            className="inline-flex min-h-10 items-center justify-center rounded-lg border border-transparent px-4 py-2 text-sm text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)] transition-[background-color,color,border-color] duration-150 ease hover:bg-surface-alt hover:text-text active:scale-[0.96]"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
-            className="inline-flex min-h-10 items-center justify-center rounded-lg bg-danger px-4 py-2 text-sm font-medium text-white shadow-[0_10px_24px_rgba(185,28,28,0.14),inset_0_1px_0_rgba(255,255,255,0.14)] transition-[background-color,box-shadow] duration-150 ease hover:bg-danger/90 active:scale-[0.97]"
+            className="inline-flex min-h-10 items-center justify-center rounded-lg bg-danger px-4 py-2 text-sm font-medium text-white shadow-[0_10px_24px_rgba(185,28,28,0.14),inset_0_1px_0_rgba(255,255,255,0.14)] transition-[background-color,box-shadow] duration-150 ease hover:bg-danger/90 active:scale-[0.96]"
           >
             Remove
           </button>
@@ -119,7 +119,7 @@ export function MyEvents() {
               </Link>
               <button
                 onClick={() => setPendingDelete(ev)}
-                className="absolute right-2 top-2 inline-flex h-10 w-10 items-center justify-center rounded-full text-muted transition-[color,background-color] duration-150 ease hover:bg-danger/10 hover:text-danger active:scale-[0.97]"
+                className="absolute right-2 top-2 inline-flex h-10 w-10 items-center justify-center rounded-full text-muted transition-[color,background-color] duration-150 ease hover:bg-danger/10 hover:text-danger active:scale-[0.96]"
                 title="Remove shortcut"
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

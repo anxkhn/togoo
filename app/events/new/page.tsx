@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { DatePickerField, DateTimePickerField } from "@/components/ui/date-time-picker";
 import { InfoTooltip } from "@/components/ui/field-label";
 import { getTimeZones } from "@vvo/tzdb";
 import { fromZonedTime } from "date-fns-tz";
@@ -49,9 +50,8 @@ interface FormState {
   meeting_duration_minutes: string;
   slot_granularity_minutes: string;
   scoring_mode: string;
-  suggested_date_local: string;
-  suggested_start_local: string;
-  suggested_end_local: string;
+  suggested_time_start_local: string;
+  suggested_time_end_local: string;
   participants_required_by_default: boolean;
   allow_participant_edit: boolean;
   show_results_to_participants: boolean;
@@ -109,23 +109,15 @@ function zonedDateTimeToUnix(date: string, time: string, timezone: string): numb
   return Math.floor(fromZonedTime(`${date}T${time}:00`, timezone).getTime() / 1000);
 }
 
+function zonedLocalDateTimeToUnix(dateTime: string, timezone: string): number {
+  return Math.floor(fromZonedTime(`${dateTime}:00`, timezone).getTime() / 1000);
+}
+
 function todayPlus(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() + days);
   return d.toISOString().split("T")[0];
 }
-
-const EVENING_FIRST_HALF_HOUR_OPTIONS = Array.from({ length: 48 }, (_, offset) => {
-  const i = (offset + 34) % 48;
-  const hour = Math.floor(i / 2);
-  const minute = i % 2 === 0 ? 0 : 30;
-  const labelHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-  const suffix = hour < 12 ? "AM" : "PM";
-  return {
-    value: `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
-    label: `${labelHour}:${String(minute).padStart(2, "0")} ${suffix}`,
-  };
-});
 
 const DURATION_OPTIONS = [
   { value: "30", label: "30 minutes" },
@@ -151,16 +143,15 @@ function createDefaultForm(): FormState {
   return {
     title: "",
     description: "",
-    event_type: "dinner",
+    event_type: "meetup",
     timezone: "UTC",
     date_range_start_local: `${todayPlus(1)}T17:00`,
     date_range_end_local: `${todayPlus(7)}T23:00`,
     meeting_duration_minutes: "180",
     slot_granularity_minutes: "60",
     scoring_mode: "maximize_attendance",
-    suggested_date_local: "",
-    suggested_start_local: "",
-    suggested_end_local: "",
+    suggested_time_start_local: "",
+    suggested_time_end_local: "",
     participants_required_by_default: false,
     allow_participant_edit: true,
     show_results_to_participants: false,
@@ -306,11 +297,11 @@ export default function NewEventPage() {
 
   async function handleSubmit() {
     const hasAnySuggestedField = Boolean(
-      form.suggested_date_local || form.suggested_start_local || form.suggested_end_local
+      form.suggested_time_start_local || form.suggested_time_end_local
     );
     if (
       hasAnySuggestedField &&
-      !(form.suggested_date_local && form.suggested_start_local && form.suggested_end_local)
+      !(form.suggested_time_start_local && form.suggested_time_end_local)
     ) {
       setError("Complete all suggested-time fields, or leave all of them empty.");
       return;
@@ -332,12 +323,12 @@ export default function NewEventPage() {
         scoring_mode: form.scoring_mode,
         min_attendance_threshold: 0,
         suggested_time_start:
-          form.suggested_date_local && form.suggested_start_local && form.suggested_end_local
-            ? zonedDateTimeToUnix(form.suggested_date_local, form.suggested_start_local, form.timezone)
+          form.suggested_time_start_local && form.suggested_time_end_local
+            ? zonedLocalDateTimeToUnix(form.suggested_time_start_local, form.timezone)
             : undefined,
         suggested_time_end:
-          form.suggested_date_local && form.suggested_start_local && form.suggested_end_local
-            ? zonedDateTimeToUnix(form.suggested_date_local, form.suggested_end_local, form.timezone)
+          form.suggested_time_start_local && form.suggested_time_end_local
+            ? zonedLocalDateTimeToUnix(form.suggested_time_end_local, form.timezone)
             : undefined,
         allow_participant_edit: form.allow_participant_edit,
         show_results_to_participants: form.show_results_to_participants,
@@ -537,17 +528,15 @@ export default function NewEventPage() {
                   onChange={(e) => set("timezone", e.target.value)}
                 />
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Input
+                <DateTimePickerField
                   label="Start date and time"
-                  type="datetime-local"
                   value={form.date_range_start_local}
-                  onChange={(e) => set("date_range_start_local", e.target.value)}
+                  onChange={(value) => set("date_range_start_local", value)}
                 />
-                <Input
+                <DateTimePickerField
                   label="End date and time"
-                  type="datetime-local"
                   value={form.date_range_end_local}
-                  onChange={(e) => set("date_range_end_local", e.target.value)}
+                  onChange={(value) => set("date_range_end_local", value)}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -580,38 +569,25 @@ export default function NewEventPage() {
               />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="Suggested date"
+                <DateTimePickerField
+                  label="Suggested start"
                   tooltip="Optional. Pre-fill a proposed slot so invitees can react to something concrete right away."
-                  type="date"
-                  placeholder="Select date"
-                  value={form.suggested_date_local}
-                  onChange={(e) => set("suggested_date_local", e.target.value)}
+                  value={form.suggested_time_start_local}
+                  onChange={(value) => set("suggested_time_start_local", value)}
                 />
-                <div className="grid grid-cols-2 gap-4">
-                  <Select
-                    label="Suggested start"
-                    options={[{ value: "", label: "No suggested start" }, ...EVENING_FIRST_HALF_HOUR_OPTIONS]}
-                    value={form.suggested_start_local}
-                    onChange={(e) => set("suggested_start_local", e.target.value)}
-                  />
-                  <Select
-                    label="Suggested end"
-                    options={[{ value: "", label: "No suggested end" }, ...EVENING_FIRST_HALF_HOUR_OPTIONS]}
-                    value={form.suggested_end_local}
-                    onChange={(e) => set("suggested_end_local", e.target.value)}
-                  />
-                </div>
+                <DateTimePickerField
+                  label="Suggested end"
+                  value={form.suggested_time_end_local}
+                  onChange={(value) => set("suggested_time_end_local", value)}
+                />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
+                <DatePickerField
                   label="Reply deadline (optional)"
                   tooltip="After this date, new replies are closed. People can still view the plan, but they cannot submit new availability."
-                  type="date"
-                  placeholder="Select date"
                   value={form.response_deadline_local}
-                  onChange={(e) => set("response_deadline_local", e.target.value)}
+                  onChange={(value) => set("response_deadline_local", value)}
                 />
               </div>
 
@@ -758,11 +734,11 @@ export default function NewEventPage() {
                     <dt>Timezone</dt>
                     <dd className="text-text">{form.timezone}</dd>
                   </div>
-                  {form.suggested_date_local && form.suggested_start_local && form.suggested_end_local && (
+                  {form.suggested_time_start_local && form.suggested_time_end_local && (
                     <div className="flex justify-between gap-4">
                       <dt>Suggested time</dt>
                       <dd className="text-right text-text tabular-nums">
-                        {form.suggested_date_local} {form.suggested_start_local} - {form.suggested_end_local}
+                        {form.suggested_time_start_local.replace("T", " ")} - {form.suggested_time_end_local.replace("T", " ")}
                       </dd>
                     </div>
                   )}
@@ -829,16 +805,16 @@ export default function NewEventPage() {
                   />
                 </div>
                 <div className="col-span-2 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_220px]">
-                  <label className="flex min-h-12 items-center gap-3 rounded-input border border-border bg-surface px-4 py-3 text-sm text-text">
+                  <label className="flex min-h-12 items-center gap-3 rounded-input bg-surface px-4 py-3 text-sm text-text shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08),0_1px_2px_rgba(26,23,20,0.03)]">
                     <input
                       type="checkbox"
                       checked={inviteIsRequired}
                       onChange={(e) => setInviteIsRequired(e.target.checked)}
                       className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
                     />
-                    <div>
-                      <p className="font-medium text-text">Must attend</p>
-                      <p className="text-xs text-muted">Use this when this person needs to be included in the final pick.</p>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm text-text">Must attend</span>
+                      <InfoTooltip text="Use this when this person needs to be included in the final pick." />
                     </div>
                   </label>
                   <div>

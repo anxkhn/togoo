@@ -36,13 +36,22 @@ function RecommendationCard({ meeting, timezone, durationMinutes, highlight, onS
   return (
     <div
       className={cn(
-        "card p-5 motion-safe:transition-[box-shadow,border-color,background-color] motion-safe:duration-200 motion-safe:ease",
+        "card p-5 motion-safe:transition-[box-shadow,border-color,background-color,transform] motion-safe:duration-200 motion-safe:ease",
         "motion-safe:[transition-timing-function:ease]",
         highlight && "border-accent/40 bg-accent-subtle/30 shadow-card-hover",
         selected && "border-accent ring-2 ring-accent/20",
-        onSelect && "cursor-pointer hover:shadow-card-hover"
+        onSelect && "cursor-pointer hover:shadow-card-hover focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:ring-offset-2 focus-visible:ring-offset-bg active:scale-[0.96]"
       )}
       onClick={() => onSelect?.(meeting)}
+      onKeyDown={(event) => {
+        if (!onSelect) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onSelect(meeting);
+        }
+      }}
+      role={onSelect ? "button" : undefined}
+      tabIndex={onSelect ? 0 : undefined}
     >
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>

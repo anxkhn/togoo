@@ -7,12 +7,14 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "ghost" | "danger";
   size?: "sm" | "md" | "lg";
   loading?: boolean;
+  static?: boolean;
 }
 
 export function Button({
   variant = "primary",
   size = "md",
   loading = false,
+  static: isStatic = false,
   className,
   children,
   disabled,
@@ -23,7 +25,7 @@ export function Button({
     secondary: "btn-secondary",
     ghost: "btn-ghost",
     danger:
-      "inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-input bg-danger px-5 py-2.5 text-sm font-medium text-white hover:bg-danger/90 active:scale-[0.97] focus-visible:outline-danger disabled:cursor-not-allowed disabled:opacity-50 motion-safe:transition-[background-color,box-shadow] motion-safe:duration-150 motion-safe:ease shadow-[0_10px_24px_rgba(185,28,28,0.14),inset_0_1px_0_rgba(255,255,255,0.14)]",
+      "inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-input bg-danger px-5 py-2.5 text-sm font-medium text-white hover:bg-danger/90 focus-visible:outline-danger disabled:cursor-not-allowed disabled:opacity-50 motion-safe:transition-[background-color,box-shadow] motion-safe:duration-150 motion-safe:ease shadow-[0_10px_24px_rgba(185,28,28,0.14),inset_0_1px_0_rgba(255,255,255,0.14)]",
   };
 
   const sizes = {
@@ -34,7 +36,13 @@ export function Button({
 
   return (
     <button
-      className={cn("inline-flex items-center justify-center gap-2 whitespace-nowrap", variants[variant], sizes[size], className)}
+      className={cn(
+        "inline-flex items-center justify-center gap-2 whitespace-nowrap",
+        variants[variant],
+        sizes[size],
+        isStatic ? "active:scale-100" : variant === "danger" ? "active:scale-[0.96]" : null,
+        className
+      )}
       disabled={disabled || loading}
       {...props}
     >

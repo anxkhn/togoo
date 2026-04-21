@@ -7,6 +7,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { DatePickerField, DateTimePickerField } from "@/components/ui/date-time-picker";
 import { Badge } from "@/components/ui/badge";
 import { InfoTooltip } from "@/components/ui/field-label";
 import { RecommendationCards } from "@/components/recommendation-cards";
@@ -64,9 +65,8 @@ interface PlanFormState {
   meeting_duration_minutes: string;
   slot_granularity_minutes: string;
   scoring_mode: string;
-  suggested_date_local: string;
-  suggested_start_local: string;
-  suggested_end_local: string;
+  suggested_time_start_local: string;
+  suggested_time_end_local: string;
   participants_required_by_default: boolean;
   allow_participant_edit: boolean;
   show_results_to_participants: boolean;
@@ -219,18 +219,6 @@ const TIMEZONE_OPTIONS = ALL_TIMEZONES.map((tz) => ({
   label: `(${tz.abbreviation}, UTC${tz.rawOffsetInMinutes >= 0 ? "+" : ""}${Math.floor(tz.rawOffsetInMinutes / 60)}:${String(Math.abs(tz.rawOffsetInMinutes) % 60).padStart(2, "0")}) ${tz.name.replace(/_/g, " ")} - ${tz.alternativeName}`,
 }));
 
-const HALF_HOUR_OPTIONS = Array.from({ length: 48 }, (_, i) => {
-  const orderedIndex = (i + 34) % 48;
-  const hour = Math.floor(orderedIndex / 2);
-  const minute = orderedIndex % 2 === 0 ? 0 : 30;
-  const labelHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-  const suffix = hour < 12 ? "AM" : "PM";
-  return {
-    value: `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
-    label: `${labelHour}:${String(minute).padStart(2, "0")} ${suffix}`,
-  };
-});
-
 const DURATION_OPTIONS = [
   { value: "30", label: "30 minutes" },
   { value: "60", label: "1 hour" },
@@ -300,9 +288,8 @@ function eventToPlanForm(event: Event): PlanFormState {
     meeting_duration_minutes: String(event.meeting_duration_minutes),
     slot_granularity_minutes: String(event.slot_granularity_minutes),
     scoring_mode: event.scoring_mode,
-    suggested_date_local: event.suggested_time_start ? unixToDateTimeInput(event.suggested_time_start, event.timezone).slice(0, 10) : "",
-    suggested_start_local: event.suggested_time_start ? unixToDateTimeInput(event.suggested_time_start, event.timezone).slice(11, 16) : "",
-    suggested_end_local: event.suggested_time_end ? unixToDateTimeInput(event.suggested_time_end, event.timezone).slice(11, 16) : "",
+    suggested_time_start_local: event.suggested_time_start ? unixToDateTimeInput(event.suggested_time_start, event.timezone) : "",
+    suggested_time_end_local: event.suggested_time_end ? unixToDateTimeInput(event.suggested_time_end, event.timezone) : "",
     participants_required_by_default: event.participants_required_by_default === 1,
     allow_participant_edit: event.allow_participant_edit === 1,
     show_results_to_participants: event.show_results_to_participants === 1,
@@ -799,12 +786,12 @@ export default function OrganizerDashboard() {
     if (!planForm) return;
 
     const hasAnySuggestedField = Boolean(
-      planForm.suggested_date_local || planForm.suggested_start_local || planForm.suggested_end_local
+      planForm.suggested_time_start_local || planForm.suggested_time_end_local
     );
 
     if (
       hasAnySuggestedField &&
-      !(planForm.suggested_date_local && planForm.suggested_start_local && planForm.suggested_end_local)
+      !(planForm.suggested_time_start_local && planForm.suggested_time_end_local)
     ) {
       setPlanError("Complete all suggested-time fields, or leave all of them empty.");
       return;
@@ -828,12 +815,12 @@ export default function OrganizerDashboard() {
           slot_granularity_minutes: parseInt(planForm.slot_granularity_minutes),
           scoring_mode: planForm.scoring_mode,
           suggested_time_start:
-            planForm.suggested_date_local && planForm.suggested_start_local && planForm.suggested_end_local
-              ? zonedDateTimeToUnix(planForm.suggested_date_local, planForm.suggested_start_local, planForm.timezone)
+            planForm.suggested_time_start_local && planForm.suggested_time_end_local
+              ? localDateToUnix(planForm.suggested_time_start_local)
               : null,
           suggested_time_end:
-            planForm.suggested_date_local && planForm.suggested_start_local && planForm.suggested_end_local
-              ? zonedDateTimeToUnix(planForm.suggested_date_local, planForm.suggested_end_local, planForm.timezone)
+            planForm.suggested_time_start_local && planForm.suggested_time_end_local
+              ? localDateToUnix(planForm.suggested_time_end_local)
               : null,
           participants_required_by_default: planForm.participants_required_by_default,
           allow_participant_edit: planForm.allow_participant_edit,
@@ -982,17 +969,15 @@ export default function OrganizerDashboard() {
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
+              <DateTimePickerField
                 label="Start date and time"
-                type="datetime-local"
                 value={planForm.date_range_start_local}
-                onChange={(e) => setPlanForm((current) => current ? { ...current, date_range_start_local: e.target.value } : current)}
+                onChange={(value) => setPlanForm((current) => current ? { ...current, date_range_start_local: value } : current)}
               />
-              <Input
+              <DateTimePickerField
                 label="End date and time"
-                type="datetime-local"
                 value={planForm.date_range_end_local}
-                onChange={(e) => setPlanForm((current) => current ? { ...current, date_range_end_local: e.target.value } : current)}
+                onChange={(value) => setPlanForm((current) => current ? { ...current, date_range_end_local: value } : current)}
               />
             </div>
 
@@ -1025,37 +1010,24 @@ export default function OrganizerDashboard() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="Suggested date"
+              <DateTimePickerField
+                label="Suggested start"
                 tooltip="Optional. Pre-fill a proposed slot so invitees can react to something concrete right away."
-                type="date"
-                placeholder="Select date"
-                value={planForm.suggested_date_local}
-                onChange={(e) => setPlanForm((current) => current ? { ...current, suggested_date_local: e.target.value } : current)}
+                value={planForm.suggested_time_start_local}
+                onChange={(value) => setPlanForm((current) => current ? { ...current, suggested_time_start_local: value } : current)}
               />
-              <div className="grid grid-cols-2 gap-4">
-                <Select
-                  label="Suggested start"
-                  options={[{ value: "", label: "No suggested start" }, ...HALF_HOUR_OPTIONS]}
-                  value={planForm.suggested_start_local}
-                  onChange={(e) => setPlanForm((current) => current ? { ...current, suggested_start_local: e.target.value } : current)}
-                />
-                <Select
-                  label="Suggested end"
-                  options={[{ value: "", label: "No suggested end" }, ...HALF_HOUR_OPTIONS]}
-                  value={planForm.suggested_end_local}
-                  onChange={(e) => setPlanForm((current) => current ? { ...current, suggested_end_local: e.target.value } : current)}
-                />
-              </div>
+              <DateTimePickerField
+                label="Suggested end"
+                value={planForm.suggested_time_end_local}
+                onChange={(value) => setPlanForm((current) => current ? { ...current, suggested_time_end_local: value } : current)}
+              />
             </div>
 
-            <Input
+            <DatePickerField
               label="Reply deadline (optional)"
               tooltip="After this date, new replies are closed. Existing invitees can still open the plan, but they cannot send fresh availability."
-              type="date"
-              placeholder="Select date"
               value={planForm.response_deadline_local}
-              onChange={(e) => setPlanForm((current) => current ? { ...current, response_deadline_local: e.target.value } : current)}
+              onChange={(value) => setPlanForm((current) => current ? { ...current, response_deadline_local: value } : current)}
             />
 
             <div>
@@ -1116,7 +1088,7 @@ export default function OrganizerDashboard() {
                   key: "show_results_to_participants" as const,
                 },
               ].map((setting) => (
-                <div key={setting.key} className="flex items-start justify-between rounded-input border border-border bg-surface-alt px-4 py-3 gap-4">
+                <div key={setting.key} className="flex items-start justify-between rounded-input border border-border bg-surface px-4 py-3 gap-4 shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08),0_1px_2px_rgba(26,23,20,0.03)]">
                   <div>
                     <div className="flex items-center gap-1.5">
                       <p className="text-sm font-medium text-text">{setting.title}</p>
@@ -1218,16 +1190,16 @@ export default function OrganizerDashboard() {
                     value={newPhone}
                     onChange={(e) => setNewPhone(e.target.value)}
                   />
-                  <label className="flex min-h-12 items-center gap-3 rounded-input border border-border bg-surface px-4 py-3 text-sm text-text">
+                  <label className="flex min-h-12 items-center gap-3 rounded-input bg-surface px-4 py-3 text-sm text-text shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08),0_1px_2px_rgba(26,23,20,0.03)]">
                     <input
                       type="checkbox"
                       checked={newIsRequired}
                       onChange={(e) => setNewIsRequired(e.target.checked)}
                       className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
                     />
-                    <div>
-                      <p className="font-medium text-text">Must attend</p>
-                      <p className="text-xs text-muted">Mark this person as required for the scheduling score.</p>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm text-text">Must attend</span>
+                      <InfoTooltip text="Mark this person as required for the scheduling score." />
                     </div>
                   </label>
                 </div>
