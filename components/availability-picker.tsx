@@ -54,16 +54,22 @@ function getDates(startUnix: number, endUnix: number, tz: string): string[] {
     month: "2-digit",
     day: "2-digit",
   });
+
+  const addDay = (dateStr: string): string => {
+    const [year, month, day] = dateStr.split("-").map(Number);
+    const next = new Date(Date.UTC(year, month - 1, day + 1));
+    return next.toISOString().slice(0, 10);
+  };
+
+  const startDate = fmt.format(new Date(startUnix * 1000));
+  const endDate = fmt.format(new Date(endUnix * 1000));
   const dates: string[] = [];
-  const seen = new Set<string>();
-  for (let ts = startUnix; ts <= endUnix + 3600; ts += 3600) {
-    const d = fmt.format(new Date(ts * 1000));
-    if (!seen.has(d)) {
-      seen.add(d);
-      dates.push(d);
-    }
+
+  for (let cursor = startDate; cursor <= endDate; cursor = addDay(cursor)) {
+    dates.push(cursor);
     if (dates.length > 60) break;
   }
+
   return dates;
 }
 
@@ -181,12 +187,12 @@ function WindowChip({ label, onRemove }: { label: string; onRemove: () => void }
   return (
     <span className="inline-flex min-h-10 items-center gap-1 rounded-full bg-accent-subtle pl-3 pr-1.5 text-xs font-medium text-accent shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)]">
       <span className="tabular-nums">{label}</span>
-      <button
-        type="button"
-        onClick={onRemove}
-        className="-my-1 inline-flex h-10 w-10 items-center justify-center rounded-full text-accent/70 transition-[color,background-color,transform] duration-150 hover:bg-white/70 hover:text-danger active:scale-[0.96]"
-        aria-label="Remove"
-      >
+        <button
+          type="button"
+          onClick={onRemove}
+          className="-my-1 inline-flex h-10 w-10 items-center justify-center rounded-full text-accent/70 transition-[color,background-color] duration-150 ease hover:bg-white/70 hover:text-danger active:scale-[0.97]"
+          aria-label="Remove"
+        >
         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
         </svg>
@@ -391,7 +397,7 @@ export function AvailabilityPicker({
                       )}
                     >
                       <svg
-                        className={cn("h-3 w-3 transition-transform duration-150", isOpen && "rotate-45")}
+                        className={cn("h-3 w-3 transition-transform duration-[160ms] [transition-timing-function:cubic-bezier(0.165,0.84,0.44,1)]", isOpen && "rotate-45")}
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"

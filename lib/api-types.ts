@@ -11,6 +11,8 @@ export interface EventData {
   meeting_duration_minutes: number;
   slot_granularity_minutes: number;
   min_attendance_threshold: number;
+  suggested_time_start: number | null;
+  suggested_time_end: number | null;
   participants_required_by_default: number;
   response_deadline: number | null;
   status: string;

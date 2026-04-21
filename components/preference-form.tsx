@@ -205,7 +205,7 @@ export function PreferenceForm({ values, onChange, enabledFields }: PreferenceFo
       )}
 
       <Textarea
-        label="Anything else the organizer should know?"
+        label="Anything else the organizer should know? (optional)"
         placeholder="Parking, a hard stop time, accessibility needs, or anything else that matters."
         rows={2}
         value={values.notes}

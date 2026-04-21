@@ -58,6 +58,8 @@ export interface RecommendationSet {
 
 export interface EventSettings {
   timezone: string;
+  date_range_start?: number;
+  date_range_end?: number;
   meeting_duration_minutes: number;
   slot_granularity_minutes: number;
   allowed_hours_start: number;
@@ -75,7 +77,14 @@ export function normalizeAvailabilityWindows(
   windows: AvailabilityWindow[],
   settings: EventSettings
 ): NormalizedSlot[] {
-  const { slot_granularity_minutes, allowed_hours_start, allowed_hours_end, timezone } = settings;
+  const {
+    slot_granularity_minutes,
+    allowed_hours_start,
+    allowed_hours_end,
+    timezone,
+    date_range_start,
+    date_range_end,
+  } = settings;
   const granularitySec = slot_granularity_minutes * 60;
   const slots: NormalizedSlot[] = [];
 
@@ -83,11 +92,20 @@ export function normalizeAvailabilityWindows(
     let current = Math.ceil(win.start_time / granularitySec) * granularitySec;
     while (current + granularitySec <= win.end_time) {
       const hour = getHourInTimezone(current, timezone);
-      if (hour >= allowed_hours_start && hour + slot_granularity_minutes / 60 <= allowed_hours_end) {
+      const slotEnd = current + granularitySec;
+      const withinDateRange =
+        (date_range_start === undefined || current >= date_range_start) &&
+        (date_range_end === undefined || slotEnd - 1 <= date_range_end);
+
+      if (
+        withinDateRange &&
+        hour >= allowed_hours_start &&
+        hour + slot_granularity_minutes / 60 <= allowed_hours_end
+      ) {
         slots.push({
           participant_id: win.participant_id,
           slot_start: current,
-          slot_end: current + granularitySec,
+          slot_end: slotEnd,
         });
       }
       current += granularitySec;
@@ -160,6 +178,8 @@ export function computeRecommendations(
   overrides: OrganizerOverride[]
 ): RecommendationSet {
   const {
+    date_range_start,
+    date_range_end,
     meeting_duration_minutes,
     slot_granularity_minutes,
     timezone,
@@ -205,6 +225,13 @@ export function computeRecommendations(
     if (!valid || attending.size === 0) continue;
 
     const windowEnd = windowStart + meeting_duration_minutes * 60;
+    if (
+      (date_range_start !== undefined && windowStart < date_range_start) ||
+      (date_range_end !== undefined && windowEnd - 1 > date_range_end)
+    ) {
+      continue;
+    }
+
     const attendingIds = [...attending];
 
     const requiredParticipants = respondedParticipants.filter((p) => p.is_required === 1);

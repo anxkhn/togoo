@@ -5,15 +5,18 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Input, Textarea } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { InfoTooltip } from "@/components/ui/field-label";
 import { RecommendationCards } from "@/components/recommendation-cards";
 import { OverlapHeatmap } from "@/components/overlap-heatmap";
 import { ShareButtons } from "@/components/share-buttons";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, formatEventDate } from "@/lib/utils";
 import type { RecommendationSet, ScoredMeeting } from "@/lib/scheduling";
 import type { AddParticipantInviteResponse } from "@/lib/api-types";
+import { fromZonedTime } from "date-fns-tz";
+import { getTimeZones } from "@vvo/tzdb";
 
 interface Participant {
   id: string;
@@ -35,12 +38,43 @@ interface Event {
   timezone: string;
   date_range_start: number;
   date_range_end: number;
+   allowed_hours_start: number;
+   allowed_hours_end: number;
   meeting_duration_minutes: number;
+   slot_granularity_minutes: number;
+   scoring_mode: string;
+   suggested_time_start: number | null;
+   suggested_time_end: number | null;
+   preferences_required: number;
+   enabled_preferences: string;
   participants_required_by_default: number;
   show_results_to_participants: number;
   response_deadline: number | null;
   status: string;
   allow_participant_edit: number;
+}
+
+interface PlanFormState {
+  title: string;
+  description: string;
+  event_type: string;
+  timezone: string;
+  date_range_start_local: string;
+  date_range_end_local: string;
+  allowed_hours_start: string;
+  allowed_hours_end: string;
+  meeting_duration_minutes: string;
+  slot_granularity_minutes: string;
+  scoring_mode: string;
+  suggested_date_local: string;
+  suggested_start_local: string;
+  suggested_end_local: string;
+  participants_required_by_default: boolean;
+  allow_participant_edit: boolean;
+  show_results_to_participants: boolean;
+  preferences_required: boolean;
+  response_deadline_local: string;
+  enabled_preferences: string[];
 }
 
 interface FinalSelection {
@@ -163,6 +197,97 @@ function TierBadge({ tier }: { tier: number }) {
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const ALL_TIMEZONES = getTimeZones({ includeUtc: true });
+
+const TIMEZONE_OPTIONS = ALL_TIMEZONES.map((tz) => ({
+  value: tz.name,
+  label: `(${tz.abbreviation}, UTC${tz.rawOffsetInMinutes >= 0 ? "+" : ""}${Math.floor(tz.rawOffsetInMinutes / 60)}:${String(Math.abs(tz.rawOffsetInMinutes) % 60).padStart(2, "0")}) ${tz.name.replace(/_/g, " ")} - ${tz.alternativeName}`,
+}));
+
+const HALF_HOUR_OPTIONS = Array.from({ length: 48 }, (_, i) => {
+  const hour = Math.floor(i / 2);
+  const minute = i % 2 === 0 ? 0 : 30;
+  const labelHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  const suffix = hour < 12 ? "AM" : "PM";
+  return {
+    value: `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
+    label: `${labelHour}:${String(minute).padStart(2, "0")} ${suffix}`,
+  };
+});
+
+const ALL_PREF_FIELDS = [
+  { key: "food", label: "Food preferences" },
+  { key: "budget", label: "Budget" },
+  { key: "location", label: "Preferred area" },
+  { key: "day_type", label: "Weekday or weekend" },
+  { key: "time_of_day", label: "Time of day" },
+  { key: "indoor_outdoor", label: "Indoor / outdoor" },
+] as const;
+
+function unixToDateInput(unix: number, timezone: string): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(unix * 1000));
+
+  const get = (type: "year" | "month" | "day") => parts.find((part) => part.type === type)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
+function unixToTimeInput(unix: number, timezone: string): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date(unix * 1000));
+
+  const get = (type: "hour" | "minute") => parts.find((part) => part.type === type)?.value ?? "00";
+  return `${get("hour")}:${get("minute")}`;
+}
+
+function localDateToUnix(localDate: string): number {
+  return Math.floor(new Date(localDate).getTime() / 1000);
+}
+
+function zonedDateTimeToUnix(date: string, time: string, timezone: string): number {
+  return Math.floor(fromZonedTime(`${date}T${time}:00`, timezone).getTime() / 1000);
+}
+
+function eventToPlanForm(event: Event): PlanFormState {
+  let enabledPreferences: string[] = [];
+  try {
+    enabledPreferences = event.enabled_preferences ? JSON.parse(event.enabled_preferences) : [];
+  } catch {
+    enabledPreferences = [];
+  }
+
+  return {
+    title: event.title,
+    description: event.description ?? "",
+    event_type: event.event_type,
+    timezone: event.timezone,
+    date_range_start_local: unixToDateInput(event.date_range_start, event.timezone),
+    date_range_end_local: unixToDateInput(event.date_range_end, event.timezone),
+    allowed_hours_start: String(event.allowed_hours_start),
+    allowed_hours_end: String(event.allowed_hours_end),
+    meeting_duration_minutes: String(event.meeting_duration_minutes),
+    slot_granularity_minutes: String(event.slot_granularity_minutes),
+    scoring_mode: event.scoring_mode,
+    suggested_date_local: event.suggested_time_start ? unixToDateInput(event.suggested_time_start, event.timezone) : "",
+    suggested_start_local: event.suggested_time_start ? unixToTimeInput(event.suggested_time_start, event.timezone) : "",
+    suggested_end_local: event.suggested_time_end ? unixToTimeInput(event.suggested_time_end, event.timezone) : "",
+    participants_required_by_default: event.participants_required_by_default === 1,
+    allow_participant_edit: event.allow_participant_edit === 1,
+    show_results_to_participants: event.show_results_to_participants === 1,
+    preferences_required: event.preferences_required === 1,
+    response_deadline_local: event.response_deadline ? unixToDateInput(event.response_deadline, event.timezone) : "",
+    enabled_preferences: enabledPreferences,
+  };
+}
 
 function ParticipantRow({
   participant,
@@ -336,6 +461,10 @@ export default function OrganizerDashboard() {
   const [finalSelection, setFinalSelection] = useState<FinalSelection | null>(null);
   const [finalPath, setFinalPath] = useState<string | null>(null);
   const [finalizing, setFinalizing] = useState(false);
+  const [editingPlan, setEditingPlan] = useState(false);
+  const [savingPlan, setSavingPlan] = useState(false);
+  const [planError, setPlanError] = useState("");
+  const [planForm, setPlanForm] = useState<PlanFormState | null>(null);
   const [tab, setTab] = useState<"participants" | "recommendations" | "activity">("participants");
   const [addingParticipant, setAddingParticipant] = useState(false);
   const [newName, setNewName] = useState("");
@@ -375,6 +504,7 @@ export default function OrganizerDashboard() {
       setFinalPath(eventData.final_selection ? `/e/${eventId}/final` : null);
       setParticipants(participantsData.participants ?? []);
       setNewIsRequired(eventData.event.participants_required_by_default === 1);
+      setPlanForm(eventToPlanForm(eventData.event));
     } catch {
       setPageError("We couldn't load this plan. Try refreshing.");
     } finally {
@@ -518,6 +648,77 @@ export default function OrganizerDashboard() {
     setFinalPath(null);
   };
 
+  const handleSavePlan = async () => {
+    if (!planForm) return;
+
+    const hasAnySuggestedField = Boolean(
+      planForm.suggested_date_local || planForm.suggested_start_local || planForm.suggested_end_local
+    );
+
+    if (
+      hasAnySuggestedField &&
+      !(planForm.suggested_date_local && planForm.suggested_start_local && planForm.suggested_end_local)
+    ) {
+      setPlanError("Complete all suggested-time fields, or leave all of them empty.");
+      return;
+    }
+
+    setSavingPlan(true);
+    setPlanError("");
+
+    try {
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: "PUT",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: planForm.title.trim(),
+          description: planForm.description.trim() || undefined,
+          event_type: planForm.event_type,
+          timezone: planForm.timezone,
+          date_range_start: localDateToUnix(`${planForm.date_range_start_local}T00:00:00`),
+          date_range_end: localDateToUnix(`${planForm.date_range_end_local}T23:59:59`),
+          allowed_hours_start: parseInt(planForm.allowed_hours_start),
+          allowed_hours_end: parseInt(planForm.allowed_hours_end),
+          meeting_duration_minutes: parseInt(planForm.meeting_duration_minutes),
+          slot_granularity_minutes: parseInt(planForm.slot_granularity_minutes),
+          scoring_mode: planForm.scoring_mode,
+          suggested_time_start:
+            planForm.suggested_date_local && planForm.suggested_start_local && planForm.suggested_end_local
+              ? zonedDateTimeToUnix(planForm.suggested_date_local, planForm.suggested_start_local, planForm.timezone)
+              : null,
+          suggested_time_end:
+            planForm.suggested_date_local && planForm.suggested_start_local && planForm.suggested_end_local
+              ? zonedDateTimeToUnix(planForm.suggested_date_local, planForm.suggested_end_local, planForm.timezone)
+              : null,
+          participants_required_by_default: planForm.participants_required_by_default,
+          allow_participant_edit: planForm.allow_participant_edit,
+          show_results_to_participants: planForm.show_results_to_participants,
+          preferences_required: planForm.preferences_required,
+          response_deadline: planForm.response_deadline_local
+            ? localDateToUnix(`${planForm.response_deadline_local}T23:59:59`)
+            : null,
+          enabled_preferences: planForm.enabled_preferences,
+        }),
+      });
+
+      const data = await res.json() as { error?: string; event?: Event };
+      if (!res.ok || !data.event) {
+        setPlanError(data.error ?? "We couldn't save your plan changes.");
+        return;
+      }
+
+      setEvent(data.event);
+      setPlanForm(eventToPlanForm(data.event));
+      setEditingPlan(false);
+      await fetchDashboard();
+      await fetchRecommendations();
+    } catch {
+      setPlanError("We couldn't save your plan changes.");
+    } finally {
+      setSavingPlan(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center">
@@ -547,6 +748,13 @@ export default function OrganizerDashboard() {
         <div className="max-w-5xl mx-auto px-5 h-14 flex items-center justify-between gap-4">
           <Link href="/" className="font-display text-xl font-semibold text-text flex-shrink-0">Togoo</Link>
           <div className="flex items-center gap-3">
+            <Button variant="secondary" size="sm" onClick={() => {
+              setEditingPlan((value) => !value);
+              setPlanError("");
+              if (event) setPlanForm(eventToPlanForm(event));
+            }}>
+              {editingPlan ? "Close editor" : "Edit plan"}
+            </Button>
             {event.show_results_to_participants === 1 && (
               <Link href={`/e/${eventId}/summary/${token}`} className="btn-secondary text-sm">
                 Live summary
@@ -577,7 +785,262 @@ export default function OrganizerDashboard() {
                 Reply by <span className="font-medium text-text">{formatDate(event.response_deadline, event.timezone)}</span>
               </p>
             )}
+            {event.suggested_time_start && event.suggested_time_end && (
+              <p className="mt-1 text-sm text-muted tabular-nums">
+                Suggested time: <span className="font-medium text-text">{formatEventDate(event.suggested_time_start, event.timezone)} - {formatEventDate(event.suggested_time_end, event.timezone)}</span>
+              </p>
+            )}
         </div>
+
+        {editingPlan && planForm && (
+          <div className="card mb-8 p-5 animate-scale-in space-y-5">
+            <div>
+              <h2 className="section-title mb-1">Edit plan details</h2>
+              <p className="text-sm text-muted">
+                Update the title, timing rules, reply settings, and suggested time. Saved changes immediately update what invitees see.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="Plan title"
+                value={planForm.title}
+                onChange={(e) => setPlanForm((current) => current ? { ...current, title: e.target.value } : current)}
+              />
+              <Select
+                label="Plan type"
+                options={[
+                  { value: "meetup", label: "Meetup" },
+                  { value: "dinner", label: "Dinner" },
+                  { value: "hangout", label: "Hangout" },
+                  { value: "work_session", label: "Work session" },
+                  { value: "custom", label: "Custom" },
+                ]}
+                value={planForm.event_type}
+                onChange={(e) => setPlanForm((current) => current ? { ...current, event_type: e.target.value } : current)}
+              />
+            </div>
+
+            <Textarea
+              label="Description"
+              rows={3}
+              value={planForm.description}
+              onChange={(e) => setPlanForm((current) => current ? { ...current, description: e.target.value } : current)}
+            />
+
+            <Select
+              label="Timezone"
+              tooltip="Togoo scores suggestions against this timezone, and invitees see the plan using the same reference timezone."
+              options={TIMEZONE_OPTIONS}
+              value={planForm.timezone}
+              onChange={(e) => setPlanForm((current) => current ? { ...current, timezone: e.target.value } : current)}
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="First possible date"
+                type="date"
+                value={planForm.date_range_start_local}
+                onChange={(e) => setPlanForm((current) => current ? { ...current, date_range_start_local: e.target.value } : current)}
+              />
+              <Input
+                label="Last possible date"
+                type="date"
+                value={planForm.date_range_end_local}
+                onChange={(e) => setPlanForm((current) => current ? { ...current, date_range_end_local: e.target.value } : current)}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Select
+                label="Earliest start"
+                options={Array.from({ length: 24 }, (_, i) => ({
+                  value: String(i),
+                  label: `${i === 0 ? "12 AM" : i < 12 ? `${i} AM` : i === 12 ? "12 PM" : `${i - 12} PM`}`,
+                }))}
+                value={planForm.allowed_hours_start}
+                onChange={(e) => setPlanForm((current) => current ? { ...current, allowed_hours_start: e.target.value } : current)}
+              />
+              <Select
+                label="Latest finish"
+                options={Array.from({ length: 24 }, (_, i) => ({
+                  value: String(i + 1),
+                  label: `${i + 1 === 12 ? "12 PM" : i + 1 < 12 ? `${i + 1} AM` : i + 1 === 24 ? "12 AM" : `${i + 1 - 12} PM`}`,
+                }))}
+                value={planForm.allowed_hours_end}
+                onChange={(e) => setPlanForm((current) => current ? { ...current, allowed_hours_end: e.target.value } : current)}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Select
+                label="Duration"
+                options={[
+                  { value: "30", label: "30 minutes" },
+                  { value: "60", label: "1 hour" },
+                  { value: "90", label: "1.5 hours" },
+                  { value: "120", label: "2 hours" },
+                  { value: "180", label: "3 hours" },
+                  { value: "240", label: "4 hours" },
+                  { value: "480", label: "Full day (8h)" },
+                ]}
+                value={planForm.meeting_duration_minutes}
+                onChange={(e) => setPlanForm((current) => current ? { ...current, meeting_duration_minutes: e.target.value } : current)}
+              />
+              <Select
+                label="Suggestion spacing"
+                tooltip="Smaller spacing gives you more candidate start times. Use 15 minutes for tighter scheduling, 30 minutes for simpler options."
+                options={[
+                  { value: "30", label: "30 minutes" },
+                  { value: "15", label: "15 minutes" },
+                ]}
+                value={planForm.slot_granularity_minutes}
+                onChange={(e) => setPlanForm((current) => current ? { ...current, slot_granularity_minutes: e.target.value } : current)}
+              />
+              <Select
+                label="Ranking mode"
+                tooltip="This decides how Togoo weighs attendance, required people, and time preferences when ranking options."
+                options={[
+                  { value: "maximize_attendance", label: "Maximize attendance" },
+                  { value: "prioritize_required", label: "Prioritize required attendees" },
+                  { value: "vip_priority", label: "Prioritize ★★ key people" },
+                  { value: "time_optimized", label: "Match time preferences" },
+                ]}
+                value={planForm.scoring_mode}
+                onChange={(e) => setPlanForm((current) => current ? { ...current, scoring_mode: e.target.value } : current)}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="Suggested date"
+                tooltip="Optional. Pre-fill a proposed slot so invitees can react to something concrete right away."
+                type="date"
+                placeholder="Select date"
+                value={planForm.suggested_date_local}
+                onChange={(e) => setPlanForm((current) => current ? { ...current, suggested_date_local: e.target.value } : current)}
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <Select
+                  label="Suggested start"
+                  options={[{ value: "", label: "Select time" }, ...HALF_HOUR_OPTIONS]}
+                  value={planForm.suggested_start_local}
+                  onChange={(e) => setPlanForm((current) => current ? { ...current, suggested_start_local: e.target.value } : current)}
+                />
+                <Select
+                  label="Suggested end"
+                  options={[{ value: "", label: "Select time" }, ...HALF_HOUR_OPTIONS]}
+                  value={planForm.suggested_end_local}
+                  onChange={(e) => setPlanForm((current) => current ? { ...current, suggested_end_local: e.target.value } : current)}
+                />
+              </div>
+            </div>
+
+            <Input
+              label="Reply deadline (optional)"
+              tooltip="After this date, new replies are closed. Existing invitees can still open the plan, but they cannot send fresh availability."
+              type="date"
+              placeholder="Select date"
+              value={planForm.response_deadline_local}
+              onChange={(e) => setPlanForm((current) => current ? { ...current, response_deadline_local: e.target.value } : current)}
+            />
+
+            <div>
+              <div className="mb-3 flex items-center gap-1.5">
+                <p className="text-sm font-medium text-text">Preference questions</p>
+                <InfoTooltip text="Turn on only the extra questions invitees should see while replying. Keep this short unless the plan really needs more context." />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {ALL_PREF_FIELDS.map(({ key, label }) => {
+                  const enabled = planForm.enabled_preferences.includes(key);
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setPlanForm((current) => current ? {
+                        ...current,
+                        enabled_preferences: enabled
+                          ? current.enabled_preferences.filter((item) => item !== key)
+                          : [...current.enabled_preferences, key],
+                      } : current)}
+                      className={`pill-toggle ${
+                        enabled
+                          ? "bg-accent text-white shadow-[0_10px_24px_rgba(47,104,68,0.16),inset_0_1px_0_rgba(255,255,255,0.12)]"
+                          : "bg-surface text-text hover:border-accent/40"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                {
+                  title: "Mark new invitees as required by default",
+                  description: "Everyone you add later starts as must-attend. Useful when a core group needs to be there.",
+                  value: planForm.participants_required_by_default,
+                  key: "participants_required_by_default" as const,
+                },
+                {
+                  title: "Allow participants to edit",
+                  description: "Invitees can come back and update their reply after they submit.",
+                  value: planForm.allow_participant_edit,
+                  key: "allow_participant_edit" as const,
+                },
+                {
+                  title: "Require at least one preference",
+                  description: "Invitees must share at least one preference before they can submit.",
+                  value: planForm.preferences_required,
+                  key: "preferences_required" as const,
+                },
+                {
+                  title: "Let participants view the live summary",
+                  description: "Invitees can open a live snapshot of current overlap and top suggestions from their own link.",
+                  value: planForm.show_results_to_participants,
+                  key: "show_results_to_participants" as const,
+                },
+              ].map((setting) => (
+                <div key={setting.key} className="flex items-start justify-between rounded-input border border-border bg-surface-alt px-4 py-3 gap-4">
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-medium text-text">{setting.title}</p>
+                      <InfoTooltip text={setting.description} />
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPlanForm((current) => current ? { ...current, [setting.key]: !current[setting.key] } : current)}
+                    className={`toggle-switch ${setting.value ? "bg-accent" : "bg-border"}`}
+                  >
+                    <span className={`toggle-thumb ${setting.value ? "translate-x-5" : "translate-x-0"}`} />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {planError && (
+              <div className="rounded-input bg-danger-light px-4 py-3 text-sm text-danger shadow-[inset_0_0_0_1px_rgba(185,28,28,0.12)]">
+                {planError}
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-3">
+              <Button variant="secondary" onClick={() => {
+                setEditingPlan(false);
+                setPlanError("");
+                if (event) setPlanForm(eventToPlanForm(event));
+              }}>
+                Cancel
+              </Button>
+              <Button loading={savingPlan} onClick={handleSavePlan}>
+                Save plan changes
+              </Button>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-3 gap-4 mb-8">
             {[

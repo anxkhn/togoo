@@ -26,7 +26,7 @@ export function ShareButtons({ path, title, description, organizerName, particip
         href={whatsappUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-surface px-2.5 py-2 text-xs font-medium text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08),0_8px_20px_rgba(26,23,20,0.04)] transition-[color,background-color,box-shadow,transform] duration-150 hover:bg-accent-subtle hover:text-accent active:scale-[0.96]"
+        className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-surface px-2.5 py-2 text-xs font-medium text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08),0_8px_20px_rgba(26,23,20,0.04)] transition-[color,background-color,box-shadow] duration-150 ease hover:bg-accent-subtle hover:text-accent active:scale-[0.97]"
         title="Share on WhatsApp"
       >
         <svg className="-ml-0.5 h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
@@ -36,7 +36,7 @@ export function ShareButtons({ path, title, description, organizerName, particip
       </a>
       <a
         href={mailtoUrl}
-        className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-surface px-2.5 py-2 text-xs font-medium text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08),0_8px_20px_rgba(26,23,20,0.04)] transition-[color,background-color,box-shadow,transform] duration-150 hover:bg-accent-subtle hover:text-accent active:scale-[0.96]"
+        className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-surface px-2.5 py-2 text-xs font-medium text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08),0_8px_20px_rgba(26,23,20,0.04)] transition-[color,background-color,box-shadow] duration-150 ease hover:bg-accent-subtle hover:text-accent active:scale-[0.97]"
         title="Share by email"
       >
         <svg className="-ml-0.5 h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

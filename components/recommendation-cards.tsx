@@ -19,7 +19,7 @@ function ScoreBar({ score, className }: { score: number; className?: string }) {
     <div className={cn("flex items-center gap-2", className)}>
       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-border shadow-[inset_0_1px_1px_rgba(26,23,20,0.06)]">
         <div
-          className="h-full bg-accent rounded-full motion-safe:transition-[width] motion-safe:duration-700 motion-safe:[transition-timing-function:cubic-bezier(0.165,0.84,0.44,1)]"
+          className="h-full rounded-full bg-accent motion-safe:transition-[width] motion-safe:duration-[220ms] motion-safe:[transition-timing-function:cubic-bezier(0.165,0.84,0.44,1)]"
           style={{ width: `${Math.round(score * 100)}%` }}
         />
       </div>
@@ -37,6 +37,7 @@ function RecommendationCard({ meeting, timezone, durationMinutes, highlight, onS
     <div
       className={cn(
         "card p-5 motion-safe:transition-[box-shadow,border-color,background-color] motion-safe:duration-200 motion-safe:ease",
+        "motion-safe:[transition-timing-function:ease]",
         highlight && "border-accent/40 bg-accent-subtle/30 shadow-card-hover",
         selected && "border-accent ring-2 ring-accent/20",
         onSelect && "cursor-pointer hover:shadow-card-hover"

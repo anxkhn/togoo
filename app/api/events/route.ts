@@ -41,6 +41,8 @@ export async function POST(request: NextRequest) {
       meeting_duration_minutes: data.meeting_duration_minutes,
       slot_granularity_minutes: data.slot_granularity_minutes,
       min_attendance_threshold: data.min_attendance_threshold,
+      suggested_time_start: data.suggested_time_start ?? null,
+      suggested_time_end: data.suggested_time_end ?? null,
       participants_required_by_default: data.participants_required_by_default ? 1 : 0,
       allow_participant_edit: data.allow_participant_edit ? 1 : 0,
       show_results_to_participants: data.show_results_to_participants ? 1 : 0,

@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS `events` (
   `preferences_required` integer NOT NULL DEFAULT 0,
   `enabled_preferences` text NOT NULL DEFAULT '[]',
   `scoring_mode` text NOT NULL DEFAULT 'maximize_attendance',
+  `suggested_time_start` integer,
+  `suggested_time_end` integer,
   `organizer_participant_id` text,
   `status` text NOT NULL DEFAULT 'active',
   `response_deadline` integer,
@@ -33,8 +35,10 @@ CREATE TABLE IF NOT EXISTS `participants` (
   `event_id` text NOT NULL REFERENCES `events`(`id`) ON DELETE CASCADE,
   `name` text NOT NULL,
   `email` text,
+  `phone` text,
   `role` text NOT NULL DEFAULT 'participant',
   `is_required` integer NOT NULL DEFAULT 0,
+  `priority_tier` integer NOT NULL DEFAULT 0,
   `response_status` text NOT NULL DEFAULT 'pending',
   `created_at` integer NOT NULL DEFAULT (unixepoch()),
   `updated_at` integer NOT NULL DEFAULT (unixepoch())
@@ -92,6 +96,7 @@ CREATE TABLE IF NOT EXISTS `participant_preferences` (
 
 CREATE INDEX IF NOT EXISTS `idx_prefs_event_id` ON `participant_preferences` (`event_id`);
 CREATE INDEX IF NOT EXISTS `idx_prefs_participant_id` ON `participant_preferences` (`participant_id`);
+CREATE UNIQUE INDEX IF NOT EXISTS `idx_prefs_event_participant` ON `participant_preferences` (`event_id`, `participant_id`);
 
 CREATE TABLE IF NOT EXISTS `organizer_overrides` (
   `id` text PRIMARY KEY NOT NULL,
@@ -137,7 +142,7 @@ CREATE TABLE IF NOT EXISTS `final_selections` (
   `finalized_at` integer NOT NULL DEFAULT (unixepoch())
 );
 
-CREATE INDEX IF NOT EXISTS `idx_final_event_id` ON `final_selections` (`event_id`);
+CREATE UNIQUE INDEX IF NOT EXISTS `idx_final_event_id` ON `final_selections` (`event_id`);
 
 CREATE TABLE IF NOT EXISTS `activity_log` (
   `id` text PRIMARY KEY NOT NULL,

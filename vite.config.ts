@@ -91,7 +91,7 @@ export const env = { DB };
   };
 }
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   build: {
     rollupOptions: {
       external: ["cloudflare:workers"],
@@ -99,12 +99,16 @@ export default defineConfig({
   },
   plugins: [
     vinextPlugin(),
-    cloudflare({
-      viteEnvironment: {
-        name: "rsc",
-        childEnvironments: ["ssr"],
-      },
-    }),
+    ...(command === "build"
+      ? [
+          cloudflare({
+            viteEnvironment: {
+              name: "rsc",
+              childEnvironments: ["ssr"],
+            },
+          }),
+        ]
+      : []),
     cloudflareWorkersShim(),
   ],
-});
+}));

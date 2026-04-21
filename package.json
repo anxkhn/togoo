@@ -6,6 +6,7 @@
     "dev": "vinext dev",
     "build": "vinext build",
     "deploy": "vinext deploy",
+    "deploy:prod": "npm run db:migrate:remote && vinext deploy",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply where-to-go-db --local",

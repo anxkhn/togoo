@@ -4,7 +4,7 @@ const PANELS = [
     label: "Organizer setup",
     title: "Set the plan once",
     copy: "Set the date window, choose the questions that matter, and send one clean invite flow.",
-    accent: "bg-[radial-gradient(circle_at_top_left,rgba(84,153,112,0.22),transparent_62%)]",
+    glow: "bg-[#DDEDE4]",
     content: (
       <div className="space-y-3">
         <div className="rounded-[18px] bg-surface p-4 shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
@@ -49,7 +49,7 @@ const PANELS = [
     label: "Guest reply",
     title: "Reply in a minute",
     copy: "Invitees open the link, tap the times that work, and add only the context you asked for.",
-    accent: "bg-[radial-gradient(circle_at_top,rgba(212,237,223,0.24),transparent_62%)]",
+    glow: "bg-[#F1E8DA]",
     content: (
       <div className="space-y-3">
         <div className="rounded-[18px] bg-surface p-4 shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
@@ -101,7 +101,7 @@ const PANELS = [
     label: "Decision view",
     title: "See the best option fast",
     copy: "The organizer sees overlap, ranked options, and a final page that is ready to send back to the group.",
-    accent: "bg-[radial-gradient(circle_at_top_right,rgba(124,169,228,0.2),transparent_62%)]",
+    glow: "bg-[#E6EFE8]",
     content: (
       <div className="space-y-3">
         <div className="rounded-[18px] bg-surface p-4 shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
@@ -167,15 +167,12 @@ export function LandingFlowPreview() {
             </p>
           </div>
 
-          <div className="rounded-full bg-accent-subtle px-4 py-2 text-sm font-medium text-accent shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)]">
-            Built for real group plans
-          </div>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-3">
           {PANELS.map((panel) => (
             <section key={panel.step} className="card card-interactive relative overflow-hidden p-5">
-              <div className={`absolute inset-x-0 top-0 h-24 opacity-90 ${panel.accent}`} />
+              <div className={`absolute -right-8 -top-8 h-28 w-28 rounded-full opacity-70 blur-2xl ${panel.glow}`} />
               <div className="relative">
                 <div className="mb-4 flex items-start justify-between gap-3">
                   <div>

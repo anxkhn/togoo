@@ -22,6 +22,8 @@ export const events = sqliteTable(
     preferences_required: integer("preferences_required").notNull().default(0),
     enabled_preferences: text("enabled_preferences").notNull().default("[]"),
     scoring_mode: text("scoring_mode").notNull().default("maximize_attendance"),
+    suggested_time_start: integer("suggested_time_start"),
+    suggested_time_end: integer("suggested_time_end"),
     organizer_participant_id: text("organizer_participant_id"),
     status: text("status").notNull().default("active"),
     response_deadline: integer("response_deadline"),

@@ -48,9 +48,9 @@ const config: Config = {
       },
       animation: {
         // `both` fill-mode: applies from-state before delay so no opacity flash, keeps to-state after
-        "fade-in": "fadeIn 0.18s cubic-bezier(0.165, 0.84, 0.44, 1) both",
-        "slide-up": "slideUp 0.26s cubic-bezier(0.165, 0.84, 0.44, 1) both",
-        "scale-in": "scaleIn 0.18s cubic-bezier(0.165, 0.84, 0.44, 1) both",
+        "fade-in": "fadeIn 0.16s cubic-bezier(0.165, 0.84, 0.44, 1) both",
+        "slide-up": "slideUp 0.24s cubic-bezier(0.165, 0.84, 0.44, 1) both",
+        "scale-in": "scaleIn 0.16s cubic-bezier(0.165, 0.84, 0.44, 1) both",
       },
       keyframes: {
         fadeIn: {

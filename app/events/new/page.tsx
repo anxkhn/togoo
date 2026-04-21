@@ -6,7 +6,9 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { InfoTooltip } from "@/components/ui/field-label";
 import { getTimeZones } from "@vvo/tzdb";
+import { fromZonedTime } from "date-fns-tz";
 import { saveEvent } from "@/components/my-events";
 import type { CreateEventResponse, AddParticipantInviteResponse, ApiError } from "@/lib/api-types";
 
@@ -47,7 +49,9 @@ interface FormState {
   meeting_duration_minutes: string;
   slot_granularity_minutes: string;
   scoring_mode: string;
-  min_attendance_threshold: string;
+  suggested_date_local: string;
+  suggested_start_local: string;
+  suggested_end_local: string;
   participants_required_by_default: boolean;
   allow_participant_edit: boolean;
   show_results_to_participants: boolean;
@@ -83,38 +87,57 @@ function localDateToUnix(localDate: string): number {
   return Math.floor(new Date(localDate).getTime() / 1000);
 }
 
+function zonedDateTimeToUnix(date: string, time: string, timezone: string): number {
+  return Math.floor(fromZonedTime(`${date}T${time}:00`, timezone).getTime() / 1000);
+}
+
 function todayPlus(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() + days);
   return d.toISOString().split("T")[0];
 }
 
+const HALF_HOUR_OPTIONS = Array.from({ length: 48 }, (_, i) => {
+  const hour = Math.floor(i / 2);
+  const minute = i % 2 === 0 ? 0 : 30;
+  const labelHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  const suffix = hour < 12 ? "AM" : "PM";
+  return {
+    value: `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
+    label: `${labelHour}:${String(minute).padStart(2, "0")} ${suffix}`,
+  };
+});
+
 export default function NewEventPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [stepOneErrors, setStepOneErrors] = useState<{ organizer_name?: string; title?: string }>({});
+  const [shakeForm, setShakeForm] = useState(false);
 
   const [form, setForm] = useState<FormState>({
     title: "",
     description: "",
-    event_type: "meetup",
+    event_type: "dinner",
     timezone: "UTC",
     date_range_start_local: todayPlus(1),
-    date_range_end_local: todayPlus(14),
-    allowed_hours_start: "9",
-    allowed_hours_end: "22",
-    meeting_duration_minutes: "120",
-    slot_granularity_minutes: "30",
-    scoring_mode: "maximize_attendance",
-    min_attendance_threshold: "0",
-    participants_required_by_default: false,
+    date_range_end_local: todayPlus(7),
+    allowed_hours_start: "12",
+      allowed_hours_end: "23",
+      meeting_duration_minutes: "180",
+      slot_granularity_minutes: "30",
+      scoring_mode: "maximize_attendance",
+      suggested_date_local: "",
+      suggested_start_local: "",
+      suggested_end_local: "",
+      participants_required_by_default: false,
     allow_participant_edit: true,
     show_results_to_participants: false,
     preferences_required: false,
     response_deadline_local: "",
     organizer_name: "",
-    enabled_preferences: ["food"],
+    enabled_preferences: ["food", "budget", "location", "time_of_day"],
   });
 
   // Post-creation invite state
@@ -144,9 +167,48 @@ export default function NewEventPage() {
 
   const set = (field: keyof FormState, value: string | boolean) => {
     setForm((f) => ({ ...f, [field]: value }));
+    if (field === "organizer_name" || field === "title") {
+      setStepOneErrors((current) => ({ ...current, [field]: undefined }));
+    }
   };
 
+  function triggerValidationFeedback() {
+    setShakeForm(false);
+    requestAnimationFrame(() => setShakeForm(true));
+    window.setTimeout(() => setShakeForm(false), 360);
+  }
+
+  function validateStepOne(): boolean {
+    const nextErrors: { organizer_name?: string; title?: string } = {};
+
+    if (!form.organizer_name.trim()) nextErrors.organizer_name = "Please enter the organizer name.";
+    if (!form.title.trim()) nextErrors.title = "Please enter a plan title.";
+
+    setStepOneErrors(nextErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
+      setError("Please fill the required fields before continuing.");
+      triggerValidationFeedback();
+      const firstMissingId = nextErrors.organizer_name ? "organizer-name" : "plan-title";
+      window.setTimeout(() => document.getElementById(firstMissingId)?.focus(), 20);
+      return false;
+    }
+
+    return true;
+  }
+
   async function handleSubmit() {
+    const hasAnySuggestedField = Boolean(
+      form.suggested_date_local || form.suggested_start_local || form.suggested_end_local
+    );
+    if (
+      hasAnySuggestedField &&
+      !(form.suggested_date_local && form.suggested_start_local && form.suggested_end_local)
+    ) {
+      setError("Complete all suggested-time fields, or leave all of them empty.");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -163,7 +225,15 @@ export default function NewEventPage() {
         meeting_duration_minutes: parseInt(form.meeting_duration_minutes),
         slot_granularity_minutes: parseInt(form.slot_granularity_minutes) as 15 | 30,
         scoring_mode: form.scoring_mode,
-        min_attendance_threshold: parseInt(form.min_attendance_threshold) || 0,
+        min_attendance_threshold: 0,
+        suggested_time_start:
+          form.suggested_date_local && form.suggested_start_local && form.suggested_end_local
+            ? zonedDateTimeToUnix(form.suggested_date_local, form.suggested_start_local, form.timezone)
+            : undefined,
+        suggested_time_end:
+          form.suggested_date_local && form.suggested_start_local && form.suggested_end_local
+            ? zonedDateTimeToUnix(form.suggested_date_local, form.suggested_end_local, form.timezone)
+            : undefined,
         allow_participant_edit: form.allow_participant_edit,
         show_results_to_participants: form.show_results_to_participants,
         participants_required_by_default: form.participants_required_by_default,
@@ -307,26 +377,28 @@ export default function NewEventPage() {
           ))}
         </div>
 
-        <div className="card p-6 animate-scale-in">
+        <div className={`card p-6 animate-scale-in ${shakeForm ? "animate-shake-x" : ""}`}>
           {step === 1 && (
             <div className="space-y-5">
               <Input
                 label="Organizer name"
-                placeholder="e.g., Alex"
+                placeholder="e.g., Anas"
                 value={form.organizer_name}
                 onChange={(e) => set("organizer_name", e.target.value)}
+                error={stepOneErrors.organizer_name}
                 required
               />
               <Input
                 label="Plan title"
-                placeholder="e.g., Friday dinner, birthday drinks, team offsite"
+                placeholder="e.g., birthday dinner, house party, cricket screening"
                 value={form.title}
                 onChange={(e) => set("title", e.target.value)}
+                error={stepOneErrors.title}
                 required
               />
               <Textarea
                 label="What should people know?"
-                placeholder="Add context, a goal, or any details people should see before they reply."
+                placeholder="Add the area, occasion, or any details people should know before they reply."
                 rows={3}
                 value={form.description}
                 onChange={(e) => set("description", e.target.value)}
@@ -348,13 +420,13 @@ export default function NewEventPage() {
 
           {step === 2 && (
             <div className="space-y-5">
-              <Select
-                label="Timezone"
-                options={TIMEZONE_OPTIONS}
-                value={form.timezone}
-                onChange={(e) => set("timezone", e.target.value)}
-                hint="Detected from your browser. Togoo scores suggestions against this timezone."
-              />
+                <Select
+                  label="Timezone"
+                  tooltip="Detected from your browser. Togoo scores suggestions against this timezone, and invitees see the plan in the same reference timezone."
+                  options={TIMEZONE_OPTIONS}
+                  value={form.timezone}
+                  onChange={(e) => set("timezone", e.target.value)}
+                />
               <div className="grid grid-cols-2 gap-4">
                 <Input
                   label="First possible date"
@@ -406,17 +478,19 @@ export default function NewEventPage() {
                 />
                 <Select
                   label="How precise should suggestions be?"
+                  tooltip="Smaller spacing gives Togoo more possible time slots to rank. Use 15 minutes when timing matters a lot, 30 minutes when you want cleaner results."
                   options={[
                     { value: "30", label: "30 minutes" },
                     { value: "15", label: "15 minutes" },
                   ]}
                   value={form.slot_granularity_minutes}
                   onChange={(e) => set("slot_granularity_minutes", e.target.value)}
-                  hint="Smaller spacing gives Togoo more possible time slots to rank."
                 />
               </div>
+
               <Select
                 label="What should Togoo optimize for?"
+                tooltip="This decides how ranked times are scored. Pick the mode that best matches how you want Togoo to break tradeoffs for this plan."
                 options={[
                   { value: "maximize_attendance", label: "Maximize attendance" },
                   { value: "prioritize_required", label: "Prioritize required attendees" },
@@ -425,30 +499,49 @@ export default function NewEventPage() {
                 ]}
                 value={form.scoring_mode}
                 onChange={(e) => set("scoring_mode", e.target.value)}
-                hint="Choose the tradeoff that matters most for this plan."
               />
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
-                  label="Minimum attendees"
-                  type="number"
-                  min="0"
-                  value={form.min_attendance_threshold}
-                  onChange={(e) => set("min_attendance_threshold", e.target.value)}
-                  hint="Hide suggestions that fewer than this many people can make."
+                  label="Suggested date"
+                  tooltip="Optional. Pre-fill a proposed slot so invitees can react to something concrete right away."
+                  type="date"
+                  placeholder="Select date"
+                  value={form.suggested_date_local}
+                  onChange={(e) => set("suggested_date_local", e.target.value)}
                 />
+                <div className="grid grid-cols-2 gap-4">
+                  <Select
+                    label="Suggested start"
+                    options={[{ value: "", label: "Select time" }, ...HALF_HOUR_OPTIONS]}
+                    value={form.suggested_start_local}
+                    onChange={(e) => set("suggested_start_local", e.target.value)}
+                  />
+                  <Select
+                    label="Suggested end"
+                    options={[{ value: "", label: "Select time" }, ...HALF_HOUR_OPTIONS]}
+                    value={form.suggested_end_local}
+                    onChange={(e) => set("suggested_end_local", e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                   label="Reply deadline (optional)"
+                  tooltip="After this date, new replies are closed. People can still view the plan, but they cannot submit new availability."
                   type="date"
+                  placeholder="Select date"
                   value={form.response_deadline_local}
                   onChange={(e) => set("response_deadline_local", e.target.value)}
-                  hint="After this date, new replies are closed."
                 />
               </div>
 
               <div>
-                <p className="text-sm font-medium text-text mb-1">What else should people weigh in on?</p>
-                <p className="text-xs text-muted mb-3">Turn on only the questions that matter for this plan.</p>
+                <div className="mb-3 flex items-center gap-1.5">
+                  <p className="text-sm font-medium text-text">What else should people weigh in on?</p>
+                  <InfoTooltip text="Turn on only the questions that matter for this plan, so invitees are not filling extra fields you do not care about." />
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {ALL_PREF_FIELDS.map(({ key, label }) => {
                     const enabled = form.enabled_preferences.includes(key);
@@ -487,7 +580,7 @@ export default function NewEventPage() {
               <div className="flex items-start justify-between py-3 border-b border-border">
                 <div>
                   <p className="text-sm font-medium text-text">Mark new invitees as required by default</p>
-                  <p className="text-xs text-muted mt-0.5">Useful when a small core group has to be there.</p>
+                  <p className="mt-0.5 text-xs text-muted">Everyone you add later starts as must-attend. Use this when a core group needs to be present for the plan to work.</p>
                 </div>
                 <button
                   type="button"
@@ -507,7 +600,7 @@ export default function NewEventPage() {
               <div className="flex items-start justify-between py-3 border-b border-border">
                 <div>
                   <p className="text-sm font-medium text-text">Allow participants to edit</p>
-                  <p className="text-xs text-muted mt-0.5">Let people update their reply after they submit.</p>
+                  <p className="mt-0.5 text-xs text-muted">Invitees can come back and change their availability after sending their first reply.</p>
                 </div>
                 <button
                   type="button"
@@ -527,7 +620,7 @@ export default function NewEventPage() {
               <div className="flex items-start justify-between py-3 border-b border-border">
                 <div>
                   <p className="text-sm font-medium text-text">Require at least one preference</p>
-                  <p className="text-xs text-muted mt-0.5">If this is on, people must share at least one preference before they can submit.</p>
+                  <p className="mt-0.5 text-xs text-muted">Invitees must tell you at least one thing they care about, like food, time of day, or area, before they can submit.</p>
                 </div>
                 <button
                   type="button"
@@ -547,7 +640,7 @@ export default function NewEventPage() {
               <div className="flex items-start justify-between py-3 border-b border-border">
                 <div>
                   <p className="text-sm font-medium text-text">Let participants view the live summary</p>
-                  <p className="text-xs text-muted mt-0.5">They can see the current overlap and top suggestions from their own invite link.</p>
+                  <p className="mt-0.5 text-xs text-muted">Invitees can open a live snapshot of who has replied and which times are currently looking strongest.</p>
                 </div>
                 <button
                   type="button"
@@ -587,10 +680,14 @@ export default function NewEventPage() {
                     <dt>Timezone</dt>
                     <dd className="text-text">{form.timezone}</dd>
                   </div>
-                  <div className="flex justify-between">
-                    <dt>Minimum people</dt>
-                    <dd className="text-text tabular-nums">{form.min_attendance_threshold}</dd>
-                  </div>
+                  {form.suggested_date_local && form.suggested_start_local && form.suggested_end_local && (
+                    <div className="flex justify-between gap-4">
+                      <dt>Suggested time</dt>
+                      <dd className="text-right text-text tabular-nums">
+                        {form.suggested_date_local} {form.suggested_start_local} - {form.suggested_end_local}
+                      </dd>
+                    </div>
+                  )}
                   {form.response_deadline_local && (
                     <div className="flex justify-between">
                       <dt>Reply deadline</dt>
@@ -735,8 +832,7 @@ export default function NewEventPage() {
           {step < 3 && (
             <Button
               onClick={() => {
-                if (step === 1 && (!form.organizer_name.trim() || !form.title.trim())) {
-                  setError("Please enter your name and a plan title.");
+                if (step === 1 && !validateStepOne()) {
                   return;
                 }
                 setError("");

@@ -6,12 +6,23 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { AvailabilityPicker, type TimeWindow } from "@/components/availability-picker";
 import { PreferenceForm, type PreferenceValues, defaultPreferences } from "@/components/preference-form";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, formatEventDate } from "@/lib/utils";
 import { saveEvent } from "@/components/my-events";
 import type { ValidateTokenResponse, ApiError, EventData, ParticipantData } from "@/lib/api-types";
 import { hasMeaningfulPreferences, parseEnabledPreferences } from "@/lib/event-settings";
 
 type Step = "availability" | "preferences" | "review" | "success";
+
+function filterWindowsToDateRange(
+  windows: Array<{ id: string; start_time: number; end_time: number }>,
+  event: EventData | null
+): TimeWindow[] {
+  if (!event) return windows;
+
+  return windows.filter(
+    (window) => window.start_time >= event.date_range_start && window.end_time - 1 <= event.date_range_end
+  );
+}
 
 export default function RespondPage() {
   const { token } = useParams<{ token: string }>();
@@ -58,14 +69,17 @@ export default function RespondPage() {
         setEvent(data.event);
         setParticipant(data.participant);
 
-        if ((data.existing_windows?.length ?? 0) > 0) {
-          setWindows(
-            (data.existing_windows ?? []).map((w) => ({
-              id: w.id,
-              start_time: w.start_time,
-              end_time: w.end_time,
-            }))
-          );
+        const filteredExistingWindows = filterWindowsToDateRange(data.existing_windows ?? [], data.event);
+        if (filteredExistingWindows.length > 0) {
+          setWindows(filteredExistingWindows);
+        } else if (data.event?.suggested_time_start && data.event?.suggested_time_end) {
+          setWindows([
+            {
+              id: "suggested-window",
+              start_time: data.event.suggested_time_start,
+              end_time: data.event.suggested_time_end,
+            },
+          ]);
         }
 
         if (data.existing_preferences) {
@@ -304,6 +318,15 @@ export default function RespondPage() {
                 Pick the windows when you could realistically make it. The more flexibility you share, the easier it is to find a time that works for everyone.
                 Times are shown in <strong>{event.timezone}</strong>.
               </p>
+              {event.suggested_time_start && event.suggested_time_end && (
+                <div className="mb-5 rounded-input bg-accent-subtle px-4 py-3 text-sm text-text shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)]">
+                  <p className="font-medium text-accent">Organizer suggestion</p>
+                  <p className="mt-1 text-sm text-muted tabular-nums">
+                    We pre-filled {formatEventDate(event.suggested_time_start, event.timezone)} to {formatEventDate(event.suggested_time_end, event.timezone)}.
+                    Keep it, edit it, or remove it.
+                  </p>
+                </div>
+              )}
               <AvailabilityPicker
                 windows={windows}
                 onChange={setWindows}

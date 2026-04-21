@@ -101,6 +101,8 @@ export async function POST(
       availability_windows.map((w) => ({ participant_id: participant.id, ...w })),
       {
         timezone: event.timezone,
+        date_range_start: event.date_range_start,
+        date_range_end: event.date_range_end,
         meeting_duration_minutes: event.meeting_duration_minutes,
         slot_granularity_minutes: event.slot_granularity_minutes,
         allowed_hours_start: event.allowed_hours_start,

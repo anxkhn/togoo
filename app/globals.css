@@ -7,8 +7,13 @@
 @layer base {
   :root {
     --radius: 14px;
+    --ease-standard: ease;
+    --ease-out-cubic: cubic-bezier(0.215, 0.61, 0.355, 1);
     --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
     --ease-in-out-quart: cubic-bezier(0.77, 0, 0.175, 1);
+    --duration-micro: 120ms;
+    --duration-fast: 160ms;
+    --duration-standard: 220ms;
   }
 
   html {
@@ -21,6 +26,10 @@
 
   body {
     min-height: 100vh;
+  }
+
+  p {
+    text-wrap: pretty;
   }
 
   ::selection {
@@ -42,14 +51,21 @@
     font-family: 'Fraunces', Georgia, serif;
     line-height: 1.15;
     letter-spacing: -0.01em;
+    text-wrap: balance;
   }
 }
 
 @layer components {
   .card {
-    @apply bg-surface rounded-card shadow-card border border-border;
-    /* shadow transition must sit here, not in Tailwind utilities, for specificity */
-    transition: box-shadow 200ms ease;
+    @apply bg-surface rounded-card;
+    box-shadow:
+      inset 0 0 0 1px rgba(26, 23, 20, 0.07),
+      0 1px 2px rgba(26, 23, 20, 0.04),
+      0 12px 32px rgba(26, 23, 20, 0.06);
+    transition:
+      box-shadow var(--duration-standard) var(--ease-standard),
+      background-color var(--duration-fast) var(--ease-standard),
+      border-color var(--duration-fast) var(--ease-standard);
   }
 
   /*
@@ -58,30 +74,57 @@
    * physically responsive rather than sluggish.
    */
   .btn-primary {
-    @apply bg-accent text-white rounded-input px-5 py-2.5 font-medium text-sm
-           hover:bg-accent-hover active:scale-[0.97]
+    @apply inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap
+           bg-accent text-white rounded-input px-5 py-2.5 font-medium text-sm
+           active:scale-[0.97]
            focus-visible:outline-accent disabled:opacity-50 disabled:cursor-not-allowed;
-    transition: background-color 150ms ease, box-shadow 150ms ease;
+    box-shadow: 0 10px 24px rgba(47, 104, 68, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    transition:
+      background-color var(--duration-fast) var(--ease-standard),
+      box-shadow var(--duration-fast) var(--ease-standard);
   }
 
   .btn-secondary {
-    @apply bg-surface text-text border border-border rounded-input px-5 py-2.5 font-medium text-sm
-           hover:border-border-strong hover:bg-surface-alt active:scale-[0.97]
+    @apply inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap
+           bg-surface text-text rounded-input px-5 py-2.5 font-medium text-sm
+           active:scale-[0.97]
            focus-visible:outline-accent disabled:opacity-50 disabled:cursor-not-allowed;
-    transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+    box-shadow: inset 0 0 0 1px rgba(26, 23, 20, 0.08), 0 8px 20px rgba(26, 23, 20, 0.04);
+    transition:
+      background-color var(--duration-fast) var(--ease-standard),
+      border-color var(--duration-fast) var(--ease-standard),
+      box-shadow var(--duration-fast) var(--ease-standard);
   }
 
   .btn-ghost {
-    @apply text-muted rounded-input px-3 py-1.5 text-sm font-medium
-           hover:text-text hover:bg-surface-alt active:scale-[0.97]
+    @apply inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap
+           text-muted rounded-input px-3 py-1.5 text-sm font-medium
+           active:scale-[0.97]
            focus-visible:outline-accent disabled:opacity-50 disabled:cursor-not-allowed;
-    transition: background-color 150ms ease, color 150ms ease;
+    transition:
+      background-color var(--duration-fast) var(--ease-standard),
+      color var(--duration-fast) var(--ease-standard);
   }
 
   .input {
-    @apply w-full bg-surface border border-border rounded-input px-3.5 py-2.5 text-sm text-text
+    @apply w-full min-h-10 bg-surface rounded-input px-3.5 py-2.5 text-sm text-text
            placeholder:text-muted-light focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent;
-    transition: border-color 150ms ease, box-shadow 150ms ease;
+    box-shadow: inset 0 0 0 1px rgba(26, 23, 20, 0.08), 0 1px 2px rgba(26, 23, 20, 0.03);
+    transition:
+      border-color var(--duration-fast) var(--ease-standard),
+      box-shadow var(--duration-fast) var(--ease-standard);
+  }
+
+  .input-date-native::-webkit-calendar-picker-indicator {
+    opacity: 0;
+  }
+
+  .input-date-native::-webkit-date-and-time-value {
+    opacity: 0;
+  }
+
+  .input-date-native::-webkit-datetime-edit {
+    color: transparent;
   }
 
   .label {
@@ -89,7 +132,32 @@
   }
 
   .badge {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+    @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium;
+    box-shadow: inset 0 0 0 1px rgba(26, 23, 20, 0.08);
+  }
+
+  .pill-toggle {
+    @apply inline-flex min-h-10 items-center justify-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-medium active:scale-[0.97];
+    box-shadow: inset 0 0 0 1px rgba(26, 23, 20, 0.08);
+    transition:
+      background-color var(--duration-fast) var(--ease-standard),
+      border-color var(--duration-fast) var(--ease-standard),
+      color var(--duration-fast) var(--ease-standard),
+      box-shadow var(--duration-fast) var(--ease-standard),
+      transform var(--duration-micro) var(--ease-out-cubic);
+  }
+
+  .toggle-switch {
+    @apply relative inline-flex h-10 w-[52px] flex-shrink-0 items-center rounded-full px-1 focus-visible:outline-accent;
+    transition:
+      background-color var(--duration-fast) var(--ease-standard),
+      box-shadow var(--duration-fast) var(--ease-standard);
+  }
+
+  .toggle-thumb {
+    @apply inline-block h-5 w-5 rounded-full bg-white;
+    box-shadow: 0 1px 2px rgba(26, 23, 20, 0.18), 0 6px 14px rgba(26, 23, 20, 0.08);
+    transition: transform var(--duration-standard) var(--ease-in-out-quart);
   }
 
   .divider {
@@ -98,11 +166,15 @@
 
   .section-title {
     @apply font-display text-xl font-semibold text-text;
+    text-wrap: balance;
   }
 
   /* Adds lift on hover. Only apply to cards that warrant the interaction cue. */
   .card-interactive {
-    transition: box-shadow 200ms ease, transform 200ms ease;
+    will-change: transform;
+    transition:
+      box-shadow var(--duration-standard) var(--ease-standard),
+      transform var(--duration-standard) var(--ease-in-out-quart);
   }
 }
 
@@ -111,8 +183,25 @@
  * Touch devices fire :hover on tap, causing a stuck highlighted state.
  */
 @media (hover: hover) and (pointer: fine) {
+  .btn-primary:hover {
+    background-color: #235133;
+  }
+
+  .btn-secondary:hover {
+    border-color: #D5CFC4;
+    background-color: #F9F8F5;
+  }
+
+  .btn-ghost:hover {
+    color: #1A1714;
+    background-color: #F9F8F5;
+  }
+
   .card-interactive:hover {
-    box-shadow: 0 4px 12px 0 rgba(26, 23, 20, 0.10), 0 2px 4px -1px rgba(26, 23, 20, 0.06);
+    box-shadow:
+      inset 0 0 0 1px rgba(26, 23, 20, 0.08),
+      0 1px 2px rgba(26, 23, 20, 0.04),
+      0 16px 36px rgba(26, 23, 20, 0.1);
     transform: translateY(-1px);
   }
 }
@@ -124,8 +213,17 @@
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in,
   .animate-slide-up,
-  .animate-scale-in {
+  .animate-scale-in,
+  .animate-shake-x,
+  .animate-spin {
     animation: none;
+  }
+
+  a,
+  button,
+  svg,
+  [role="button"] {
+    transition: none;
   }
 
   .card {
@@ -134,7 +232,10 @@
 
   .btn-primary,
   .btn-secondary,
-  .btn-ghost {
+  .btn-ghost,
+  .pill-toggle,
+  .toggle-switch,
+  .toggle-thumb {
     transition: none;
   }
 
@@ -144,5 +245,33 @@
 
   .card-interactive {
     transition: none;
+    will-change: auto;
   }
+}
+
+@keyframes shakeX {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20% {
+    transform: translateX(-6px);
+  }
+
+  40% {
+    transform: translateX(5px);
+  }
+
+  60% {
+    transform: translateX(-3px);
+  }
+
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+.animate-shake-x {
+  animation: shakeX 320ms cubic-bezier(0.215, 0.61, 0.355, 1);
 }

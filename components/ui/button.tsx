@@ -22,7 +22,8 @@ export function Button({
     primary: "btn-primary",
     secondary: "btn-secondary",
     ghost: "btn-ghost",
-    danger: "bg-danger text-white rounded-input px-5 py-2.5 font-medium text-sm hover:opacity-90 active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed",
+    danger:
+      "inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-input bg-danger px-5 py-2.5 text-sm font-medium text-white hover:bg-danger/90 active:scale-[0.97] focus-visible:outline-danger disabled:cursor-not-allowed disabled:opacity-50 motion-safe:transition-[background-color,box-shadow] motion-safe:duration-150 motion-safe:ease shadow-[0_10px_24px_rgba(185,28,28,0.14),inset_0_1px_0_rgba(255,255,255,0.14)]",
   };
 
   const sizes = {
@@ -33,7 +34,7 @@ export function Button({
 
   return (
     <button
-      className={cn(variants[variant], sizes[size], className)}
+      className={cn("inline-flex items-center justify-center gap-2 whitespace-nowrap", variants[variant], sizes[size], className)}
       disabled={disabled || loading}
       {...props}
     >

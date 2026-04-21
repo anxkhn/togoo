@@ -12,6 +12,8 @@ export const CreateEventSchema = z.object({
   meeting_duration_minutes: z.number().int().min(15).max(480).default(120),
   slot_granularity_minutes: z.union([z.literal(15), z.literal(30)]).default(30),
   min_attendance_threshold: z.number().int().min(0).default(0),
+  suggested_time_start: z.number().int().positive().optional(),
+  suggested_time_end: z.number().int().positive().optional(),
   participants_required_by_default: z.boolean().default(false),
   allow_participant_edit: z.boolean().default(true),
   show_results_to_participants: z.boolean().default(false),
@@ -25,6 +27,66 @@ export const CreateEventSchema = z.object({
   response_deadline: z.number().int().positive().optional(),
   organizer_name: z.string().min(1).max(100),
   organizer_email: z.string().email().optional(),
+}).superRefine((data, ctx) => {
+  const hasSuggestedStart = data.suggested_time_start !== undefined;
+  const hasSuggestedEnd = data.suggested_time_end !== undefined;
+
+  if (hasSuggestedStart !== hasSuggestedEnd) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Suggested time needs both a start and an end",
+      path: [hasSuggestedStart ? "suggested_time_end" : "suggested_time_start"],
+    });
+  }
+
+  if (hasSuggestedStart && hasSuggestedEnd && data.suggested_time_end! <= data.suggested_time_start!) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Suggested end time must be after the start time",
+      path: ["suggested_time_end"],
+    });
+  }
+});
+
+export const UpdateEventSchema = z.object({
+  title: z.string().min(1).max(100),
+  description: z.string().max(1000).optional(),
+  event_type: z.enum(["dinner", "meetup", "hangout", "work_session", "custom"]),
+  timezone: z.string().min(1),
+  date_range_start: z.number().int().positive(),
+  date_range_end: z.number().int().positive(),
+  allowed_hours_start: z.number().int().min(0).max(23),
+  allowed_hours_end: z.number().int().min(1).max(24),
+  meeting_duration_minutes: z.number().int().min(15).max(480),
+  slot_granularity_minutes: z.union([z.literal(15), z.literal(30)]),
+  scoring_mode: z.enum(["maximize_attendance", "prioritize_required", "vip_priority", "time_optimized"]),
+  suggested_time_start: z.number().int().positive().nullable().optional(),
+  suggested_time_end: z.number().int().positive().nullable().optional(),
+  participants_required_by_default: z.boolean(),
+  allow_participant_edit: z.boolean(),
+  show_results_to_participants: z.boolean(),
+  preferences_required: z.boolean(),
+  response_deadline: z.number().int().positive().nullable().optional(),
+  enabled_preferences: z.array(z.string()),
+}).superRefine((data, ctx) => {
+  const hasSuggestedStart = data.suggested_time_start !== undefined && data.suggested_time_start !== null;
+  const hasSuggestedEnd = data.suggested_time_end !== undefined && data.suggested_time_end !== null;
+
+  if (hasSuggestedStart !== hasSuggestedEnd) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Suggested time needs both a start and an end",
+      path: [hasSuggestedStart ? "suggested_time_end" : "suggested_time_start"],
+    });
+  }
+
+  if (hasSuggestedStart && hasSuggestedEnd && data.suggested_time_end! <= data.suggested_time_start!) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Suggested end time must be after the start time",
+      path: ["suggested_time_end"],
+    });
+  }
 });
 
 export const AddParticipantSchema = z.object({

@@ -1,8 +1,0 @@
-[
-  "drizzle-orm",
-  "clsx",
-  "tailwind-merge",
-  "zod",
-  "@vvo/tzdb",
-  "date-fns-tz"
-]

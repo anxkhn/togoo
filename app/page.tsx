@@ -18,11 +18,6 @@ export default function LandingPage() {
 
       <main>
         <section className="max-w-5xl mx-auto px-5 pt-24 pb-20 text-center">
-          <div className="mb-8 inline-flex min-h-10 items-center gap-2 rounded-full bg-accent-subtle px-4 py-2 shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)] animate-fade-in">
-            <div className="w-1.5 h-1.5 bg-accent rounded-full" />
-            <span className="text-xs font-medium text-accent">Stop planning in the group chat</span>
-          </div>
-
           <h1 className="font-display text-5xl sm:text-6xl md:text-7xl font-bold text-text mb-6 leading-[1.05] animate-slide-up">
             Get your group to a plan<br />
             <span className="text-accent">without chasing replies</span>
