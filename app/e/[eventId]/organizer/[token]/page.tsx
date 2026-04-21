@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import type { AddParticipantInviteResponse } from "@/lib/api-types";
 import { clientApi } from "@/lib/client-api";
 import { fromZonedTime } from "date-fns-tz";
 import { getTimeZones } from "@vvo/tzdb";
+import { removeEventShortcut } from "@/components/my-events";
 
 interface Participant {
   id: string;
@@ -129,6 +130,11 @@ interface OverridesResponse {
 
 interface RegenerateTokenResponse {
   invite_token: string;
+}
+
+interface PendingInvite {
+  id: string;
+  name: string;
 }
 
 interface FinalizeResponse {
@@ -354,7 +360,7 @@ function ParticipantRow({
               <div className="grid grid-cols-2 gap-2">
                 <input className="input text-sm" value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Name" />
                 <input className="input text-sm" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} placeholder="Email (optional)" type="email" />
-                <input className="input text-sm col-span-2" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="Phone for WhatsApp (optional)" type="tel" />
+                <input className="input text-sm col-span-2" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="+91 9000000000" type="tel" />
                 <label className="col-span-1 flex items-center gap-2 rounded-input border border-border px-3 py-2 text-sm text-text">
                   <input type="checkbox" checked={editIsRequired} onChange={(e) => setEditIsRequired(e.target.checked)} />
                   Must attend
@@ -466,6 +472,7 @@ function ParticipantRow({
 }
 
 export default function OrganizerDashboard() {
+  const router = useRouter();
   const params = useParams<{ eventId: string; token: string }>();
   const { eventId, token } = params;
 
@@ -497,8 +504,9 @@ export default function OrganizerDashboard() {
   const [newPhone, setNewPhone] = useState("");
   const [newIsRequired, setNewIsRequired] = useState(false);
   const [newTier, setNewTier] = useState("0");
-  const [newExpiresHours, setNewExpiresHours] = useState("0");
-  const [addLoading, setAddLoading] = useState(false);
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
+  const [addParticipantError, setAddParticipantError] = useState("");
+  const [deletingPlan, setDeletingPlan] = useState(false);
   const [pageError, setPageError] = useState("");
 
   const newEmailError = newEmailTouched && newEmail.trim() && !EMAIL_RE.test(newEmail.trim())
@@ -577,46 +585,79 @@ export default function OrganizerDashboard() {
 
   const handleAddParticipant = async () => {
     if (!newName.trim() || newEmailError) return;
-    setAddLoading(true);
+    const participant = {
+      name: newName.trim(),
+      email: newEmail.trim() || undefined,
+      phone: newPhone.trim() || undefined,
+      is_required: newIsRequired,
+      priority_tier: parseInt(newTier),
+    };
+    const pendingId = `pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+    setAddParticipantError("");
+    setPendingInvites((current) => [...current, { id: pendingId, name: participant.name }]);
+    setNewName("");
+    setNewEmail("");
+    setNewEmailTouched(false);
+    setNewPhone("");
+    setNewIsRequired(event?.participants_required_by_default === 1);
+    setNewTier("0");
     try {
       const res = await fetch(clientApi.participants(eventId), {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: newName.trim(),
-          email: newEmail.trim() || undefined,
-          phone: newPhone.trim() || undefined,
-          is_required: newIsRequired,
-          priority_tier: parseInt(newTier),
-          token_expires_hours: parseInt(newExpiresHours) || undefined,
-        }),
+        body: JSON.stringify(participant),
       });
-      const data = await res.json() as AddParticipantInviteResponse;
+      const data = await res.json() as AddParticipantInviteResponse | { error?: string };
       if (res.ok) {
+        const added = data as AddParticipantInviteResponse;
         setParticipants((prev) => [
           ...prev,
           {
-            ...data.participant,
-            is_required: data.participant.is_required ? 1 : 0,
-            phone: data.participant.phone ?? null,
+            ...added.participant,
+            is_required: added.participant.is_required ? 1 : 0,
+            phone: added.participant.phone ?? null,
             role: "participant",
             response_status: "pending",
-            invite_token: data.invite_token,
-            priority_tier: data.participant.priority_tier ?? parseInt(newTier),
+            invite_token: added.invite_token,
+            priority_tier: added.participant.priority_tier ?? participant.priority_tier,
           },
         ]);
         setStats((s) => ({ ...s, total_invited: s.total_invited + 1, pending: s.pending + 1 }));
-        setNewName("");
-        setNewEmail("");
-        setNewEmailTouched(false);
-        setNewPhone("");
-        setNewIsRequired(event?.participants_required_by_default === 1);
-        setNewTier("0");
-        setNewExpiresHours("0");
-        setAddingParticipant(false);
+      } else {
+        setAddParticipantError((data as { error?: string }).error ?? `We couldn't add ${participant.name}.`);
       }
+    } catch {
+      setAddParticipantError(`We couldn't add ${participant.name}.`);
     } finally {
-      setAddLoading(false);
+      setPendingInvites((current) => current.filter((item) => item.id !== pendingId));
+    }
+  };
+
+  const handleDeletePlan = async () => {
+    if (!confirm(`Delete ${event?.title ?? "this plan"}? This cannot be undone.`)) return;
+
+    setDeletingPlan(true);
+    setPlanError("");
+
+    try {
+      const res = await fetch(clientApi.event(eventId), {
+        method: "DELETE",
+        headers,
+      });
+
+      const data = await res.json() as { error?: string };
+      if (!res.ok) {
+        setPlanError(data.error ?? "We couldn't delete this plan.");
+        return;
+      }
+
+      removeEventShortcut(eventId, "organizer");
+      router.push("/");
+    } catch {
+      setPlanError("We couldn't delete this plan.");
+    } finally {
+      setDeletingPlan(false);
     }
   };
 
@@ -1124,12 +1165,16 @@ export default function OrganizerDashboard() {
             </div>
 
             {planError && (
-              <div className="rounded-input bg-danger-light px-4 py-3 text-sm text-danger shadow-[inset_0_0_0_1px_rgba(185,28,28,0.12)]">
-                {planError}
-              </div>
-            )}
+            <div className="rounded-input bg-danger-light px-4 py-3 text-sm text-danger shadow-[inset_0_0_0_1px_rgba(185,28,28,0.12)]">
+              {planError}
+            </div>
+          )}
 
-            <div className="flex items-center justify-end gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <Button variant="danger" loading={deletingPlan} onClick={handleDeletePlan}>
+                Delete plan
+              </Button>
+              <div className="flex items-center gap-3">
               <Button variant="secondary" onClick={() => {
                 setEditingPlan(false);
                 setPlanError("");
@@ -1140,6 +1185,7 @@ export default function OrganizerDashboard() {
               <Button loading={savingPlan} onClick={handleSavePlan}>
                 Save plan changes
               </Button>
+              </div>
             </div>
           </div>
         )}
@@ -1197,8 +1243,8 @@ export default function OrganizerDashboard() {
                 </div>
                 <div className="grid grid-cols-1 gap-3 mb-3 sm:grid-cols-2">
                   <Input
-                    placeholder="Phone for WhatsApp (optional)"
                     type="tel"
+                    placeholder="+91 9000000000"
                     value={newPhone}
                     onChange={(e) => setNewPhone(e.target.value)}
                   />
@@ -1224,29 +1270,50 @@ export default function OrganizerDashboard() {
                       <option value="2">★★ Key person</option>
                     </select>
                   </div>
-                  <div>
-                    <p className="mb-1.5 text-xs font-medium text-muted">Invite link expires</p>
-                    <select className="input" value={newExpiresHours} onChange={(e) => setNewExpiresHours(e.target.value)}>
-                      <option value="0">Never</option>
-                      <option value="24">24 hours</option>
-                      <option value="72">3 days</option>
-                      <option value="168">7 days</option>
-                      <option value="336">14 days</option>
-                    </select>
+                  <div className="rounded-[18px] bg-surface-alt px-4 py-3 text-sm text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
+                    Invite links stay active until you regenerate or remove them.
                   </div>
                 </div>
+                {addParticipantError && <p className="text-sm text-danger mb-3">{addParticipantError}</p>}
+                {pendingInvites.length > 0 && (
+                  <div className="mb-3 rounded-input bg-surface-alt px-4 py-3 text-sm text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
+                    <div className="flex items-center gap-2">
+                      <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Saving {pendingInvites.length} invitee{pendingInvites.length === 1 ? "" : "s"} in the background.
+                    </div>
+                  </div>
+                )}
                 <div className="flex gap-2">
-                  <Button size="sm" loading={addLoading} onClick={handleAddParticipant} disabled={!!newEmailError}>Create invite link</Button>
+                  <Button size="sm" onClick={handleAddParticipant} disabled={!newName.trim() || !!newEmailError}>Create invite link</Button>
                   <Button size="sm" variant="ghost" onClick={() => setAddingParticipant(false)}>Cancel</Button>
                 </div>
               </div>
             )}
 
             <div className="card divide-y-0">
-              {nonOrganizerParticipants.length === 0 ? (
+              {nonOrganizerParticipants.length === 0 && pendingInvites.length === 0 ? (
                 <div className="p-8 text-center text-muted text-sm">No invitees yet. Add people to start collecting replies.</div>
               ) : (
                 <div className="p-4">
+                  {pendingInvites.map((participant) => (
+                    <div key={participant.id} className="flex items-start gap-3 py-3.5 border-b border-border">
+                      <Avatar name={participant.name} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium text-text">{participant.name}</span>
+                          <Badge variant="default">Creating invite...</Badge>
+                        </div>
+                        <p className="mt-1 text-xs text-muted">You can keep adding people while this finishes.</p>
+                      </div>
+                      <svg className="h-4 w-4 animate-spin text-muted" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                    </div>
+                  ))}
                   {nonOrganizerParticipants.map((p) => (
                     <ParticipantRow
                       key={p.id}

@@ -140,7 +140,7 @@ Schema source:
 | --- | --- | --- |
 | `events` | `title`, `timezone`, `date_range_start`, `date_range_end`, `allowed_hours_start`, `allowed_hours_end`, `meeting_duration_minutes`, `slot_granularity_minutes`, `min_attendance_threshold`, `participants_required_by_default`, `allow_participant_edit`, `show_results_to_participants`, `preferences_required`, `enabled_preferences`, `scoring_mode`, `suggested_time_start`, `suggested_time_end`, `status`, `response_deadline` | one row per plan |
 | `participants` | `name`, `email`, `phone`, `role`, `is_required`, `priority_tier`, `response_status` | includes organizer row |
-| `invite_tokens` | `token`, `role`, `is_active`, `expires_at` | one active organizer token, rotating participant tokens |
+| `invite_tokens` | `token`, `role`, `is_active`, `expires_at` | one active organizer token, rotating participant tokens; expiry is not used in the current product flow |
 | `availability_windows` | `participant_id`, `start_time`, `end_time` | raw reply windows |
 | `participant_preferences` | food, budget, location, day/time, indoor/outdoor, notes | one row per event-participant pair |
 | `organizer_overrides` | `override_type`, `data` | backend-only today |

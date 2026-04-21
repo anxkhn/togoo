@@ -95,7 +95,6 @@ export const AddParticipantSchema = z.object({
   phone: z.string().max(20).optional().or(z.literal("")),
   is_required: z.boolean().default(false),
   priority_tier: z.union([z.literal(0), z.literal(1), z.literal(2)]).default(0),
-  token_expires_hours: z.number().int().positive().optional(),
 });
 
 export const UpdateParticipantSchema = z.object({

@@ -154,7 +154,6 @@ The organizer must be able to:
 - mark participants as required
 - assign priority tier
 - regenerate invite tokens
-- set token expiry when adding a participant
 
 ### Recommendations
 
