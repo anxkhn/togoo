@@ -9,9 +9,11 @@ It helps one organizer collect availability and lightweight preferences from a g
 - create a plan with title, type, timezone, date range, allowed hours, duration, slot spacing, scoring mode, optional suggested time, and response deadline
 - add invitees and generate one private reply link per participant
 - let invitees respond without creating an account
-- collect availability windows plus optional preferences
+- collect exact meeting-slot availability plus optional preferences
 - show the organizer ranked meeting-time recommendations and an overlap heatmap
 - let the organizer edit the plan after creation
+- keep the multi-step create flow in browser storage so a refresh does not wipe progress
+- let the organizer delete a plan from the editor
 - finalize one slot and publish a final shareable page
 
 ## Main flows
@@ -22,6 +24,13 @@ It helps one organizer collect availability and lightweight preferences from a g
 4. Organizer reviews the dashboard at `/e/[eventId]/organizer/[token]`
 5. Organizer finalizes one slot
 6. Final page is available at `/e/[eventId]/final`
+
+## UX Notes
+
+- the create flow stores its draft in browser local storage, so refreshing `/events/new` keeps your in-progress plan
+- the participant availability picker shows exact slot pills derived from the organizer's duration and slot spacing, not broad morning/afternoon/evening buckets
+- organizer-suggested times are highlighted for invitees but are not preselected
+- attendee creation runs in the background so the invite form stays usable while links are being generated
 
 ## Stack
 
@@ -74,14 +83,15 @@ lib/
   utils.ts                                 Date and formatting helpers
 
 drizzle/migrations/
-  0001_init.sql                            Current single migration
+  0001_init.sql                            Base schema migration
+  0003_remove_rate_limits.sql              Cleanup migration for removed limiter
 ```
 
 ## Local development
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 22+
 - Wrangler CLI
 - Cloudflare account
 
@@ -103,9 +113,10 @@ npm run seed:local
 
 ## Database
 
-This repo currently uses a single migration:
+This repo currently uses:
 
 - `drizzle/migrations/0001_init.sql`
+- `drizzle/migrations/0003_remove_rate_limits.sql`
 
 Apply it with:
 
@@ -121,7 +132,7 @@ npm run db:migrate:remote
 ```toml
 [[d1_databases]]
 binding = "DB"
-database_name = "where-to-go-db"
+database_name = "togoo-db"
 database_id = "YOUR_DATABASE_ID"
 migrations_dir = "drizzle/migrations"
 ```
@@ -176,8 +187,8 @@ Current limitation:
 - no email or SMS delivery
 - no calendar export
 - no venue recommendation flow
-- organizer overrides exist in the backend, but there is no dashboard UI for them yet
 - recommendation snapshots are stored on every recommendations request
+- token expiry is present in the schema for legacy compatibility, but invite links are treated as active until regenerated or removed
 
 ## Related docs
 

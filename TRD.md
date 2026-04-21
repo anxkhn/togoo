@@ -68,6 +68,7 @@ flowchart TD
 | `POST` | `/api/events` | create event and organizer token |
 | `GET` | `/api/events/[eventId]` | organizer-only event fetch |
 | `PUT` | `/api/events/[eventId]` | organizer-only event update |
+| `DELETE` | `/api/events/[eventId]` | organizer-only event delete |
 | `GET` | `/api/events/[eventId]/participants` | list participants |
 | `POST` | `/api/events/[eventId]/participants` | add participant |
 | `PUT` | `/api/events/[eventId]/participants/[participantId]` | update participant |
@@ -81,6 +82,8 @@ flowchart TD
 | `POST` | `/api/events/[eventId]/overrides` | add organizer override |
 | `DELETE` | `/api/events/[eventId]/overrides` | delete organizer override |
 | `GET` | `/api/validate-token` | validate organizer or participant token |
+
+There is also a browser-facing alias namespace under `/api/p/...` that forwards to the same handlers. The UI uses `/api/p` to avoid extension-side blocking on `/api/events` paths.
 
 ## Access model
 
@@ -112,7 +115,7 @@ There is no session cookie or account-based auth layer.
 2. Resolve participant token
 3. Check event status, deadline, and editability
 4. Delete old raw windows and normalized slots for that participant
-5. Insert new `availability_windows`
+5. Insert the selected meeting-slot windows
 6. Recompute and insert `normalized_slots`
 7. Upsert `participant_preferences`
 8. Mark participant as responded
@@ -128,6 +131,12 @@ There is no session cookie or account-based auth layer.
 6. If a finalized event changed schedule-affecting fields, delete final selection and set status back to `active`
 7. Insert activity log entry
 
+### Organizer event deletion
+
+1. Resolve organizer token
+2. Delete the event row
+3. Let database cascades remove participants, invite tokens, availability, preferences, snapshots, overrides, final selection, and activity history
+
 ## Data model
 
 Schema source:
@@ -140,7 +149,7 @@ Schema source:
 | --- | --- | --- |
 | `events` | `title`, `timezone`, `date_range_start`, `date_range_end`, `allowed_hours_start`, `allowed_hours_end`, `meeting_duration_minutes`, `slot_granularity_minutes`, `min_attendance_threshold`, `participants_required_by_default`, `allow_participant_edit`, `show_results_to_participants`, `preferences_required`, `enabled_preferences`, `scoring_mode`, `suggested_time_start`, `suggested_time_end`, `status`, `response_deadline` | one row per plan |
 | `participants` | `name`, `email`, `phone`, `role`, `is_required`, `priority_tier`, `response_status` | includes organizer row |
-| `invite_tokens` | `token`, `role`, `is_active`, `expires_at` | one active organizer token, rotating participant tokens; expiry is not used in the current product flow |
+| `invite_tokens` | `token`, `role`, `is_active`, `expires_at` | one active organizer token, rotating participant tokens; links stay active until regenerated or removed |
 | `availability_windows` | `participant_id`, `start_time`, `end_time` | raw reply windows |
 | `participant_preferences` | food, budget, location, day/time, indoor/outdoor, notes | one row per event-participant pair |
 | `organizer_overrides` | `override_type`, `data` | backend-only today |
@@ -268,9 +277,12 @@ flowchart TD
 
 The app stores a small list of recently accessed plans in `localStorage`.
 
+The create flow also stores an in-progress draft in `localStorage` so refreshing `/events/new` does not reset the plan.
+
 This is used by:
 
 - `components/my-events.tsx`
+- `app/events/new/page.tsx`
 
 It stores:
 
@@ -279,6 +291,7 @@ It stores:
 - role (`organizer` or `participant`)
 - token
 - created timestamp
+- create-step state, event draft fields, created organizer token, and generated invite links while the user is still in the create flow
 
 This is device-local only.
 
@@ -286,9 +299,10 @@ This is device-local only.
 
 ### Migrations
 
-The repo currently uses a single migration:
+The repo currently keeps these migrations in source control:
 
 - `drizzle/migrations/0001_init.sql`
+- `drizzle/migrations/0003_remove_rate_limits.sql`
 
 ### Commands
 
@@ -311,7 +325,6 @@ npm run db:migrate:remote
 
 ## Current implementation gaps
 
-- organizer overrides have backend support but no dashboard UI
 - recommendation snapshots are append-only and can grow over time
 - finalization supports notes in API/schema, but dashboard UI finalizes without collecting notes
 - no outbound notifications

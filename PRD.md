@@ -88,7 +88,7 @@ The invitee:
 
 1. Open private link
 2. Review plan details
-3. Select availability windows
+3. Select exact meeting slots
 4. Optionally add preferences
 5. Submit reply
 6. Optionally edit later if allowed
@@ -131,18 +131,21 @@ The product must let the organizer define:
 - required-preference setting
 - default required-attendee behavior for new invitees
 
+The product must preserve in-progress create-flow state through a browser refresh on the create page.
+
 ### Invitee replies
 
 The product must:
 
 - allow replies without account creation
 - validate token access before showing the reply page
-- support multiple availability windows
+- support multiple exact meeting slots derived from organizer timing rules
 - support preference collection
 - preload prior replies when present
 - block reply changes if the event is finalized
 - block reply changes if the deadline has passed
 - block edits when participant edits are disabled
+- show any organizer-suggested slot as a highlighted suggestion without preselecting it for the participant
 
 ### Participant management
 
@@ -176,6 +179,7 @@ The organizer must be able to:
 - select a recommendation
 - finalize one slot
 - reopen the event later if needed
+- delete the plan entirely
 - access a final public-facing summary page
 
 ## Product settings
@@ -227,6 +231,8 @@ stateDiagram-v2
 - primary actions must stay obvious at each step
 - validation failures must give immediate feedback
 - reduced-motion users must not be forced through motion-heavy interactions
+- create-flow progress should survive refresh without making the user restart from step one
+- adding invitees should feel non-blocking, with clear pending feedback while links are generated in the background
 
 ## Success criteria
 
