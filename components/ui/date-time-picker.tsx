@@ -228,10 +228,9 @@ export function DateTimePickerField({ label, tooltip, hint, error, value, onChan
         </Group>
         <Popover className="picker-popover z-50 mt-2 outline-none data-[entering]:translate-y-1 data-[entering]:opacity-0 data-[exiting]:translate-y-1 data-[exiting]:opacity-0">
           <Dialog className="outline-none">
-            <div className="space-y-3 rounded-card bg-surface p-2.5 shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08),0_1px_2px_rgba(26,23,20,0.04),0_18px_40px_rgba(26,23,20,0.12)]">
+            <div className="space-y-2 rounded-card bg-surface p-2.5 shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08),0_1px_2px_rgba(26,23,20,0.04),0_18px_40px_rgba(26,23,20,0.12)]">
               <PickerCalendar bare />
-              <div className="border-t border-border pt-3">
-                <p className="mb-1.5 text-xs font-medium text-text">Time</p>
+              <div>
                 <select
                   className="input"
                   value={selectedTime}
