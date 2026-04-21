@@ -1,4 +1,4 @@
-name = "where-to-go"
+name = "togoo"
 main = "./worker/index.ts"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
@@ -13,6 +13,6 @@ binding = "IMAGES"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "where-to-go-db"
-database_id = "ac702b96-1f8f-42ea-b639-cf8df094bb0a"
+database_name = "togoo-db"
+database_id = "7041fef3-b659-491d-b66f-7d14835a547b"
 migrations_dir = "drizzle/migrations"

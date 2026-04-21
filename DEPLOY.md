@@ -34,7 +34,7 @@ If you already have a D1 database for this app, keep using it.
 If you need a new one:
 
 ```bash
-npx wrangler d1 create where-to-go-db
+npx wrangler d1 create togoo-db
 ```
 
 Copy the returned `database_id` into `wrangler.toml`.
@@ -44,7 +44,7 @@ This project expects a D1 binding named `DB`:
 ```toml
 [[d1_databases]]
 binding = "DB"
-database_name = "where-to-go-db"
+database_name = "togoo-db"
 database_id = "REPLACE_WITH_YOUR_DATABASE_ID"
 migrations_dir = "drizzle/migrations"
 ```

@@ -9,12 +9,12 @@
     "deploy:prod": "npm run db:migrate:remote && vinext deploy",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
-    "db:migrate:local": "wrangler d1 migrations apply where-to-go-db --local",
-    "db:migrate:remote": "wrangler d1 migrations apply where-to-go-db --remote",
+    "db:migrate:local": "wrangler d1 migrations apply togoo-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply togoo-db --remote",
     "db:studio": "drizzle-kit studio",
     "cf-typegen": "wrangler types",
-    "seed:local": "wrangler d1 execute where-to-go-db --local --file=./scripts/seed.sql",
-    "seed:remote": "wrangler d1 execute where-to-go-db --remote --file=./scripts/seed.sql"
+    "seed:local": "wrangler d1 execute togoo-db --local --file=./scripts/seed.sql",
+    "seed:remote": "wrangler d1 execute togoo-db --remote --file=./scripts/seed.sql"
   },
   "dependencies": {
     "@vvo/tzdb": "^6.198.0",
