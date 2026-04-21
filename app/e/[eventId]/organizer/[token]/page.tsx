@@ -1194,41 +1194,45 @@ export default function OrganizerDashboard() {
                     {newEmailError && <p className="text-xs text-danger mt-1">{newEmailError}</p>}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="grid grid-cols-1 gap-3 mb-3 sm:grid-cols-2">
                   <Input
                     placeholder="Phone for WhatsApp (optional)"
                     type="tel"
                     value={newPhone}
                     onChange={(e) => setNewPhone(e.target.value)}
                   />
-                  <label className="flex min-h-10 items-center gap-2 rounded-input border border-transparent px-3 py-2 text-sm text-text shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
-                    <input type="checkbox" checked={newIsRequired} onChange={(e) => setNewIsRequired(e.target.checked)} />
-                    Must attend
+                  <label className="flex min-h-12 items-center gap-3 rounded-[18px] bg-surface-alt px-4 py-3 text-sm text-text shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
+                    <input
+                      type="checkbox"
+                      checked={newIsRequired}
+                      onChange={(e) => setNewIsRequired(e.target.checked)}
+                      className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
+                    />
+                    <div>
+                      <p className="font-medium text-text">Must attend</p>
+                      <p className="text-xs text-muted">Mark this person as required for the scheduling score.</p>
+                    </div>
                   </label>
                 </div>
-                <div className="grid grid-cols-2 gap-3 mb-3">
-                  <Select
-                    label="Priority"
-                    options={[
-                      { value: "0", label: "Regular" },
-                      { value: "1", label: "★ Important" },
-                      { value: "2", label: "★★ Key person" },
-                    ]}
-                    value={newTier}
-                    onChange={(e) => setNewTier(e.target.value)}
-                  />
-                  <Select
-                    label="Invite link expires"
-                    options={[
-                      { value: "0", label: "Never" },
-                      { value: "24", label: "24 hours" },
-                      { value: "72", label: "3 days" },
-                      { value: "168", label: "7 days" },
-                      { value: "336", label: "14 days" },
-                    ]}
-                    value={newExpiresHours}
-                    onChange={(e) => setNewExpiresHours(e.target.value)}
-                  />
+                <div className="grid grid-cols-1 gap-3 mb-3 sm:grid-cols-2">
+                  <div>
+                    <p className="mb-1.5 text-xs font-medium text-muted">Priority</p>
+                    <select className="input" value={newTier} onChange={(e) => setNewTier(e.target.value)}>
+                      <option value="0">Regular</option>
+                      <option value="1">★ Important</option>
+                      <option value="2">★★ Key person</option>
+                    </select>
+                  </div>
+                  <div>
+                    <p className="mb-1.5 text-xs font-medium text-muted">Invite link expires</p>
+                    <select className="input" value={newExpiresHours} onChange={(e) => setNewExpiresHours(e.target.value)}>
+                      <option value="0">Never</option>
+                      <option value="24">24 hours</option>
+                      <option value="72">3 days</option>
+                      <option value="168">7 days</option>
+                      <option value="336">14 days</option>
+                    </select>
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <Button size="sm" loading={addLoading} onClick={handleAddParticipant} disabled={!!newEmailError}>Create invite link</Button>

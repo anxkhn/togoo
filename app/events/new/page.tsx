@@ -751,21 +751,31 @@ export default function NewEventPage() {
                     }}
                   />
                 </div>
-                <label className="col-span-1 flex min-h-10 items-center gap-2 rounded-input border border-transparent px-3 py-2 text-sm text-text shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
-                  <input type="checkbox" checked={inviteIsRequired} onChange={(e) => setInviteIsRequired(e.target.checked)} />
-                  Must attend
-                </label>
-                <div className="col-span-1">
-                  <Select
-                    label="Priority"
-                    options={[
-                      { value: "0", label: "Regular" },
-                      { value: "1", label: "★ Important" },
-                      { value: "2", label: "★★ Key person" },
-                    ]}
-                    value={invitePriorityTier}
-                    onChange={(e) => setInvitePriorityTier(e.target.value)}
-                  />
+                <div className="col-span-2 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_220px]">
+                  <label className="flex min-h-12 items-center gap-3 rounded-[18px] bg-surface-alt px-4 py-3 text-sm text-text shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
+                    <input
+                      type="checkbox"
+                      checked={inviteIsRequired}
+                      onChange={(e) => setInviteIsRequired(e.target.checked)}
+                      className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
+                    />
+                    <div>
+                      <p className="font-medium text-text">Must attend</p>
+                      <p className="text-xs text-muted">Use this when this person needs to be included in the final pick.</p>
+                    </div>
+                  </label>
+                  <div>
+                    <p className="mb-1.5 text-xs font-medium text-muted">Priority</p>
+                    <select
+                      className="input"
+                      value={invitePriorityTier}
+                      onChange={(e) => setInvitePriorityTier(e.target.value)}
+                    >
+                      <option value="0">Regular</option>
+                      <option value="1">★ Important</option>
+                      <option value="2">★★ Key person</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { fromZonedTime } from "date-fns-tz";
 import { cn } from "@/lib/utils";
 
@@ -19,20 +18,21 @@ interface AvailabilityPickerProps {
   allowedHoursStart?: number;
   allowedHoursEnd?: number;
   meetingDurationMinutes?: number;
+  slotGranularityMinutes?: number;
 }
 
-// ─── timezone helpers ────────────────────────────────────────────────────────
+interface SlotOption {
+  id: string;
+  start_time: number;
+  end_time: number;
+}
 
 function toUnix(dateStr: string, h: number, m: number, tz: string): number {
-  const iso = `${dateStr}T${pad(h)}:${pad(m)}:00`;
+  const iso = `${dateStr}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00`;
   return Math.floor(fromZonedTime(iso, tz).getTime() / 1000);
 }
 
-function pad(n: number) {
-  return String(n).padStart(2, "0");
-}
-
-function fmtTime(unix: number, tz: string) {
+function formatTime(unix: number, tz: string): string {
   return new Intl.DateTimeFormat("en-US", {
     hour: "numeric",
     minute: "2-digit",
@@ -40,11 +40,13 @@ function fmtTime(unix: number, tz: string) {
   }).format(new Date(unix * 1000));
 }
 
-function fmtHour(h: number) {
-  if (h === 0 || h === 24) return "12 AM";
-  if (h < 12) return `${h} AM`;
-  if (h === 12) return "12 PM";
-  return `${h - 12} PM`;
+function formatDateKey(unix: number, tz: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(unix * 1000));
 }
 
 function getDates(startUnix: number, endUnix: number, tz: string): string[] {
@@ -73,7 +75,7 @@ function getDates(startUnix: number, endUnix: number, tz: string): string[] {
   return dates;
 }
 
-function fmtDayLabel(dateStr: string, tz: string) {
+function formatDayLabel(dateStr: string, tz: string): string {
   const noon = fromZonedTime(`${dateStr}T12:00:00`, tz);
   return new Intl.DateTimeFormat("en-US", {
     weekday: "short",
@@ -83,251 +85,138 @@ function fmtDayLabel(dateStr: string, tz: string) {
   }).format(noon);
 }
 
-function getDayOfWeek(dateStr: string, tz: string): number {
-  const noon = fromZonedTime(`${dateStr}T12:00:00`, tz);
-  return new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: tz })
-    .format(noon)
-    .slice(0, 3) === "Sat" || new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: tz }).format(noon).slice(0, 3) === "Sun"
-    ? 1
-    : 0;
+function buildSlotOptions(
+  dateStr: string,
+  tz: string,
+  allowedHoursStart: number,
+  allowedHoursEnd: number,
+  meetingDurationMinutes: number,
+  slotGranularityMinutes: number
+): SlotOption[] {
+  const options: SlotOption[] = [];
+  const latestStart = allowedHoursEnd * 60 - meetingDurationMinutes;
+
+  for (let totalMinutes = allowedHoursStart * 60; totalMinutes <= latestStart; totalMinutes += slotGranularityMinutes) {
+    const startH = Math.floor(totalMinutes / 60);
+    const startM = totalMinutes % 60;
+    const endTotal = totalMinutes + meetingDurationMinutes;
+    const endH = Math.floor(endTotal / 60);
+    const endM = endTotal % 60;
+    const start_time = toUnix(dateStr, startH, startM, tz);
+    const end_time = toUnix(dateStr, endH, endM, tz);
+    options.push({
+      id: `${start_time}-${end_time}`,
+      start_time,
+      end_time,
+    });
+  }
+
+  return options;
 }
 
-// ─── block helpers ───────────────────────────────────────────────────────────
+function normalizeWindows(
+  windows: TimeWindow[],
+  meetingDurationMinutes: number,
+  slotGranularityMinutes: number
+): TimeWindow[] {
+  const normalized = new Map<string, TimeWindow>();
+  const meetingDurationSeconds = meetingDurationMinutes * 60;
+  const stepSeconds = slotGranularityMinutes * 60;
 
-interface Block {
-  key: string;
-  label: string;
-  sh: number;
-  eh: number;
+  for (const window of windows) {
+    let start = Math.ceil(window.start_time / stepSeconds) * stepSeconds;
+    while (start + meetingDurationSeconds <= window.end_time) {
+      const key = `${start}-${start + meetingDurationSeconds}`;
+      if (!normalized.has(key)) {
+        normalized.set(key, {
+          id: key,
+          start_time: start,
+          end_time: start + meetingDurationSeconds,
+        });
+      }
+      start += stepSeconds;
+    }
+  }
+
+  return [...normalized.values()].sort((a, b) => a.start_time - b.start_time);
 }
 
-function getBlocks(aS: number, aE: number): Block[] {
-  const b: Block[] = [];
-  const mE = Math.min(12, aE);
-  if (mE > aS) b.push({ key: "morning", label: "Morning", sh: aS, eh: mE });
-  const pS = Math.max(12, aS);
-  const pE = Math.min(17, aE);
-  if (pE > pS) b.push({ key: "afternoon", label: "Afternoon", sh: pS, eh: pE });
-  const eS = Math.max(17, aS);
-  if (aE > eS) b.push({ key: "evening", label: "Evening", sh: eS, eh: aE });
-  return b;
+function isSelected(windows: TimeWindow[], slot: SlotOption): boolean {
+  return windows.some((window) => window.start_time === slot.start_time && window.end_time === slot.end_time);
 }
-
-function isExactBlock(w: TimeWindow, blocks: Block[], dateStr: string, tz: string) {
-  return blocks.some(
-    (b) => w.start_time === toUnix(dateStr, b.sh, 0, tz) && w.end_time === toUnix(dateStr, b.eh, 0, tz)
-  );
-}
-
-function isBlockSelected(windows: TimeWindow[], s: number, e: number) {
-  return windows.some((w) => w.start_time === s && w.end_time === e);
-}
-
-function uid() {
-  return Math.random().toString(36).slice(2, 10);
-}
-
-// ─── custom draft state ──────────────────────────────────────────────────────
-
-interface Draft {
-  startH: number;
-  startM: number;
-  durMins: number | "custom";
-  endH: number;
-  endM: number;
-}
-
-function defaultDraft(aS: number, durMins: number, aE: number): Draft {
-  const endTotalMins = Math.min(aS * 60 + durMins, aE * 60);
-  return {
-    startH: aS,
-    startM: 0,
-    durMins,
-    endH: Math.floor(endTotalMins / 60),
-    endM: endTotalMins % 60,
-  };
-}
-
-// ─── sub-components ──────────────────────────────────────────────────────────
-
-function BlockPill({
-  block,
-  selected,
-  onClick,
-}: {
-  block: Block;
-  selected: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "pill-toggle",
-        selected
-          ? "bg-accent text-white shadow-[0_10px_24px_rgba(47,104,68,0.16),inset_0_1px_0_rgba(255,255,255,0.12)]"
-          : "bg-surface text-text hover:border-accent/50 hover:bg-accent-subtle/30"
-      )}
-    >
-      {selected && (
-        <svg className="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-        </svg>
-      )}
-      <span>{block.label}</span>
-      <span className={cn("tabular-nums text-[10px]", selected ? "text-white/70" : "text-muted")}>
-        {fmtHour(block.sh)}–{fmtHour(block.eh)}
-      </span>
-    </button>
-  );
-}
-
-function WindowChip({ label, onRemove }: { label: string; onRemove: () => void }) {
-  return (
-    <span className="inline-flex min-h-10 items-center gap-1 rounded-full bg-accent-subtle pl-3 pr-1.5 text-xs font-medium text-accent shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)]">
-      <span className="tabular-nums">{label}</span>
-        <button
-          type="button"
-          onClick={onRemove}
-          className="-my-1 inline-flex h-10 w-10 items-center justify-center rounded-full text-accent/70 transition-[color,background-color] duration-150 ease hover:bg-white/70 hover:text-danger active:scale-[0.97]"
-          aria-label="Remove"
-        >
-        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
-    </span>
-  );
-}
-
-// ─── main component ──────────────────────────────────────────────────────────
 
 export function AvailabilityPicker({
   windows,
   onChange,
   dateRangeStart,
   dateRangeEnd,
-  timezone: tz,
+  timezone,
   allowedHoursStart = 9,
   allowedHoursEnd = 22,
   meetingDurationMinutes = 60,
+  slotGranularityMinutes = 30,
 }: AvailabilityPickerProps) {
-  const dates = getDates(dateRangeStart, dateRangeEnd, tz);
-  const blocks = getBlocks(allowedHoursStart, allowedHoursEnd);
+  const dates = getDates(dateRangeStart, dateRangeEnd, timezone);
+  const selectedWindows = normalizeWindows(windows, meetingDurationMinutes, slotGranularityMinutes);
 
-  const [openDay, setOpenDay] = useState<string | null>(null);
-  const [drafts, setDrafts] = useState<Record<string, Draft>>({});
+  function updateSlots(nextSlots: TimeWindow[]) {
+    onChange(nextSlots);
+  }
 
-  // ── block toggling ──────────────────────────────────────────────────────
-
-  function toggleBlock(dateStr: string, block: Block) {
-    const s = toUnix(dateStr, block.sh, 0, tz);
-    const e = toUnix(dateStr, block.eh, 0, tz);
-    if (isBlockSelected(windows, s, e)) {
-      onChange(windows.filter((w) => !(w.start_time === s && w.end_time === e)));
-    } else {
-      onChange([...windows, { id: uid(), start_time: s, end_time: e }]);
+  function toggleSlot(slot: SlotOption) {
+    if (isSelected(selectedWindows, slot)) {
+      updateSlots(selectedWindows.filter((window) => !(window.start_time === slot.start_time && window.end_time === slot.end_time)));
+      return;
     }
+
+    updateSlots([
+      ...selectedWindows,
+      {
+        id: slot.id,
+        start_time: slot.start_time,
+        end_time: slot.end_time,
+      },
+    ]);
+  }
+
+  function clearDay(dateStr: string) {
+    updateSlots(selectedWindows.filter((window) => formatDateKey(window.start_time, timezone) !== dateStr));
   }
 
   function selectAll() {
-    const toAdd: TimeWindow[] = [];
+    const allSlots = new Map<string, TimeWindow>(selectedWindows.map((window) => [`${window.start_time}-${window.end_time}`, window]));
+
     for (const dateStr of dates) {
-      for (const block of blocks) {
-        const s = toUnix(dateStr, block.sh, 0, tz);
-        const e = toUnix(dateStr, block.eh, 0, tz);
-        if (!isBlockSelected(windows, s, e) && !toAdd.some((w) => w.start_time === s && w.end_time === e)) {
-          toAdd.push({ id: uid(), start_time: s, end_time: e });
-        }
+      for (const slot of buildSlotOptions(
+        dateStr,
+        timezone,
+        allowedHoursStart,
+        allowedHoursEnd,
+        meetingDurationMinutes,
+        slotGranularityMinutes
+      )) {
+        allSlots.set(slot.id, {
+          id: slot.id,
+          start_time: slot.start_time,
+          end_time: slot.end_time,
+        });
       }
     }
-    onChange([...windows, ...toAdd]);
+
+    updateSlots([...allSlots.values()].sort((a, b) => a.start_time - b.start_time));
   }
-
-  // ── custom draft helpers ────────────────────────────────────────────────
-
-  function openCustom(dateStr: string) {
-    if (openDay === dateStr) {
-      setOpenDay(null);
-      return;
-    }
-    setOpenDay(dateStr);
-    if (!drafts[dateStr]) {
-      setDrafts((p) => ({ ...p, [dateStr]: defaultDraft(allowedHoursStart, meetingDurationMinutes, allowedHoursEnd) }));
-    }
-  }
-
-  function updateDraft(dateStr: string, patch: Partial<Draft>) {
-    setDrafts((p) => ({ ...p, [dateStr]: { ...p[dateStr], ...patch } }));
-  }
-
-  function getStartOptions(dateStr: string) {
-    const opts: { label: string; h: number; m: number }[] = [];
-    for (let totalM = allowedHoursStart * 60; totalM < allowedHoursEnd * 60 - 29; totalM += 30) {
-      const h = Math.floor(totalM / 60);
-      const m = totalM % 60;
-      opts.push({ label: fmtTime(toUnix(dateStr, h, m, tz), tz), h, m });
-    }
-    return opts;
-  }
-
-  function getDurationOptions(startH: number, startM: number): number[] {
-    const maxMins = allowedHoursEnd * 60 - (startH * 60 + startM);
-    return [30, 60, 90, 120, 180, 240, 360].filter((d) => d <= maxMins);
-  }
-
-  function getEndOptions(dateStr: string, startH: number, startM: number) {
-    const opts: { label: string; h: number; m: number }[] = [];
-    for (let totalM = startH * 60 + startM + 30; totalM <= allowedHoursEnd * 60; totalM += 30) {
-      const h = Math.floor(totalM / 60);
-      const m = totalM % 60;
-      opts.push({ label: fmtTime(toUnix(dateStr, h, m, tz), tz), h, m });
-    }
-    return opts;
-  }
-
-  function computeEnd(draft: Draft): { h: number; m: number } | null {
-    if (draft.durMins === "custom") return { h: draft.endH, m: draft.endM };
-    const totalM = draft.startH * 60 + draft.startM + draft.durMins;
-    if (totalM > allowedHoursEnd * 60) return null;
-    return { h: Math.floor(totalM / 60), m: totalM % 60 };
-  }
-
-  function addCustomWindow(dateStr: string) {
-    const draft = drafts[dateStr];
-    if (!draft) return;
-    const end = computeEnd(draft);
-    if (!end) return;
-    const s = toUnix(dateStr, draft.startH, draft.startM, tz);
-    const e = toUnix(dateStr, end.h, end.m, tz);
-    if (e <= s) return;
-    onChange([...windows, { id: uid(), start_time: s, end_time: e }]);
-    setOpenDay(null);
-  }
-
-  const durLabels: Record<number, string> = {
-    30: "30 min",
-    60: "1 hr",
-    90: "1.5 hr",
-    120: "2 hr",
-    180: "3 hr",
-    240: "4 hr",
-    360: "6 hr",
-  };
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4 flex items-center justify-between gap-3">
         <p className="text-xs text-muted">
-          Shown in <span className="font-medium text-text">{tz}</span>
+          Shown in <span className="font-medium text-text">{timezone}</span>
         </p>
         <div className="flex items-center gap-3">
-          {windows.length > 0 && (
+          {selectedWindows.length > 0 && (
             <button
               type="button"
-              onClick={() => onChange([])}
+              onClick={() => updateSlots([])}
               className="inline-flex min-h-10 items-center text-xs text-muted transition-[color] duration-150 hover:text-danger"
             >
               Clear selection
@@ -338,222 +227,77 @@ export function AvailabilityPicker({
             onClick={selectAll}
             className="inline-flex min-h-10 items-center text-xs font-medium text-accent transition-[color] duration-150 hover:text-accent-hover"
           >
-            Select all time blocks
+            Select every slot
           </button>
         </div>
       </div>
 
-      {/* Date rows */}
-      <div className="space-y-0">
+      <div className="space-y-3">
         {dates.map((dateStr) => {
-          const dateFmt = new Intl.DateTimeFormat("en-CA", {
-            timeZone: tz,
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-          });
-          const dayWindows = windows.filter(
-            (w) => dateFmt.format(new Date(w.start_time * 1000)) === dateStr
+          const slotOptions = buildSlotOptions(
+            dateStr,
+            timezone,
+            allowedHoursStart,
+            allowedHoursEnd,
+            meetingDurationMinutes,
+            slotGranularityMinutes
           );
-          const customWindows = dayWindows.filter(
-            (w) => !isExactBlock(w, blocks, dateStr, tz)
+          const selectedForDay = selectedWindows.filter(
+            (window) => formatDateKey(window.start_time, timezone) === dateStr
           );
-          const isOpen = openDay === dateStr;
-          const draft = drafts[dateStr];
-          const durOpts = draft ? getDurationOptions(draft.startH, draft.startM) : [];
-          const endOpts = draft ? getEndOptions(dateStr, draft.startH, draft.startM) : [];
-          const computedEnd = draft ? computeEnd(draft) : null;
 
           return (
-            <div key={dateStr} className="border-b border-border last:border-0 py-3">
-              {/* Row: label + blocks + custom button */}
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                <span className="w-24 flex-shrink-0 text-sm font-medium text-text">
-                  {fmtDayLabel(dateStr, tz)}
-                </span>
-
-                <div className="flex flex-wrap gap-1.5 flex-1">
-                  {blocks.map((block) => {
-                    const s = toUnix(dateStr, block.sh, 0, tz);
-                    const e = toUnix(dateStr, block.eh, 0, tz);
-                    return (
-                      <BlockPill
-                        key={block.key}
-                        block={block}
-                        selected={isBlockSelected(windows, s, e)}
-                        onClick={() => toggleBlock(dateStr, block)}
-                      />
-                    );
-                  })}
-
-                    <button
-                      type="button"
-                      onClick={() => openCustom(dateStr)}
-                      className={cn(
-                        "pill-toggle px-3",
-                        isOpen
-                          ? "bg-surface-alt text-text shadow-[inset_0_0_0_1px_rgba(26,23,20,0.12)]"
-                          : "bg-surface text-muted hover:border-border-strong hover:text-text"
-                      )}
-                    >
-                      <svg
-                        className={cn("h-3 w-3 transition-transform duration-[160ms] [transition-timing-function:cubic-bezier(0.165,0.84,0.44,1)]", isOpen && "rotate-45")}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Add a custom time
-                  </button>
+            <div key={dateStr} className="rounded-[22px] border border-border bg-surface p-4 shadow-card-soft">
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium text-text">{formatDayLabel(dateStr, timezone)}</p>
+                  <p className="mt-0.5 text-xs text-muted">
+                    {meetingDurationMinutes} min slots, every {slotGranularityMinutes} min
+                  </p>
                 </div>
+                {selectedForDay.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => clearDay(dateStr)}
+                    className="inline-flex min-h-10 items-center rounded-full px-3 text-xs text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)] transition-[color,background-color] duration-150 hover:bg-surface-alt hover:text-text"
+                  >
+                    Clear day
+                  </button>
+                )}
               </div>
 
-              {/* Custom time expander */}
-              {isOpen && draft && (
-                <div className="mt-2 ml-0 space-y-3 rounded-[18px] bg-surface-alt p-3 shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)] sm:ml-[108px]">
-                  {/* Start time */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-medium text-muted block mb-1">Start time</label>
-                      <select
-                        className="input text-sm"
-                        value={`${draft.startH}:${draft.startM}`}
-                        onChange={(e) => {
-                          const [h, m] = e.target.value.split(":").map(Number);
-                          const newDurOpts = getDurationOptions(h, m);
-                          const newDur =
-                            draft.durMins !== "custom" && newDurOpts.includes(draft.durMins)
-                              ? draft.durMins
-                              : newDurOpts[0] ?? meetingDurationMinutes;
-                          updateDraft(dateStr, { startH: h, startM: m, durMins: newDur });
-                        }}
-                      >
-                        {getStartOptions(dateStr).map((o) => (
-                          <option key={`${o.h}:${o.m}`} value={`${o.h}:${o.m}`}>
-                            {o.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Duration buttons */}
-                    <div>
-                      <label className="text-xs font-medium text-muted block mb-1">Length</label>
-                      <div className="flex flex-wrap gap-1">
-                        {durOpts.map((d) => (
-                          <button
-                            key={d}
-                            type="button"
-                            onClick={() => updateDraft(dateStr, { durMins: d })}
-                            className={cn(
-                              "pill-toggle rounded-input px-2.5 py-1",
-                              draft.durMins === d
-                                ? "bg-accent text-white shadow-[0_8px_20px_rgba(47,104,68,0.16),inset_0_1px_0_rgba(255,255,255,0.12)]"
-                                : "bg-surface text-text hover:border-accent/40"
-                            )}
-                          >
-                            {durLabels[d] ?? `${d}m`}
-                          </button>
-                        ))}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const end = computeEnd(draft);
-                            updateDraft(dateStr, {
-                              durMins: "custom",
-                              endH: end?.h ?? allowedHoursEnd,
-                              endM: end?.m ?? 0,
-                            });
-                          }}
-                          className={cn(
-                            "pill-toggle rounded-input px-2.5 py-1",
-                            draft.durMins === "custom"
-                              ? "bg-accent text-white shadow-[0_8px_20px_rgba(47,104,68,0.16),inset_0_1px_0_rgba(255,255,255,0.12)]"
-                              : "bg-surface text-text hover:border-accent/40"
-                          )}
-                        >
-                          Choose end time
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Custom end time */}
-                  {draft.durMins === "custom" && (
-                    <div>
-                      <label className="text-xs font-medium text-muted block mb-1">End time</label>
-                      <select
-                        className="input text-sm"
-                        value={`${draft.endH}:${draft.endM}`}
-                        onChange={(e) => {
-                          const [h, m] = e.target.value.split(":").map(Number);
-                          updateDraft(dateStr, { endH: h, endM: m });
-                        }}
-                      >
-                        {endOpts.map((o) => (
-                          <option key={`${o.h}:${o.m}`} value={`${o.h}:${o.m}`}>
-                            {o.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  {/* Preview + actions */}
-                  <div className="flex items-center justify-between">
-                    <span className="tabular-nums text-xs text-muted">
-                        {computedEnd
-                          ? `${fmtTime(toUnix(dateStr, draft.startH, draft.startM, tz), tz)} – ${fmtTime(toUnix(dateStr, computedEnd.h, computedEnd.m, tz), tz)}`
-                          : "Choose a length"}
-                    </span>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setOpenDay(null)}
-                        className="inline-flex min-h-10 items-center text-xs text-muted transition-[color] duration-150 hover:text-text"
-                      >
-                        Close
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => addCustomWindow(dateStr)}
-                        disabled={!computedEnd}
-                        className="btn-primary text-xs px-3 py-1 disabled:opacity-40"
-                      >
-                        Add
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Custom window chips */}
-              {customWindows.length > 0 && (
-                <div className="mt-2 ml-0 sm:ml-[108px] flex flex-wrap gap-1.5">
-                  {customWindows.map((w) => (
-                    <WindowChip
-                      key={w.id}
-                      label={`${fmtTime(w.start_time, tz)} – ${fmtTime(w.end_time, tz)}`}
-                      onRemove={() => onChange(windows.filter((x) => x.id !== w.id))}
-                    />
-                  ))}
-                </div>
-              )}
+              <div className="flex flex-wrap gap-2">
+                {slotOptions.map((slot) => {
+                  const selected = isSelected(selectedWindows, slot);
+                  return (
+                    <button
+                      key={slot.id}
+                      type="button"
+                      onClick={() => toggleSlot(slot)}
+                      className={cn(
+                        "inline-flex min-h-10 items-center rounded-full px-3 text-sm tabular-nums transition-[color,background-color,border-color,box-shadow,transform] duration-150 active:scale-[0.98]",
+                        selected
+                          ? "bg-accent text-white shadow-[0_10px_24px_rgba(47,104,68,0.16),inset_0_1px_0_rgba(255,255,255,0.12)]"
+                          : "bg-bg text-text shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)] hover:bg-accent-subtle/30 hover:shadow-[inset_0_0_0_1px_rgba(47,104,68,0.22)]"
+                      )}
+                    >
+                      {formatTime(slot.start_time, timezone)} - {formatTime(slot.end_time, timezone)}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           );
         })}
       </div>
 
-      {windows.length === 0 && (
-        <p className="text-center py-6 text-muted text-sm mt-2">
-          Choose the times when you could make it.
-        </p>
+      {selectedWindows.length === 0 && (
+        <p className="mt-4 py-4 text-center text-sm text-muted">Pick the exact meeting slots that could work for you.</p>
       )}
 
-      {windows.length > 0 && (
-        <p className="mt-3 text-center text-xs text-muted tabular-nums">
-          {windows.length} window{windows.length !== 1 ? "s" : ""} selected
+      {selectedWindows.length > 0 && (
+        <p className="mt-4 text-center text-xs text-muted tabular-nums">
+          {selectedWindows.length} slot{selectedWindows.length !== 1 ? "s" : ""} selected
         </p>
       )}
     </div>

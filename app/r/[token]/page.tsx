@@ -316,7 +316,7 @@ export default function RespondPage() {
             <div>
               <h2 className="font-display text-xl font-semibold text-text mb-1">When could you make it?</h2>
               <p className="text-sm text-muted mb-5">
-                Pick the windows when you could realistically make it. The more flexibility you share, the easier it is to find a time that works for everyone.
+                Pick the exact meeting slots that work for you. Each pill already uses the organizer's duration and scheduling step.
                 Times are shown in <strong>{event.timezone}</strong>.
               </p>
               {event.suggested_time_start && event.suggested_time_end && (
@@ -337,6 +337,7 @@ export default function RespondPage() {
                 allowedHoursStart={event.allowed_hours_start}
                 allowedHoursEnd={event.allowed_hours_end}
                 meetingDurationMinutes={event.meeting_duration_minutes}
+                slotGranularityMinutes={event.slot_granularity_minutes}
               />
             </div>
           )}
@@ -365,7 +366,7 @@ export default function RespondPage() {
               <div className="space-y-3">
                 <div>
                   <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted tabular-nums">
-                    Your availability ({windows.length} window{windows.length !== 1 ? "s" : ""})
+                    Your selected slots ({windows.length})
                   </p>
                   {windows.map((win) => {
                     const eventTzFmt = new Intl.DateTimeFormat("en-US", {
