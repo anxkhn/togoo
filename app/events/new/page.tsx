@@ -139,16 +139,16 @@ export default function NewEventPage() {
       meeting_duration_minutes: "60",
       slot_granularity_minutes: "30",
       scoring_mode: "maximize_attendance",
-      suggested_date_local: todayPlus(1),
-      suggested_start_local: "17:00",
-      suggested_end_local: "23:00",
+      suggested_date_local: "",
+      suggested_start_local: "",
+      suggested_end_local: "",
       participants_required_by_default: false,
     allow_participant_edit: true,
     show_results_to_participants: false,
     preferences_required: false,
     response_deadline_local: "",
     organizer_name: "",
-    enabled_preferences: ["food", "budget", "location", "time_of_day"],
+      enabled_preferences: ["food"],
   });
 
   // Post-creation invite state
