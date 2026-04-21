@@ -218,8 +218,9 @@ const TIMEZONE_OPTIONS = ALL_TIMEZONES.map((tz) => ({
 }));
 
 const HALF_HOUR_OPTIONS = Array.from({ length: 48 }, (_, i) => {
-  const hour = Math.floor(i / 2);
-  const minute = i % 2 === 0 ? 0 : 30;
+  const orderedIndex = (i + 34) % 48;
+  const hour = Math.floor(orderedIndex / 2);
+  const minute = orderedIndex % 2 === 0 ? 0 : 30;
   const labelHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
   const suffix = hour < 12 ? "AM" : "PM";
   return {
@@ -227,6 +228,14 @@ const HALF_HOUR_OPTIONS = Array.from({ length: 48 }, (_, i) => {
     label: `${labelHour}:${String(minute).padStart(2, "0")} ${suffix}`,
   };
 });
+
+const DURATION_OPTIONS = [
+  { value: "15", label: "15 minutes" },
+  { value: "30", label: "30 minutes" },
+  { value: "60", label: "1 hour" },
+  { value: "120", label: "2 hours" },
+  { value: "360", label: "6 hours" },
+];
 
 const ALL_PREF_FIELDS = [
   { key: "food", label: "Food preferences" },
@@ -976,15 +985,7 @@ export default function OrganizerDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Select
                 label="Duration"
-                options={[
-                  { value: "30", label: "30 minutes" },
-                  { value: "60", label: "1 hour" },
-                  { value: "90", label: "1.5 hours" },
-                  { value: "120", label: "2 hours" },
-                  { value: "180", label: "3 hours" },
-                  { value: "240", label: "4 hours" },
-                  { value: "480", label: "Full day (8h)" },
-                ]}
+                options={DURATION_OPTIONS}
                 value={planForm.meeting_duration_minutes}
                 onChange={(e) => setPlanForm((current) => current ? { ...current, meeting_duration_minutes: e.target.value } : current)}
               />
@@ -1024,13 +1025,13 @@ export default function OrganizerDashboard() {
               <div className="grid grid-cols-2 gap-4">
                 <Select
                   label="Suggested start"
-                  options={[{ value: "", label: "Select time" }, ...HALF_HOUR_OPTIONS]}
+                  options={[{ value: "", label: "No suggested start" }, ...HALF_HOUR_OPTIONS]}
                   value={planForm.suggested_start_local}
                   onChange={(e) => setPlanForm((current) => current ? { ...current, suggested_start_local: e.target.value } : current)}
                 />
                 <Select
                   label="Suggested end"
-                  options={[{ value: "", label: "Select time" }, ...HALF_HOUR_OPTIONS]}
+                  options={[{ value: "", label: "No suggested end" }, ...HALF_HOUR_OPTIONS]}
                   value={planForm.suggested_end_local}
                   onChange={(e) => setPlanForm((current) => current ? { ...current, suggested_end_local: e.target.value } : current)}
                 />

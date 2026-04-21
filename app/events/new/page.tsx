@@ -12,6 +12,7 @@ import { fromZonedTime } from "date-fns-tz";
 import { saveEvent } from "@/components/my-events";
 import type { CreateEventResponse, AddParticipantInviteResponse, ApiError } from "@/lib/api-types";
 import { clientApi } from "@/lib/client-api";
+import { formatDuration } from "@/lib/utils";
 
 const ALL_TIMEZONES = getTimeZones({ includeUtc: true });
 
@@ -98,7 +99,8 @@ function todayPlus(days: number): string {
   return d.toISOString().split("T")[0];
 }
 
-const HALF_HOUR_OPTIONS = Array.from({ length: 48 }, (_, i) => {
+const EVENING_FIRST_HALF_HOUR_OPTIONS = Array.from({ length: 48 }, (_, offset) => {
+  const i = (offset + 34) % 48;
   const hour = Math.floor(i / 2);
   const minute = i % 2 === 0 ? 0 : 30;
   const labelHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
@@ -108,6 +110,14 @@ const HALF_HOUR_OPTIONS = Array.from({ length: 48 }, (_, i) => {
     label: `${labelHour}:${String(minute).padStart(2, "0")} ${suffix}`,
   };
 });
+
+const DURATION_OPTIONS = [
+  { value: "15", label: "15 minutes" },
+  { value: "30", label: "30 minutes" },
+  { value: "60", label: "1 hour" },
+  { value: "120", label: "2 hours" },
+  { value: "360", label: "6 hours" },
+];
 
 export default function NewEventPage() {
   const router = useRouter();
@@ -126,12 +136,12 @@ export default function NewEventPage() {
     date_range_end_local: todayPlus(7),
     allowed_hours_start: "12",
       allowed_hours_end: "23",
-      meeting_duration_minutes: "180",
+      meeting_duration_minutes: "60",
       slot_granularity_minutes: "30",
       scoring_mode: "maximize_attendance",
-      suggested_date_local: "",
-      suggested_start_local: "",
-      suggested_end_local: "",
+      suggested_date_local: todayPlus(1),
+      suggested_start_local: "17:00",
+      suggested_end_local: "23:00",
       participants_required_by_default: false,
     allow_participant_edit: true,
     show_results_to_participants: false,
@@ -465,24 +475,16 @@ export default function NewEventPage() {
               <div className="grid grid-cols-2 gap-4">
                 <Select
                   label="How long will it last?"
-                  options={[
-                    { value: "30", label: "30 minutes" },
-                    { value: "60", label: "1 hour" },
-                    { value: "90", label: "1.5 hours" },
-                    { value: "120", label: "2 hours" },
-                    { value: "180", label: "3 hours" },
-                    { value: "240", label: "4 hours" },
-                    { value: "480", label: "Full day (8h)" },
-                  ]}
+                  options={DURATION_OPTIONS}
                   value={form.meeting_duration_minutes}
                   onChange={(e) => set("meeting_duration_minutes", e.target.value)}
                 />
                 <Select
-                  label="How precise should suggestions be?"
-                  tooltip="Smaller spacing gives Togoo more possible time slots to rank. Use 15 minutes when timing matters a lot, 30 minutes when you want cleaner results."
+                  label="Suggestion spacing"
+                  tooltip="Smaller spacing gives you more candidate start times. Use 15 minutes for tighter scheduling, 30 minutes for simpler options."
                   options={[
-                    { value: "30", label: "30 minutes" },
                     { value: "15", label: "15 minutes" },
+                    { value: "30", label: "30 minutes" },
                   ]}
                   value={form.slot_granularity_minutes}
                   onChange={(e) => set("slot_granularity_minutes", e.target.value)}
@@ -514,13 +516,13 @@ export default function NewEventPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <Select
                     label="Suggested start"
-                    options={[{ value: "", label: "Select time" }, ...HALF_HOUR_OPTIONS]}
+                    options={[{ value: "", label: "No suggested start" }, ...EVENING_FIRST_HALF_HOUR_OPTIONS]}
                     value={form.suggested_start_local}
                     onChange={(e) => set("suggested_start_local", e.target.value)}
                   />
                   <Select
                     label="Suggested end"
-                    options={[{ value: "", label: "Select time" }, ...HALF_HOUR_OPTIONS]}
+                    options={[{ value: "", label: "No suggested end" }, ...EVENING_FIRST_HALF_HOUR_OPTIONS]}
                     value={form.suggested_end_local}
                     onChange={(e) => set("suggested_end_local", e.target.value)}
                   />
@@ -675,7 +677,7 @@ export default function NewEventPage() {
                   </div>
                   <div className="flex justify-between">
                     <dt>Duration</dt>
-                    <dd className="text-text tabular-nums">{parseInt(form.meeting_duration_minutes) / 60}h</dd>
+                    <dd className="text-text tabular-nums">{formatDuration(parseInt(form.meeting_duration_minutes))}</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt>Timezone</dt>

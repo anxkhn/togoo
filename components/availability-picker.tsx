@@ -19,6 +19,7 @@ interface AvailabilityPickerProps {
   allowedHoursEnd?: number;
   meetingDurationMinutes?: number;
   slotGranularityMinutes?: number;
+  suggestedWindow?: { start_time: number; end_time: number } | null;
 }
 
 interface SlotOption {
@@ -155,6 +156,7 @@ export function AvailabilityPicker({
   allowedHoursEnd = 22,
   meetingDurationMinutes = 60,
   slotGranularityMinutes = 30,
+  suggestedWindow = null,
 }: AvailabilityPickerProps) {
   const dates = getDates(dateRangeStart, dateRangeEnd, timezone);
   const selectedWindows = normalizeWindows(windows, meetingDurationMinutes, slotGranularityMinutes);
@@ -269,6 +271,9 @@ export function AvailabilityPicker({
               <div className="flex flex-wrap gap-2">
                 {slotOptions.map((slot) => {
                   const selected = isSelected(selectedWindows, slot);
+                  const isSuggested =
+                    suggestedWindow?.start_time === slot.start_time &&
+                    suggestedWindow?.end_time === slot.end_time;
                   return (
                     <button
                       key={slot.id}
@@ -280,8 +285,18 @@ export function AvailabilityPicker({
                           ? "bg-accent text-white shadow-[0_10px_24px_rgba(47,104,68,0.16),inset_0_1px_0_rgba(255,255,255,0.12)]"
                           : "bg-bg text-text shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)] hover:bg-accent-subtle/30 hover:shadow-[inset_0_0_0_1px_rgba(47,104,68,0.22)]"
                       )}
-                    >
-                      {formatTime(slot.start_time, timezone)} - {formatTime(slot.end_time, timezone)}
+                      >
+                      <span>{formatTime(slot.start_time, timezone)} - {formatTime(slot.end_time, timezone)}</span>
+                      {isSuggested && (
+                        <span
+                          className={cn(
+                            "ml-2 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
+                            selected ? "bg-white/18 text-white" : "bg-accent-subtle text-accent"
+                          )}
+                        >
+                          Suggested
+                        </span>
+                      )}
                     </button>
                   );
                 })}

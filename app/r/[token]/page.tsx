@@ -316,15 +316,15 @@ export default function RespondPage() {
             <div>
               <h2 className="font-display text-xl font-semibold text-text mb-1">When could you make it?</h2>
               <p className="text-sm text-muted mb-5">
-                Pick the exact meeting slots that work for you. Each pill already uses the organizer's duration and scheduling step.
+                Please choose all the times you are available. Each pill already uses the organizer's duration and scheduling step.
                 Times are shown in <strong>{event.timezone}</strong>.
               </p>
               {event.suggested_time_start && event.suggested_time_end && (
                 <div className="mb-5 rounded-input bg-accent-subtle px-4 py-3 text-sm text-text shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)]">
                   <p className="font-medium text-accent">Organizer suggestion</p>
                   <p className="mt-1 text-sm text-muted tabular-nums">
-                    We pre-filled {formatEventDate(event.suggested_time_start, event.timezone)} to {formatEventDate(event.suggested_time_end, event.timezone)}.
-                    Keep it, edit it, or remove it.
+                    The organizer suggested {formatEventDate(event.suggested_time_start, event.timezone)} to {formatEventDate(event.suggested_time_end, event.timezone)}.
+                    Would you be able to make it? It is highlighted below, but not preselected.
                   </p>
                 </div>
               )}
@@ -338,6 +338,11 @@ export default function RespondPage() {
                 allowedHoursEnd={event.allowed_hours_end}
                 meetingDurationMinutes={event.meeting_duration_minutes}
                 slotGranularityMinutes={event.slot_granularity_minutes}
+                suggestedWindow={
+                  event.suggested_time_start && event.suggested_time_end
+                    ? { start_time: event.suggested_time_start, end_time: event.suggested_time_end }
+                    : null
+                }
               />
             </div>
           )}
