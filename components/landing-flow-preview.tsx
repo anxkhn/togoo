@@ -13,9 +13,6 @@ const PANELS = [
               <p className="text-xs font-medium text-muted">Plan title</p>
               <p className="font-medium text-text">Friday dinner</p>
             </div>
-            <span className="rounded-full bg-accent-subtle px-2.5 py-1 text-[11px] font-semibold text-accent shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)]">
-              draft
-            </span>
           </div>
           <div className="grid grid-cols-2 gap-2 text-xs text-muted tabular-nums">
             <div className="rounded-xl bg-surface-alt px-3 py-2 shadow-[inset_0_0_0_1px_rgba(26,23,20,0.06)]">May 18 to May 24</div>
@@ -58,16 +55,13 @@ const PANELS = [
               <p className="text-xs font-medium text-muted">Alex is replying</p>
               <p className="font-medium text-text">Friday dinner</p>
             </div>
-            <span className="rounded-full bg-surface-alt px-2.5 py-1 text-[11px] font-medium text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
-              no account
-            </span>
           </div>
 
           <div className="space-y-2 text-xs">
             {[
-              { day: "Tue", times: ["Evening"] },
-              { day: "Wed", times: ["Afternoon", "Evening"] },
-              { day: "Thu", times: ["Evening"] },
+              { day: "Tue", times: ["6:00 PM - 7:00 PM"] },
+              { day: "Wed", times: ["5:00 PM - 6:00 PM", "7:00 PM - 8:00 PM"] },
+              { day: "Thu", times: ["8:00 PM - 9:00 PM"] },
             ].map((row) => (
               <div key={row.day} className="flex items-center gap-2">
                 <div className="w-10 text-muted tabular-nums">{row.day}</div>

@@ -32,7 +32,7 @@ const FAQS = [
   },
   {
     q: "Is this private?",
-    a: "Yes. Plans are not publicly listed. Only people with the organizer link or an invite link can open the plan. Invite links can also expire if you set a deadline.",
+    a: "Yes. Plans are not publicly listed. Only people with the organizer link or an invite link can open the plan.",
   },
   {
     q: "Can invitees see the live summary?",
@@ -78,16 +78,23 @@ export default function FAQPage() {
         </div>
       </main>
 
-      <footer className="border-t border-border py-8 text-center text-xs text-muted space-y-2">
-        <p>Togoo | group plans without the chasing</p>
-        <a
-          href="https://github.com/anxkhn/togoo"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex min-h-10 items-center px-2 hover:text-accent transition-[color] duration-150 ease"
-        >
-          GitHub
-        </a>
+      <footer className="border-t border-border py-6 text-[11px] text-muted">
+        <div className="mx-auto flex max-w-3xl items-center justify-center gap-3 overflow-x-auto whitespace-nowrap px-5 text-center">
+          <span>Togoo</span>
+          <span>&copy; 2026</span>
+          <span>v0.5.0</span>
+          <Link href="/faq" className="inline-flex min-h-10 items-center px-1 hover:text-accent transition-[color] duration-150 ease">
+            FAQ
+          </Link>
+          <a
+            href="https://github.com/anxkhn/togoo"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-10 items-center px-1 hover:text-accent transition-[color] duration-150 ease"
+          >
+            GitHub
+          </a>
+        </div>
       </footer>
     </div>
   );
