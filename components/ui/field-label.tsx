@@ -42,7 +42,7 @@ export function FieldLabel({
       <label htmlFor={htmlFor} className="inline-flex items-center gap-1.5">
         <span>{label}</span>
         {required ? <span className="text-danger/75">*</span> : null}
-        {optional ? <span className="text-muted-light">(optional)</span> : null}
+        {optional ? <span className="text-muted text-[12px]">(optional)</span> : null}
       </label>
       {tooltip ? <InfoTooltip text={tooltip} /> : null}
     </div>

@@ -542,6 +542,7 @@ export default function NewEventPage() {
             <div className="space-y-5">
                 <Select
                   label="Timezone"
+                  required
                   tooltip="Detected from your browser. Togoo scores suggestions against this timezone, and invitees see the plan in the same reference timezone."
                   options={TIMEZONE_OPTIONS}
                   value={form.timezone}
@@ -622,6 +623,7 @@ export default function NewEventPage() {
               <div>
                 <div className="mb-3 flex items-center gap-1.5">
                   <p className="text-sm font-medium text-text">What else should people weigh in on?</p>
+                  <span className="text-muted text-[12px]">(optional)</span>
                   <InfoTooltip text="Turn on only the questions that matter for this plan, so invitees are not filling extra fields you do not care about." />
                 </div>
                 <div className="flex flex-wrap gap-2">

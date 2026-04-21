@@ -1054,6 +1054,7 @@ export default function OrganizerDashboard() {
             <div>
               <div className="mb-3 flex items-center gap-1.5">
                 <p className="text-sm font-medium text-text">Preference questions</p>
+                <span className="text-muted text-[12px]">(optional)</span>
                 <InfoTooltip text="Turn on only the extra questions invitees should see while replying. Keep this short unless the plan really needs more context." />
               </div>
               <div className="flex flex-wrap gap-2">

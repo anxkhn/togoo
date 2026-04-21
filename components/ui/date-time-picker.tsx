@@ -188,11 +188,11 @@ function TriggerButton() {
   );
 }
 
-export function DatePickerField({ label, tooltip, hint, error, value, onChange }: DatePickerFieldProps) {
+export function DatePickerField({ label, tooltip, hint, error, value, onChange, required, optional }: DatePickerFieldProps) {
   const parsedValue = value ? parseDate(value) : null;
 
   return (
-    <PickerFieldShell label={label} tooltip={tooltip} hint={hint} error={error}>
+    <PickerFieldShell label={label} tooltip={tooltip} hint={hint} error={error} required={required} optional={optional}>
       <AriaDatePicker value={parsedValue} onChange={(next) => onChange(next ? formatCalendarDate(next as CalendarDate) : "")} granularity="day">
         <Group className={cn("input flex h-10 min-h-10 items-center px-0 py-0", error && "border-danger focus-within:border-danger focus-within:ring-danger")}>
           <SegmentField />
