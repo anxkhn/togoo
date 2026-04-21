@@ -80,6 +80,10 @@ export async function GET(
     );
 
     const now = unixNow();
+    await db
+      .delete(schema.recommendation_snapshots)
+      .where(eq(schema.recommendation_snapshots.event_id, eventId));
+
     await db.insert(schema.recommendation_snapshots).values({
       id: generateId(),
       event_id: eventId,

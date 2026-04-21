@@ -115,6 +115,17 @@ interface RecommendationsResponse {
   stats: { response_rate: number };
 }
 
+interface OrganizerOverrideRecord {
+  id: string;
+  override_type: string;
+  data: string;
+  created_at: number;
+}
+
+interface OverridesResponse {
+  overrides: OrganizerOverrideRecord[];
+}
+
 interface RegenerateTokenResponse {
   invite_token: string;
 }
@@ -454,6 +465,7 @@ export default function OrganizerDashboard() {
   const [recommendations, setRecommendations] = useState<RecommendationSet | null>(null);
   const [recStats, setRecStats] = useState<{ response_rate: number } | null>(null);
   const [heatmapSlots, setHeatmapSlots] = useState<Array<{ slot_start: number; participant_ids: string[] }>>([]);
+  const [overrides, setOverrides] = useState<OrganizerOverrideRecord[]>([]);
   const [activityLog, setActivityLog] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [recLoading, setRecLoading] = useState(false);
@@ -461,6 +473,8 @@ export default function OrganizerDashboard() {
   const [finalSelection, setFinalSelection] = useState<FinalSelection | null>(null);
   const [finalPath, setFinalPath] = useState<string | null>(null);
   const [finalizing, setFinalizing] = useState(false);
+  const [finalNotes, setFinalNotes] = useState("");
+  const [overrideLoading, setOverrideLoading] = useState(false);
   const [editingPlan, setEditingPlan] = useState(false);
   const [savingPlan, setSavingPlan] = useState(false);
   const [planError, setPlanError] = useState("");
@@ -502,6 +516,7 @@ export default function OrganizerDashboard() {
       setActivityLog(eventData.activity ?? []);
       setFinalSelection(eventData.final_selection ?? null);
       setFinalPath(eventData.final_selection ? `/e/${eventId}/final` : null);
+      setFinalNotes(eventData.final_selection?.notes ?? "");
       setParticipants(participantsData.participants ?? []);
       setNewIsRequired(eventData.event.participants_required_by_default === 1);
       setPlanForm(eventToPlanForm(eventData.event));
@@ -536,8 +551,19 @@ export default function OrganizerDashboard() {
     }
   }, [eventId, token]);
 
+  const fetchOverrides = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/events/${eventId}/overrides`, { headers });
+      if (!res.ok) return;
+      const data = await res.json() as OverridesResponse;
+      setOverrides(data.overrides ?? []);
+    } catch {
+    }
+  }, [eventId, token]);
+
   useEffect(() => { fetchDashboard(); }, [fetchDashboard]);
   useEffect(() => { if (!loading) fetchRecommendations(); }, [loading, fetchRecommendations]);
+  useEffect(() => { if (!loading) fetchOverrides(); }, [loading, fetchOverrides]);
 
   const handleAddParticipant = async () => {
     if (!newName.trim() || newEmailError) return;
@@ -620,7 +646,11 @@ export default function OrganizerDashboard() {
       const res = await fetch(`/api/events/${eventId}/finalize`, {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
-        body: JSON.stringify({ slot_start: selectedMeeting.start, slot_end: selectedMeeting.end }),
+        body: JSON.stringify({
+          slot_start: selectedMeeting.start,
+          slot_end: selectedMeeting.end,
+          notes: finalNotes.trim() || undefined,
+        }),
       });
       if (res.ok) {
         const data = await res.json() as FinalizeResponse;
@@ -629,7 +659,7 @@ export default function OrganizerDashboard() {
           id: "pending-final-selection",
           slot_start: selectedMeeting.start,
           slot_end: selectedMeeting.end,
-          notes: null,
+          notes: finalNotes.trim() || null,
           finalized_at: Math.floor(Date.now() / 1000),
         });
         setFinalPath(data.final_url);
@@ -646,6 +676,76 @@ export default function OrganizerDashboard() {
     setSelectedMeeting(null);
     setFinalSelection(null);
     setFinalPath(null);
+  };
+
+  const handleAddOverride = async (overrideType: "block_time" | "force_include" | "force_exclude") => {
+    if (!selectedMeeting) return;
+    setOverrideLoading(true);
+    try {
+      const payload =
+        overrideType === "block_time"
+          ? { override_type: overrideType, data: { start_time: selectedMeeting.start, end_time: selectedMeeting.end } }
+          : { override_type: overrideType, data: { slot_start: selectedMeeting.start } };
+
+      const res = await fetch(`/api/events/${eventId}/overrides`, {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) return;
+      await fetchOverrides();
+      await fetchRecommendations();
+    } finally {
+      setOverrideLoading(false);
+    }
+  };
+
+  const handleDeleteOverride = async (overrideId: string) => {
+    setOverrideLoading(true);
+    try {
+      const res = await fetch(`/api/events/${eventId}/overrides`, {
+        method: "DELETE",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ override_id: overrideId }),
+      });
+      if (!res.ok) return;
+      await fetchOverrides();
+      await fetchRecommendations();
+    } finally {
+      setOverrideLoading(false);
+    }
+  };
+
+  const formatOverride = (override: OrganizerOverrideRecord) => {
+    const data = JSON.parse(override.data) as { slot_start?: number; start_time?: number; end_time?: number };
+    const timezone = event?.timezone ?? "UTC";
+
+    if (override.override_type === "block_time" && data.start_time && data.end_time) {
+      return {
+        title: "Blocked time",
+        detail: `${formatEventDate(data.start_time, timezone)} to ${formatEventDate(data.end_time, timezone)}`,
+      };
+    }
+
+    if (override.override_type === "force_include" && data.slot_start) {
+      return {
+        title: "Forced into results",
+        detail: formatEventDate(data.slot_start, timezone),
+      };
+    }
+
+    if (override.override_type === "force_exclude" && data.slot_start) {
+      return {
+        title: "Excluded from results",
+        detail: formatEventDate(data.slot_start, timezone),
+      };
+    }
+
+    return {
+      title: override.override_type.replace(/_/g, " "),
+      detail: override.data,
+    };
   };
 
   const handleSavePlan = async () => {
@@ -1205,6 +1305,9 @@ export default function OrganizerDashboard() {
                       hour: "numeric", minute: "2-digit", timeZone: event.timezone,
                     }).format(new Date(finalSelection.slot_end * 1000))}
                   </p>
+                  {finalSelection.notes && (
+                    <p className="mt-2 text-sm text-muted">{finalSelection.notes}</p>
+                  )}
                   {finalPath && (
                     <div className="mt-3 space-y-2">
                       <div className="flex items-center gap-2">
@@ -1235,11 +1338,78 @@ export default function OrganizerDashboard() {
                   <p className="mt-0.5 text-sm text-muted tabular-nums">
                     {selectedMeeting.attendingCount} of {selectedMeeting.totalParticipants} can make it
                   </p>
+                  <Textarea
+                    label="Final note (optional)"
+                    placeholder="Add anything the group should know about this confirmed plan."
+                    rows={2}
+                    value={finalNotes}
+                    onChange={(e) => setFinalNotes(e.target.value)}
+                    className="mt-3"
+                  />
                   <Button className="w-full mt-3" size="sm" loading={finalizing} onClick={handleFinalize} disabled={event.status === "finalized"}>
                     {event.status === "finalized" ? "Already confirmed" : "Confirm this plan"}
                   </Button>
                 </div>
               )}
+
+              <div className="card p-4">
+                <h3 className="text-sm font-medium text-text mb-3">Scheduling overrides</h3>
+                <p className="text-xs text-muted mb-3">
+                  Use the currently selected time to force it into results, remove it from results, or block that window completely.
+                </p>
+                <div className="grid grid-cols-1 gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={!selectedMeeting || overrideLoading}
+                    onClick={() => handleAddOverride("force_include")}
+                  >
+                    Force selected time into results
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={!selectedMeeting || overrideLoading}
+                    onClick={() => handleAddOverride("force_exclude")}
+                  >
+                    Exclude selected time from results
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={!selectedMeeting || overrideLoading}
+                    onClick={() => handleAddOverride("block_time")}
+                  >
+                    Block selected time window
+                  </Button>
+                </div>
+
+                <div className="mt-4 space-y-2 border-t border-border pt-4">
+                  {overrides.length === 0 ? (
+                    <p className="text-sm text-muted">No overrides yet.</p>
+                  ) : (
+                    overrides.map((override) => {
+                      const formatted = formatOverride(override);
+                      return (
+                        <div key={override.id} className="flex items-start justify-between gap-3 rounded-input bg-surface-alt px-3 py-3 shadow-[inset_0_0_0_1px_rgba(26,23,20,0.06)]">
+                          <div>
+                            <p className="text-sm font-medium text-text">{formatted.title}</p>
+                            <p className="mt-0.5 text-xs text-muted tabular-nums">{formatted.detail}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteOverride(override.id)}
+                            className="btn-ghost px-2"
+                            disabled={overrideLoading}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
 
               <div className="card p-4">
                 <h3 className="text-sm font-medium text-text mb-3">Where availability overlaps</h3>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { env } from "cloudflare:workers";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { getDB } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
 import { generateId } from "@/lib/tokens";
@@ -23,7 +23,8 @@ export async function GET(
     const overrides = await db
       .select()
       .from(schema.organizer_overrides)
-      .where(eq(schema.organizer_overrides.event_id, eventId));
+      .where(eq(schema.organizer_overrides.event_id, eventId))
+      .orderBy(desc(schema.organizer_overrides.created_at));
 
     return NextResponse.json({ overrides });
   } catch (err) {
@@ -102,6 +103,15 @@ export async function DELETE(
           eq(schema.organizer_overrides.event_id, eventId)
         )
       );
+
+    await db.insert(schema.activity_log).values({
+      id: generateId(),
+      event_id: eventId,
+      actor_id: tokenRecord.participant_id,
+      action: "override_removed",
+      data: JSON.stringify({ override_id }),
+      created_at: unixNow(),
+    });
 
     return NextResponse.json({ success: true });
   } catch (err) {

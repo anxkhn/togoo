@@ -60,7 +60,11 @@ export async function POST(
       event_id: eventId,
       actor_id: tokenRecord.participant_id,
       action: "event_finalized",
-      data: JSON.stringify({ slot_start: parsed.data.slot_start, slot_end: parsed.data.slot_end }),
+      data: JSON.stringify({
+        slot_start: parsed.data.slot_start,
+        slot_end: parsed.data.slot_end,
+        notes: parsed.data.notes ?? null,
+      }),
       created_at: now,
     });
 
