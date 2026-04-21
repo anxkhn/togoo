@@ -11,6 +11,7 @@ import { getTimeZones } from "@vvo/tzdb";
 import { fromZonedTime } from "date-fns-tz";
 import { saveEvent } from "@/components/my-events";
 import type { CreateEventResponse, AddParticipantInviteResponse, ApiError } from "@/lib/api-types";
+import { clientApi } from "@/lib/client-api";
 
 const ALL_TIMEZONES = getTimeZones({ includeUtc: true });
 
@@ -245,7 +246,7 @@ export default function NewEventPage() {
         organizer_name: form.organizer_name.trim(),
       };
 
-      const res = await fetch("/api/events", {
+      const res = await fetch(clientApi.createEvent(), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -284,7 +285,7 @@ export default function NewEventPage() {
     setInviteError("");
 
     try {
-      const res = await fetch(`/api/events/${createdEventId}/participants`, {
+      const res = await fetch(clientApi.participants(createdEventId), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

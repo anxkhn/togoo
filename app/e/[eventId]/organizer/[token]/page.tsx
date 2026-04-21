@@ -15,6 +15,7 @@ import { ShareButtons } from "@/components/share-buttons";
 import { cn, formatDate, formatEventDate } from "@/lib/utils";
 import type { RecommendationSet, ScoredMeeting } from "@/lib/scheduling";
 import type { AddParticipantInviteResponse } from "@/lib/api-types";
+import { clientApi } from "@/lib/client-api";
 import { fromZonedTime } from "date-fns-tz";
 import { getTimeZones } from "@vvo/tzdb";
 
@@ -499,8 +500,8 @@ export default function OrganizerDashboard() {
   const fetchDashboard = useCallback(async () => {
     try {
       const [eventRes, participantsRes] = await Promise.all([
-        fetch(`/api/events/${eventId}`, { headers }),
-        fetch(`/api/events/${eventId}/participants`, { headers }),
+        fetch(clientApi.event(eventId), { headers }),
+        fetch(clientApi.participants(eventId), { headers }),
       ]);
 
       if (!eventRes.ok || !participantsRes.ok) {
@@ -530,7 +531,7 @@ export default function OrganizerDashboard() {
   const fetchRecommendations = useCallback(async () => {
     setRecLoading(true);
     try {
-      const res = await fetch(`/api/events/${eventId}/recommendations`, { headers });
+      const res = await fetch(clientApi.recommendations(eventId), { headers });
       if (res.ok) {
         const data = await res.json() as RecommendationsResponse;
         setRecommendations(data.recommendations);
@@ -553,7 +554,7 @@ export default function OrganizerDashboard() {
 
   const fetchOverrides = useCallback(async () => {
     try {
-      const res = await fetch(`/api/events/${eventId}/overrides`, { headers });
+      const res = await fetch(clientApi.overrides(eventId), { headers });
       if (!res.ok) return;
       const data = await res.json() as OverridesResponse;
       setOverrides(data.overrides ?? []);
@@ -569,7 +570,7 @@ export default function OrganizerDashboard() {
     if (!newName.trim() || newEmailError) return;
     setAddLoading(true);
     try {
-      const res = await fetch(`/api/events/${eventId}/participants`, {
+      const res = await fetch(clientApi.participants(eventId), {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -611,7 +612,7 @@ export default function OrganizerDashboard() {
   };
 
   const handleUpdateParticipant = async (id: string, updates: Partial<Participant>) => {
-    await fetch(`/api/events/${eventId}/participants/${id}`, {
+    await fetch(clientApi.participant(eventId, id), {
       method: "PUT",
       headers: { ...headers, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -626,12 +627,12 @@ export default function OrganizerDashboard() {
   };
 
   const handleRemoveParticipant = async (id: string) => {
-    await fetch(`/api/events/${eventId}/participants/${id}`, { method: "DELETE", headers });
+    await fetch(clientApi.participant(eventId, id), { method: "DELETE", headers });
     setParticipants((prev) => prev.filter((p) => p.id !== id));
   };
 
   const handleRegenerateToken = async (participantId: string): Promise<string> => {
-    const res = await fetch(`/api/events/${eventId}/participants/${participantId}/token`, {
+    const res = await fetch(clientApi.participantToken(eventId, participantId), {
       method: "POST",
       headers,
     });
@@ -643,7 +644,7 @@ export default function OrganizerDashboard() {
     if (!selectedMeeting) return;
     setFinalizing(true);
     try {
-      const res = await fetch(`/api/events/${eventId}/finalize`, {
+      const res = await fetch(clientApi.finalize(eventId), {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -671,7 +672,7 @@ export default function OrganizerDashboard() {
 
   const handleReopen = async () => {
     if (!confirm("Reopen this plan? The confirmed selection will be cleared.")) return;
-    await fetch(`/api/events/${eventId}/reopen`, { method: "POST", headers });
+    await fetch(clientApi.reopen(eventId), { method: "POST", headers });
     setEvent((e) => e ? { ...e, status: "active" } : e);
     setSelectedMeeting(null);
     setFinalSelection(null);
@@ -687,7 +688,7 @@ export default function OrganizerDashboard() {
           ? { override_type: overrideType, data: { start_time: selectedMeeting.start, end_time: selectedMeeting.end } }
           : { override_type: overrideType, data: { slot_start: selectedMeeting.start } };
 
-      const res = await fetch(`/api/events/${eventId}/overrides`, {
+      const res = await fetch(clientApi.overrides(eventId), {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -704,7 +705,7 @@ export default function OrganizerDashboard() {
   const handleDeleteOverride = async (overrideId: string) => {
     setOverrideLoading(true);
     try {
-      const res = await fetch(`/api/events/${eventId}/overrides`, {
+      const res = await fetch(clientApi.overrides(eventId), {
         method: "DELETE",
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({ override_id: overrideId }),
@@ -767,7 +768,7 @@ export default function OrganizerDashboard() {
     setPlanError("");
 
     try {
-      const res = await fetch(`/api/events/${eventId}`, {
+      const res = await fetch(clientApi.event(eventId), {
         method: "PUT",
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({

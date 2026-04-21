@@ -9,6 +9,7 @@ import { PreferenceForm, type PreferenceValues, defaultPreferences } from "@/com
 import { cn, formatDate, formatEventDate } from "@/lib/utils";
 import { saveEvent } from "@/components/my-events";
 import type { ValidateTokenResponse, ApiError, EventData, ParticipantData } from "@/lib/api-types";
+import { clientApi } from "@/lib/client-api";
 import { hasMeaningfulPreferences, parseEnabledPreferences } from "@/lib/event-settings";
 
 type Step = "availability" | "preferences" | "review" | "success";
@@ -144,7 +145,7 @@ export default function RespondPage() {
         },
       };
 
-      const res = await fetch(`/api/events/${eventId}/respond`, {
+      const res = await fetch(clientApi.respond(eventId), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
