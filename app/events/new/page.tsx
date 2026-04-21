@@ -68,6 +68,24 @@ interface AddedParticipant {
   invite_url: string;
 }
 
+interface PendingParticipant {
+  id: string;
+  name: string;
+}
+
+interface NewEventDraft {
+  step: number;
+  form: FormState;
+  createdEventId: string | null;
+  createdOrganizerToken: string | null;
+  inviteName: string;
+  inviteEmail: string;
+  invitePhone: string;
+  inviteIsRequired: boolean;
+  invitePriorityTier: string;
+  addedParticipants: AddedParticipant[];
+}
+
 const AVATAR_COLORS = [
   "bg-violet-100 text-violet-700",
   "bg-blue-100 text-blue-700",
@@ -119,15 +137,10 @@ const DURATION_OPTIONS = [
   { value: "360", label: "6 hours" },
 ];
 
-export default function NewEventPage() {
-  const router = useRouter();
-  const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [stepOneErrors, setStepOneErrors] = useState<{ organizer_name?: string; title?: string }>({});
-  const [shakeForm, setShakeForm] = useState(false);
+const NEW_EVENT_DRAFT_KEY = "togoo_new_event_draft";
 
-  const [form, setForm] = useState<FormState>({
+function createDefaultForm(): FormState {
+  return {
     title: "",
     description: "",
     event_type: "dinner",
@@ -135,21 +148,37 @@ export default function NewEventPage() {
     date_range_start_local: todayPlus(1),
     date_range_end_local: todayPlus(7),
     allowed_hours_start: "12",
-      allowed_hours_end: "23",
-      meeting_duration_minutes: "60",
-      slot_granularity_minutes: "30",
-      scoring_mode: "maximize_attendance",
-      suggested_date_local: "",
-      suggested_start_local: "",
-      suggested_end_local: "",
-      participants_required_by_default: false,
+    allowed_hours_end: "23",
+    meeting_duration_minutes: "60",
+    slot_granularity_minutes: "30",
+    scoring_mode: "maximize_attendance",
+    suggested_date_local: "",
+    suggested_start_local: "",
+    suggested_end_local: "",
+    participants_required_by_default: false,
     allow_participant_edit: true,
     show_results_to_participants: false,
     preferences_required: false,
     response_deadline_local: "",
     organizer_name: "",
-      enabled_preferences: ["food"],
-  });
+    enabled_preferences: ["food"],
+  };
+}
+
+function newPendingId(): string {
+  return `pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+export default function NewEventPage() {
+  const router = useRouter();
+  const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [stepOneErrors, setStepOneErrors] = useState<{ organizer_name?: string; title?: string }>({});
+  const [shakeForm, setShakeForm] = useState(false);
+  const [draftLoaded, setDraftLoaded] = useState(false);
+
+  const [form, setForm] = useState<FormState>(createDefaultForm());
 
   // Post-creation invite state
   const [createdEventId, setCreatedEventId] = useState<string | null>(null);
@@ -160,7 +189,7 @@ export default function NewEventPage() {
   const [invitePhone, setInvitePhone] = useState("");
   const [inviteIsRequired, setInviteIsRequired] = useState(false);
   const [invitePriorityTier, setInvitePriorityTier] = useState("0");
-  const [addingInvite, setAddingInvite] = useState(false);
+  const [pendingParticipants, setPendingParticipants] = useState<PendingParticipant[]>([]);
   const [inviteError, setInviteError] = useState("");
   const [addedParticipants, setAddedParticipants] = useState<AddedParticipant[]>([]);
 
@@ -171,9 +200,70 @@ export default function NewEventPage() {
       : "";
 
   useEffect(() => {
-    const tz = detectTimezone();
-    setForm((f) => ({ ...f, timezone: tz }));
+    try {
+      const raw = localStorage.getItem(NEW_EVENT_DRAFT_KEY);
+      if (raw) {
+        const draft = JSON.parse(raw) as NewEventDraft;
+        setStep(draft.step);
+        setForm(draft.form);
+        setCreatedEventId(draft.createdEventId);
+        setCreatedOrganizerToken(draft.createdOrganizerToken);
+        setInviteName(draft.inviteName);
+        setInviteEmail(draft.inviteEmail);
+        setInvitePhone(draft.invitePhone);
+        setInviteIsRequired(draft.inviteIsRequired);
+        setInvitePriorityTier(draft.invitePriorityTier);
+        setAddedParticipants(draft.addedParticipants);
+      } else {
+        const tz = detectTimezone();
+        setForm((current) => ({ ...current, timezone: tz }));
+      }
+    } catch {
+      const tz = detectTimezone();
+      setForm((current) => ({ ...current, timezone: tz }));
+    } finally {
+      setDraftLoaded(true);
+    }
   }, []);
+
+  useEffect(() => {
+    if (!draftLoaded) return;
+
+    const draft: NewEventDraft = {
+      step,
+      form,
+      createdEventId,
+      createdOrganizerToken,
+      inviteName,
+      inviteEmail,
+      invitePhone,
+      inviteIsRequired,
+      invitePriorityTier,
+      addedParticipants,
+    };
+
+    try {
+      localStorage.setItem(NEW_EVENT_DRAFT_KEY, JSON.stringify(draft));
+    } catch {}
+  }, [
+    draftLoaded,
+    step,
+    form,
+    createdEventId,
+    createdOrganizerToken,
+    inviteName,
+    inviteEmail,
+    invitePhone,
+    inviteIsRequired,
+    invitePriorityTier,
+    addedParticipants,
+  ]);
+
+  function clearDraft() {
+    try {
+      localStorage.removeItem(NEW_EVENT_DRAFT_KEY);
+    } catch {}
+  }
 
 
   const set = (field: keyof FormState, value: string | boolean) => {
@@ -291,8 +381,23 @@ export default function NewEventPage() {
 
   async function handleAddParticipant() {
     if (!inviteName.trim() || !createdEventId || !createdOrganizerToken) return;
-    setAddingInvite(true);
+    const participant = {
+      name: inviteName.trim(),
+      email: inviteEmail.trim() || undefined,
+      phone: invitePhone.trim() || undefined,
+      is_required: inviteIsRequired,
+      priority_tier: parseInt(invitePriorityTier),
+    };
+    const pendingId = newPendingId();
+
     setInviteError("");
+    setPendingParticipants((current) => [...current, { id: pendingId, name: participant.name }]);
+    setInviteName("");
+    setInviteEmail("");
+    setInviteEmailTouched(false);
+    setInvitePhone("");
+    setInviteIsRequired(form.participants_required_by_default);
+    setInvitePriorityTier("0");
 
     try {
       const res = await fetch(clientApi.participants(createdEventId), {
@@ -301,35 +406,24 @@ export default function NewEventPage() {
           "Content-Type": "application/json",
           "x-organizer-token": createdOrganizerToken,
         },
-        body: JSON.stringify({
-          name: inviteName.trim(),
-          email: inviteEmail.trim() || undefined,
-          phone: invitePhone.trim() || undefined,
-          is_required: inviteIsRequired,
-          priority_tier: parseInt(invitePriorityTier),
-        }),
+        body: JSON.stringify(participant),
       });
 
       const data = await res.json() as AddParticipantInviteResponse | ApiError;
       if (!res.ok) {
-        setInviteError(("error" in data ? data.error : null) ?? "We couldn't add that person.");
-          return;
-        }
+        setInviteError(("error" in data ? data.error : null) ?? `We couldn't add ${participant.name}.`);
+        return;
+      }
       const added = data as AddParticipantInviteResponse;
 
       setAddedParticipants((prev) => [
         ...prev,
-        { name: inviteName.trim(), invite_url: `${window.location.origin}${added.invite_url}` },
+        { name: participant.name, invite_url: `${window.location.origin}${added.invite_url}` },
       ]);
-      setInviteName("");
-      setInviteEmail("");
-      setInvitePhone("");
-      setInviteIsRequired(form.participants_required_by_default);
-      setInvitePriorityTier("0");
     } catch {
-      setInviteError("We couldn't add that person. Try again.");
+      setInviteError(`We couldn't add ${participant.name}. Try again.`);
     } finally {
-      setAddingInvite(false);
+      setPendingParticipants((current) => current.filter((item) => item.id !== pendingId));
     }
   }
 
@@ -745,7 +839,7 @@ export default function NewEventPage() {
                   <Input
                     label="Phone for WhatsApp (optional)"
                     type="tel"
-                    placeholder="+1 555 000 0000"
+                    placeholder="+91 9000000000"
                     value={invitePhone}
                     onChange={(e) => setInvitePhone(e.target.value)}
                     onKeyDown={(e) => {
@@ -785,9 +879,22 @@ export default function NewEventPage() {
                 <p className="text-sm text-danger">{inviteError}</p>
               )}
 
+              {pendingParticipants.length > 0 && (
+                <div className="rounded-input bg-surface-alt px-4 py-3 text-sm text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
+                  <div className="flex items-center gap-2">
+                    <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    <span>
+                      Saving {pendingParticipants.length} invitee{pendingParticipants.length === 1 ? "" : "s"} in the background.
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <Button
                 onClick={handleAddParticipant}
-                loading={addingInvite}
                 disabled={!inviteName.trim() || !!inviteEmailError}
                 variant="secondary"
                 className="w-full"
@@ -815,6 +922,29 @@ export default function NewEventPage() {
                       >
                         Copy link
                       </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {pendingParticipants.length > 0 && (
+                <div className="border-t border-border pt-4 space-y-2">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted">Saving now</p>
+                  {pendingParticipants.map((participant) => (
+                    <div key={participant.id} className="flex items-center justify-between gap-3 py-2">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold ${avatarColor(participant.name)}`}>
+                          {participant.name[0]?.toUpperCase() ?? "?"}
+                        </div>
+                        <span className="truncate text-sm text-text font-medium">{participant.name}</span>
+                      </div>
+                      <span className="inline-flex min-h-10 items-center gap-2 rounded-full px-3 text-xs text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
+                        <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Creating link...
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -865,7 +995,10 @@ export default function NewEventPage() {
             </Button>
           )}
           {step === 4 && (
-            <Button onClick={() => router.push(`/e/${createdEventId}/organizer/${createdOrganizerToken}`)}>
+            <Button onClick={() => {
+              clearDraft();
+              router.push(`/e/${createdEventId}/organizer/${createdOrganizerToken}`);
+            }}>
               Open organizer dashboard
             </Button>
           )}

@@ -190,3 +190,31 @@ export async function PUT(
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ eventId: string }> }
+) {
+  try {
+    const { eventId } = await params;
+    const token = request.headers.get("x-organizer-token");
+    const db = getDB((env as unknown as { DB: D1Database }).DB);
+
+    const tokenRecord = await findOrganizerInviteToken(db, eventId, token);
+    if (!tokenRecord) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const event = await db.query.events.findFirst({ where: eq(schema.events.id, eventId) });
+    if (!event) {
+      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    }
+
+    await db.delete(schema.events).where(eq(schema.events.id, eventId));
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("Delete event error:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}

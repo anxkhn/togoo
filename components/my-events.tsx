@@ -20,6 +20,14 @@ export function saveEvent(event: StoredEvent): void {
   } catch {}
 }
 
+export function removeEventShortcut(id: string, role?: StoredEvent["role"]): void {
+  try {
+    const existing: StoredEvent[] = JSON.parse(localStorage.getItem("togoo_events") ?? "[]");
+    const filtered = existing.filter((event) => !(event.id === id && (role ? event.role === role : true)));
+    localStorage.setItem("togoo_events", JSON.stringify(filtered));
+  } catch {}
+}
+
 function ConfirmDeleteDialog({
   title,
   onConfirm,
