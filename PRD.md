@@ -35,7 +35,7 @@ Togoo replaces that with one structured flow.
 The organizer:
 
 - creates the plan
-- chooses timing and scoring rules
+- chooses one continuous scheduling window and scoring rules
 - invites people
 - monitors replies
 - makes the final decision
@@ -118,12 +118,12 @@ The product must let the organizer define:
 - optional description
 - event type
 - timezone
-- date range
-- allowed daily hours
+- start date and time
+- end date and time
 - meeting duration
 - slot granularity
 - scoring mode
-- optional suggested time
+- optional suggested start and end time
 - optional response deadline
 - enabled preference questions
 - participant edit setting
@@ -146,6 +146,7 @@ The product must:
 - block reply changes if the deadline has passed
 - block edits when participant edits are disabled
 - show any organizer-suggested slot as a highlighted suggestion without preselecting it for the participant
+- let invitees answer a suggested slot quickly, then still pick custom slots if needed
 
 ### Participant management
 
@@ -233,6 +234,7 @@ stateDiagram-v2
 - reduced-motion users must not be forced through motion-heavy interactions
 - create-flow progress should survive refresh without making the user restart from step one
 - adding invitees should feel non-blocking, with clear pending feedback while links are generated in the background
+- date and datetime controls should be keyboard-friendly, accessible, and usable without forcing the native browser picker UI
 
 ## Success criteria
 

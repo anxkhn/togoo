@@ -147,7 +147,7 @@ Schema source:
 
 | Table | Key fields | Notes |
 | --- | --- | --- |
-| `events` | `title`, `timezone`, `date_range_start`, `date_range_end`, `allowed_hours_start`, `allowed_hours_end`, `meeting_duration_minutes`, `slot_granularity_minutes`, `min_attendance_threshold`, `participants_required_by_default`, `allow_participant_edit`, `show_results_to_participants`, `preferences_required`, `enabled_preferences`, `scoring_mode`, `suggested_time_start`, `suggested_time_end`, `status`, `response_deadline` | one row per plan |
+| `events` | `title`, `timezone`, `date_range_start`, `date_range_end`, `meeting_duration_minutes`, `slot_granularity_minutes`, `min_attendance_threshold`, `participants_required_by_default`, `allow_participant_edit`, `show_results_to_participants`, `preferences_required`, `enabled_preferences`, `scoring_mode`, `suggested_time_start`, `suggested_time_end`, `status`, `response_deadline` | one row per plan with one continuous scheduling range |
 | `participants` | `name`, `email`, `phone`, `role`, `is_required`, `priority_tier`, `response_status` | includes organizer row |
 | `invite_tokens` | `token`, `role`, `is_active`, `expires_at` | one active organizer token, rotating participant tokens; links stay active until regenerated or removed |
 | `availability_windows` | `participant_id`, `start_time`, `end_time` | raw reply windows |
@@ -188,11 +188,10 @@ Source:
 Raw windows are converted into fixed-width slots using:
 
 - event timezone
-- date range
-- allowed daily hours
+- one continuous start/end range
 - slot granularity
 
-Only slots fully inside the event date range and allowed hours are kept.
+Only slots fully inside the event range are kept.
 
 ### Candidate generation
 
@@ -251,12 +250,12 @@ flowchart TD
 - description
 - type
 - timezone
-- date range
-- allowed hours
+- start date and time
+- end date and time
 - duration
 - slot granularity
 - scoring mode
-- suggested time
+- suggested start and end time
 - response deadline
 - enabled preference questions
 - participant-edit setting
@@ -278,6 +277,8 @@ flowchart TD
 The app stores a small list of recently accessed plans in `localStorage`.
 
 The create flow also stores an in-progress draft in `localStorage` so refreshing `/events/new` does not reset the plan.
+
+The create and organizer-edit flows now use shared custom date and datetime fields built with `react-aria-components` and `@internationalized/date`, styled to match the Togoo form primitives.
 
 This is used by:
 

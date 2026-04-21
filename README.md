@@ -6,7 +6,7 @@ It helps one organizer collect availability and lightweight preferences from a g
 
 ## What it does
 
-- create a plan with title, type, timezone, date range, allowed hours, duration, slot spacing, scoring mode, optional suggested time, and response deadline
+- create a plan with title, type, timezone, continuous start/end datetime range, duration, slot spacing, scoring mode, optional suggested start/end datetimes, and response deadline
 - add invitees and generate one private reply link per participant
 - let invitees respond without creating an account
 - collect exact meeting-slot availability plus optional preferences
@@ -15,6 +15,10 @@ It helps one organizer collect availability and lightweight preferences from a g
 - keep the multi-step create flow in browser storage so a refresh does not wipe progress
 - let the organizer delete a plan from the editor
 - finalize one slot and publish a final shareable page
+
+## Version
+
+- current UI footer version: `0.5.1`
 
 ## Main flows
 
@@ -31,11 +35,14 @@ It helps one organizer collect availability and lightweight preferences from a g
 - the participant availability picker shows exact slot pills derived from the organizer's duration and slot spacing, not broad morning/afternoon/evening buckets
 - organizer-suggested times are highlighted for invitees but are not preselected
 - attendee creation runs in the background so the invite form stays usable while links are being generated
+- create and edit flows use shared accessible React Aria-based date and datetime pickers styled to match Togoo
 
 ## Stack
 
 - Vinext
 - React 19
+- react-aria-components
+- @internationalized/date
 - Cloudflare Workers
 - Cloudflare D1
 - Drizzle ORM
@@ -149,7 +156,7 @@ CLOUDFLARE_D1_TOKEN=your_api_token
 
 | Table | Purpose |
 | --- | --- |
-| `events` | plan settings, timing rules, scoring mode, status |
+| `events` | plan settings, continuous scheduling range, scoring mode, status |
 | `participants` | organizer and invitees |
 | `invite_tokens` | private organizer and participant access tokens |
 | `availability_windows` | raw submitted availability windows |
