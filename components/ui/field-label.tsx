@@ -14,7 +14,7 @@ function InfoTooltip({ text }: { text: string }) {
       </button>
       <span
         role="tooltip"
-        className="pointer-events-none absolute left-0 top-full z-30 mt-2 w-64 rounded-input bg-text px-3 py-2 text-xs leading-relaxed text-white opacity-0 shadow-[0_14px_34px_rgba(26,23,20,0.18)] transition-[opacity,transform] duration-160 [transition-timing-function:cubic-bezier(0.165,0.84,0.44,1)] group-hover/tooltip:translate-y-0 group-hover/tooltip:opacity-100 group-focus-within/tooltip:translate-y-0 group-focus-within/tooltip:opacity-100 translate-y-1"
+        className="tooltip-panel pointer-events-none absolute left-0 top-full z-30 mt-2 w-64 rounded-input bg-text px-3 py-2 text-xs leading-relaxed text-white opacity-0 shadow-[0_14px_34px_rgba(26,23,20,0.18)] group-hover/tooltip:translate-y-0 group-hover/tooltip:opacity-100 group-focus-within/tooltip:translate-y-0 group-focus-within/tooltip:opacity-100 translate-y-1"
       >
         {text}
       </span>

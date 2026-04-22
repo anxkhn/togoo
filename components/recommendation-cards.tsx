@@ -36,7 +36,7 @@ function RecommendationCard({ meeting, timezone, durationMinutes, highlight, onS
   return (
     <div
       className={cn(
-        "card p-5 motion-safe:transition-[box-shadow,border-color,background-color,transform] motion-safe:duration-200 motion-safe:ease",
+        "card p-5 motion-safe:transition-[box-shadow,border-color,background-color] motion-safe:duration-200 motion-safe:ease",
         "motion-safe:[transition-timing-function:ease]",
         highlight && "border-accent/40 bg-accent-subtle/30 shadow-card-hover",
         selected && "border-accent ring-2 ring-accent/20",

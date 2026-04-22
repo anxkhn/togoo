@@ -900,7 +900,7 @@ export default function NewEventPage() {
                       <button
                         type="button"
                         onClick={() => navigator.clipboard.writeText(p.invite_url)}
-                        className="inline-flex min-h-10 flex-shrink-0 items-center rounded-full px-3 text-xs font-medium text-accent shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)] transition-[color,background-color,transform] duration-150 hover:bg-accent-subtle active:scale-[0.96]"
+                        className="inline-flex min-h-10 flex-shrink-0 items-center rounded-full px-3 text-xs font-medium text-accent shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)] transition-[color,background-color] duration-150 hover:bg-accent-subtle active:scale-[0.96]"
                       >
                         Copy link
                       </button>

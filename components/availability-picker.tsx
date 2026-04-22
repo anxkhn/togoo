@@ -279,7 +279,7 @@ export function AvailabilityPicker({
                       type="button"
                       onClick={() => toggleSlot(slot)}
                       className={cn(
-                        "inline-flex min-h-10 items-center rounded-full px-3 text-sm tabular-nums transition-[color,background-color,border-color,box-shadow,transform] duration-150 active:scale-[0.96]",
+                        "inline-flex min-h-10 items-center rounded-full px-3 text-sm tabular-nums transition-[color,background-color,border-color,box-shadow] duration-150 active:scale-[0.96]",
                         selected
                           ? "bg-accent text-white shadow-[0_10px_24px_rgba(47,104,68,0.16),inset_0_1px_0_rgba(255,255,255,0.12)]"
                           : "bg-bg text-text shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)] hover:bg-accent-subtle/30 hover:shadow-[inset_0_0_0_1px_rgba(47,104,68,0.22)]"

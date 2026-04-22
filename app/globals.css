@@ -182,6 +182,13 @@
       transform var(--duration-standard) var(--ease-out-quart);
     will-change: transform, opacity;
   }
+
+  .tooltip-panel {
+    transition:
+      opacity var(--duration-fast) var(--ease-out-quart),
+      transform var(--duration-fast) var(--ease-out-quart);
+    will-change: transform, opacity;
+  }
 }
 
 /*
@@ -251,6 +258,14 @@
 
   .card-interactive {
     transition: none;
+    will-change: auto;
+  }
+
+  .picker-popover,
+  .tooltip-panel,
+  [role="tooltip"] {
+    transition: none;
+    transform: none;
     will-change: auto;
   }
 }
