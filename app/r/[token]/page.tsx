@@ -44,6 +44,8 @@ export default function RespondPage() {
   const responseClosed = Boolean(event?.response_deadline && Date.now() / 1000 > event.response_deadline);
   const preferencesSatisfied =
     !event || event.preferences_required !== 1 || hasMeaningfulPreferences(preferences, enabledPreferenceFields);
+  const isUpdate = participant?.response_status === "responded";
+  const canEditExistingResponse = Boolean(isUpdate && event?.allow_participant_edit === 1 && !responseClosed);
 
   useEffect(() => {
     setLocalTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
@@ -69,6 +71,10 @@ export default function RespondPage() {
         setEventId(data.event_id);
         setEvent(data.event);
         setParticipant(data.participant);
+
+        if (data.participant.response_status === "responded") {
+          setStep("review");
+        }
 
         const filteredExistingWindows = filterWindowsToDateRange(data.existing_windows ?? [], data.event);
         if (filteredExistingWindows.length > 0) {
@@ -281,7 +287,6 @@ export default function RespondPage() {
     );
   }
 
-  const isUpdate = participant?.response_status === "responded";
   const steps: Step[] = ["availability", "preferences", "review"];
   const stepIndex = steps.indexOf(step);
   const showDualTimezone = event && localTimezone && localTimezone !== event.timezone;
@@ -328,9 +333,28 @@ export default function RespondPage() {
             </div>
         )}
 
-        <div className="flex items-center gap-2 mb-6">
+        {isUpdate && (
+          <div className="mb-5 rounded-input bg-accent-subtle px-4 py-3 text-sm text-text shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)]">
+            <p className="font-medium text-accent">Your previous reply is loaded</p>
+            <p className="mt-1 text-sm text-muted">
+              You can review what you already sent, and {canEditExistingResponse ? "edit it if anything changed." : "keep it as-is."}
+            </p>
+            {canEditExistingResponse && step !== "availability" && (
+              <button
+                type="button"
+                onClick={() => setStep("availability")}
+                className="mt-3 inline-flex min-h-10 items-center rounded-full px-3 text-xs font-medium text-accent shadow-[inset_0_0_0_1px_rgba(47,104,68,0.18)] transition-[color,background-color] duration-150 hover:bg-white/60"
+              >
+                Edit my reply
+              </button>
+            )}
+          </div>
+        )}
+
+        <div className="mb-6 overflow-x-auto pb-1">
+          <div className="flex min-w-max items-center gap-2">
           {(["availability", "preferences", "review"] as const).map((s, i) => (
-            <div key={s} className="flex items-center gap-2">
+            <div key={s} className="flex flex-shrink-0 items-center gap-2">
               <div className={cn(
                 "flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold tabular-nums transition-[background-color,color,box-shadow] duration-200",
                 step === s
@@ -351,6 +375,7 @@ export default function RespondPage() {
               {i < 2 && <div className="w-6 h-px bg-border mx-1" />}
             </div>
           ))}
+          </div>
         </div>
 
         <div className="card p-5 animate-scale-in">
@@ -423,8 +448,14 @@ export default function RespondPage() {
 
           {step === "review" && event && (
             <div>
-              <h2 className="font-display text-xl font-semibold text-text mb-1">Ready to send your reply?</h2>
-              <p className="text-sm text-muted mb-5">Check your availability and preferences before you submit.</p>
+              <h2 className="font-display text-xl font-semibold text-text mb-1">
+                {isUpdate ? "Here is your saved reply" : "Ready to send your reply?"}
+              </h2>
+              <p className="text-sm text-muted mb-5">
+                {isUpdate
+                  ? "Review what you already sent. If you need to change it, switch into edit mode and resubmit."
+                  : "Check your availability and preferences before you submit."}
+              </p>
 
               <div className="space-y-3">
                 <div>
@@ -503,12 +534,16 @@ export default function RespondPage() {
         </div>
 
         <div className="flex justify-between mt-5">
-          {step !== "availability" ? (
+          {step !== "availability" && (!isUpdate || step !== "review" || canEditExistingResponse) ? (
             <Button variant="secondary" onClick={() => {
+              if (step === "review" && isUpdate) {
+                setStep("availability");
+                return;
+              }
               if (step === "review") setStep("preferences");
               if (step === "preferences") setStep("availability");
             }}>
-              Back
+              {step === "review" && isUpdate ? "Edit reply" : "Back"}
             </Button>
           ) : (
             <div />

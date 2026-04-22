@@ -149,9 +149,6 @@ function buildExplanation(m: ScoredMeeting): string {
     }
   }
 
-  const timeLabel = m.timeCategory.replace("_", " ");
-  parts.push(`${m.isWeekend ? "weekend" : "weekday"} ${timeLabel}`);
-
   return parts.join(", ") + ".";
 }
 

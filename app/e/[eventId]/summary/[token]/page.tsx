@@ -168,7 +168,6 @@ export default async function SummaryPage({
                     </p>
                     <p className="mt-0.5 text-xs text-muted tabular-nums">
                       {slot.attendingCount} of {slot.totalParticipants} people can make it
-                      {slot.isWeekend ? " · weekend" : " · weekday"}
                     </p>
                   </div>
                 </div>

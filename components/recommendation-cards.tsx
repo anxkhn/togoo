@@ -1,6 +1,5 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn, formatEventDate, formatDuration } from "@/lib/utils";
 import type { RecommendationSet, ScoredMeeting } from "@/lib/scheduling";
@@ -9,6 +8,7 @@ interface RecommendationCardProps {
   meeting: ScoredMeeting;
   timezone: string;
   durationMinutes: number;
+  participantNamesById: Record<string, string>;
   highlight?: boolean;
   onSelect?: (meeting: ScoredMeeting) => void;
   selected?: boolean;
@@ -28,10 +28,22 @@ function ScoreBar({ score, className }: { score: number; className?: string }) {
   );
 }
 
-function RecommendationCard({ meeting, timezone, durationMinutes, highlight, onSelect, selected }: RecommendationCardProps) {
+function RecommendationCard({
+  meeting,
+  timezone,
+  durationMinutes,
+  participantNamesById,
+  highlight,
+  onSelect,
+  selected,
+}: RecommendationCardProps) {
   const attendancePct = meeting.totalParticipants > 0
     ? Math.round((meeting.attendingCount / meeting.totalParticipants) * 100)
     : 0;
+  const attendeeNames = meeting.attendingIds
+    .map((id) => participantNamesById[id])
+    .filter((name): name is string => Boolean(name))
+    .sort((a, b) => a.localeCompare(b));
 
   return (
     <div
@@ -55,20 +67,14 @@ function RecommendationCard({ meeting, timezone, durationMinutes, highlight, onS
     >
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            {highlight && (
-              <span className="inline-flex items-center gap-1 text-xs font-medium text-accent">
-                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-                Best overall pick
-              </span>
-            )}
-            <Badge variant={meeting.isWeekend ? "warning" : "default"}>
-              {meeting.isWeekend ? "Weekend" : "Weekday"}
-            </Badge>
-            <Badge variant="default">{meeting.timeCategory.replace("_", " ")}</Badge>
-          </div>
+          {highlight && (
+            <span className="mb-1 inline-flex items-center gap-1 text-xs font-medium text-accent">
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+              Best overall pick
+            </span>
+          )}
           <p className="font-display text-lg font-semibold text-text">
             {formatEventDate(meeting.start, timezone)}
           </p>
@@ -86,6 +92,22 @@ function RecommendationCard({ meeting, timezone, durationMinutes, highlight, onS
           <> &middot; {meeting.requiredAttending}/{meeting.totalRequired} required</>
         )}
       </p>
+
+      {attendeeNames.length > 0 && (
+        <div className="mb-3">
+          <p className="mb-2 text-xs text-muted">Picked by</p>
+          <div className="flex flex-wrap gap-1.5">
+            {attendeeNames.map((name, index) => (
+              <span
+                key={`${meeting.start}-${name}-${index}`}
+                className="inline-flex items-center rounded-full bg-surface-alt px-2.5 py-1 text-xs font-medium text-text shadow-[inset_0_0_0_1px_rgba(26,23,20,0.06)]"
+              >
+                {name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-1.5">
         <div className="flex items-center justify-between text-xs text-muted">
@@ -133,6 +155,7 @@ interface RecommendationCardsProps {
   recommendations: RecommendationSet;
   timezone: string;
   durationMinutes: number;
+  participantNamesById: Record<string, string>;
   onSelect?: (meeting: ScoredMeeting) => void;
   selectedStart?: number;
 }
@@ -141,6 +164,7 @@ export function RecommendationCards({
   recommendations,
   timezone,
   durationMinutes,
+  participantNamesById,
   onSelect,
   selectedStart,
 }: RecommendationCardsProps) {
@@ -185,6 +209,7 @@ export function RecommendationCards({
           meeting={meeting}
           timezone={timezone}
           durationMinutes={durationMinutes}
+          participantNamesById={participantNamesById}
           highlight={isHighlight}
           onSelect={onSelect}
           selected={selectedStart === meeting.start}

@@ -469,9 +469,10 @@ export default function NewEventPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 mb-8">
+        <div className="mb-8 overflow-x-auto pb-1">
+          <div className="flex min-w-max items-center gap-2">
           {steps.map((s, i) => (
-            <div key={s.n} className="flex items-center gap-2">
+            <div key={s.n} className="flex flex-shrink-0 items-center gap-2">
               <div
                 className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold tabular-nums transition-[background-color,color,box-shadow] duration-200 ${
                   step === s.n
@@ -493,6 +494,7 @@ export default function NewEventPage() {
               {i < steps.length - 1 && <div className="w-8 h-px bg-border mx-1" />}
             </div>
           ))}
+          </div>
         </div>
 
         <div className={`card p-6 animate-scale-in ${shakeForm ? "animate-shake-x" : ""}`}>
@@ -744,38 +746,38 @@ export default function NewEventPage() {
               <div className="card bg-surface-alt p-4">
                 <p className="text-sm font-medium text-text mb-1">Plan summary</p>
                 <dl className="text-sm space-y-1 text-muted">
-                  <div className="flex justify-between">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                     <dt>Plan</dt>
-                        <dd className="text-text font-medium">{form.title || "(untitled)"}</dd>
+                    <dd className="text-text font-medium sm:text-right">{form.title || "(untitled)"}</dd>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                     <dt>Host</dt>
-                        <dd className="text-text">{form.organizer_name || "(no name)"}</dd>
+                    <dd className="text-text sm:text-right">{form.organizer_name || "(no name)"}</dd>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                     <dt>Date window</dt>
-                    <dd className="text-right text-text tabular-nums">{form.date_range_start_local.replace("T", " ")} – {form.date_range_end_local.replace("T", " ")}</dd>
+                    <dd className="text-text tabular-nums sm:text-right">{form.date_range_start_local.replace("T", " ")} – {form.date_range_end_local.replace("T", " ")}</dd>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                     <dt>Duration</dt>
-                    <dd className="text-text tabular-nums">{formatDuration(parseInt(form.meeting_duration_minutes))}</dd>
+                    <dd className="text-text tabular-nums sm:text-right">{formatDuration(parseInt(form.meeting_duration_minutes))}</dd>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                     <dt>Timezone</dt>
-                    <dd className="text-text">{form.timezone}</dd>
+                    <dd className="break-all text-text sm:text-right">{form.timezone}</dd>
                   </div>
                   {form.suggested_time_start_local && form.suggested_time_end_local && (
-                    <div className="flex justify-between gap-4">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                       <dt>Suggested time</dt>
-                      <dd className="text-right text-text tabular-nums">
+                      <dd className="text-text tabular-nums sm:text-right">
                         {form.suggested_time_start_local.replace("T", " ")} - {form.suggested_time_end_local.replace("T", " ")}
                       </dd>
                     </div>
                   )}
                   {form.response_deadline_local && (
-                    <div className="flex justify-between">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                       <dt>Reply deadline</dt>
-                      <dd className="text-text tabular-nums">{form.response_deadline_local}</dd>
+                      <dd className="text-text tabular-nums sm:text-right">{form.response_deadline_local}</dd>
                     </div>
                   )}
                 </dl>

@@ -882,6 +882,7 @@ export default function OrganizerDashboard() {
   const nonOrganizerParticipants = participants.filter((p) => p.role !== "organizer");
   const organizerName = participants.find((p) => p.role === "organizer")?.name ?? "";
   const responseRate = stats.total_invited > 0 ? Math.round((stats.total_responded / stats.total_invited) * 100) : 0;
+  const participantNamesById = Object.fromEntries(nonOrganizerParticipants.map((participant) => [participant.id, participant.name]));
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">
@@ -1310,6 +1311,7 @@ export default function OrganizerDashboard() {
                   recommendations={recommendations}
                   timezone={event.timezone}
                   durationMinutes={event.meeting_duration_minutes}
+                  participantNamesById={participantNamesById}
                   onSelect={setSelectedMeeting}
                   selectedStart={selectedMeeting?.start}
                 />
