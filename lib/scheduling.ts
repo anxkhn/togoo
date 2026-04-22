@@ -158,13 +158,13 @@ function tierWeight(tier: number | undefined): number {
   return 1;
 }
 
-export function computeRecommendations(
+export function computeCandidateMeetings(
   participants: Participant[],
   slots: NormalizedSlot[],
   preferences: Preference[],
   settings: EventSettings,
   overrides: OrganizerOverride[]
-): RecommendationSet {
+): ScoredMeeting[] {
   const {
     date_range_start,
     date_range_end,
@@ -297,16 +297,26 @@ export function computeRecommendations(
 
   const thresholdFiltered = candidates.filter((candidate) => candidate.attendingCount >= min_attendance_threshold);
   const filtered = applyOverrides(thresholdFiltered, overrides);
-  const sorted = [...filtered].sort((a, b) => b.compositeScore - a.compositeScore);
+  return [...filtered].sort((a, b) => b.compositeScore - a.compositeScore);
+}
+
+export function computeRecommendations(
+  participants: Participant[],
+  slots: NormalizedSlot[],
+  preferences: Preference[],
+  settings: EventSettings,
+  overrides: OrganizerOverride[]
+): RecommendationSet {
+  const sorted = computeCandidateMeetings(participants, slots, preferences, settings, overrides);
 
   const bestOverall = sorted[0] ?? null;
-  const bestAttendance = [...filtered].sort((a, b) => b.attendingCount - a.attendingCount)[0] ?? null;
+  const bestAttendance = [...sorted].sort((a, b) => b.attendingCount - a.attendingCount)[0] ?? null;
   const bestRequired =
-    [...filtered].sort(
+    [...sorted].sort(
       (a, b) => b.requiredScore - a.requiredScore || b.attendingCount - a.attendingCount
     )[0] ?? null;
   const bestTimeFit =
-    [...filtered].sort(
+    [...sorted].sort(
       (a, b) => b.timePrefScore - a.timePrefScore || b.attendingCount - a.attendingCount
     )[0] ?? null;
 

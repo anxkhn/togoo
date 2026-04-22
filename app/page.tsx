@@ -20,7 +20,7 @@ export default function LandingPage() {
         <section className="max-w-5xl mx-auto px-5 pt-24 pb-20 text-center">
           <h1 className="font-display text-5xl sm:text-6xl md:text-7xl font-bold text-text mb-6 leading-[1.05] animate-slide-up">
             Get your group to a plan<br />
-            <span className="text-accent">without chasing replies</span>
+            <span className="text-accent">without chasing responses</span>
           </h1>
 
           <p className="text-lg text-muted max-w-xl mx-auto mb-10 leading-relaxed animate-slide-up" style={{ animationDelay: "0.1s" }}>
@@ -45,7 +45,7 @@ export default function LandingPage() {
         <section id="how-it-works" className="max-w-5xl mx-auto px-5 py-20">
           <div className="text-center mb-14">
             <h2 className="font-display text-4xl font-semibold text-text mb-3">How Togoo gets you to yes</h2>
-            <p className="text-muted">Set the plan once, collect replies fast, and pick the best option with confidence.</p>
+            <p className="text-muted">Set the plan once, collect responses fast, and pick the best option with confidence.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -63,7 +63,7 @@ export default function LandingPage() {
               {
                 step: "02",
                 title: "Share one link",
-                desc: "Invite everyone once. They reply with broad availability and any extra context you want to collect.",
+                desc: "Invite everyone once. They respond with broad availability and any extra context you want to collect.",
                 icon: (
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -101,7 +101,7 @@ export default function LandingPage() {
           <div className="card p-10 text-center shadow-card-elevated">
             <h2 className="font-display text-4xl font-semibold text-text mb-3">Plan it once. Share it once.</h2>
             <p className="text-muted mb-8 max-w-md mx-auto">
-              Set up your plan in a couple of minutes. Guests can reply without creating an account.
+              Set up your plan in a couple of minutes. Guests can respond without creating an account.
             </p>
             <Link href="/events/new" className="btn-primary text-base px-8 py-3">
               Create a free plan

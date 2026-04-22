@@ -114,7 +114,7 @@ export function MyEvents() {
                   </span>
                 </div>
                 <p className="text-xs text-muted mt-1">
-                  {ev.role === "organizer" ? "Open organizer dashboard" : "Review or update your reply"}
+                  {ev.role === "organizer" ? "Open organizer dashboard" : "Review or update your response"}
                 </p>
               </Link>
               <button

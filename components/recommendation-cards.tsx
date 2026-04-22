@@ -174,7 +174,7 @@ export function RecommendationCards({
     return (
         <div className="text-center py-12 text-muted">
           <p className="font-medium text-text">No ranked times yet</p>
-          <p className="text-sm mt-1">Once more people reply, Togoo will rank the best times.</p>
+          <p className="text-sm mt-1">Once more people respond, Togoo will rank the best times.</p>
         </div>
       );
     }

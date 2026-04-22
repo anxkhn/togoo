@@ -111,7 +111,6 @@ export const participant_preferences = sqliteTable(
       .notNull()
       .references(() => participants.id, { onDelete: "cascade" }),
     preferred_area: text("preferred_area"),
-    max_travel_distance: integer("max_travel_distance"),
     food_preference: text("food_preference").default("no_preference"),
     food_note: text("food_note"),
     budget_preference: text("budget_preference").default("no_preference"),

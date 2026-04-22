@@ -4,6 +4,7 @@ export const clientApi = {
   createEvent: () => CLIENT_API_BASE,
   event: (eventId: string) => `${CLIENT_API_BASE}/${eventId}`,
   participants: (eventId: string) => `${CLIENT_API_BASE}/${eventId}/participants`,
+  exportParticipants: (eventId: string) => `${CLIENT_API_BASE}/${eventId}/participants/export`,
   participant: (eventId: string, participantId: string) =>
     `${CLIENT_API_BASE}/${eventId}/participants/${participantId}`,
   participantToken: (eventId: string, participantId: string) =>

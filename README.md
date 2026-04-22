@@ -7,7 +7,7 @@ It helps one organizer collect availability and lightweight preferences from a g
 ## What it does
 
 - create a plan with title, type, timezone, continuous start/end datetime range, duration, slot spacing, scoring mode, optional suggested start/end datetimes, and response deadline
-- add invitees and generate one private reply link per participant
+- add invitees and generate one private response link per participant
 - let invitees respond without creating an account
 - collect exact meeting-slot availability plus optional preferences
 - show the organizer ranked meeting-time recommendations and an overlap heatmap
@@ -24,7 +24,7 @@ It helps one organizer collect availability and lightweight preferences from a g
 
 1. Organizer creates a plan at `/events/new`
 2. Organizer adds participants and shares invite links
-3. Invitees reply at `/r/[token]`
+3. Invitees respond at `/r/[token]`
 4. Organizer reviews the dashboard at `/e/[eventId]/organizer/[token]`
 5. Organizer finalizes one slot
 6. Final page is available at `/e/[eventId]/final`
@@ -55,7 +55,7 @@ app/
   page.tsx                                 Landing page
   faq/page.tsx                             FAQ
   events/new/page.tsx                      Multi-step create flow
-  r/[token]/page.tsx                       Participant reply flow
+  r/[token]/page.tsx                       Participant response flow
   e/[eventId]/organizer/[token]/page.tsx   Organizer dashboard
   e/[eventId]/summary/[token]/page.tsx     Token-gated live summary
   e/[eventId]/final/page.tsx               Final confirmed page
@@ -65,7 +65,7 @@ app/
     events/[eventId]/participants/         List or add participants
     events/[eventId]/participants/[id]/    Update or delete participant
     events/[eventId]/participants/[id]/token/ Regenerate participant token
-    events/[eventId]/respond/              Submit or update participant reply
+    events/[eventId]/respond/              Submit or update participant response
     events/[eventId]/recommendations/      Compute ranked recommendations
     events/[eventId]/finalize/             Finalize selected slot
     events/[eventId]/reopen/               Reopen a finalized event
@@ -91,7 +91,6 @@ lib/
 
 drizzle/migrations/
   0001_init.sql                            Base schema migration
-  0003_remove_rate_limits.sql              Cleanup migration for removed limiter
 ```
 
 ## Local development
@@ -123,7 +122,6 @@ npm run seed:local
 This repo currently uses:
 
 - `drizzle/migrations/0001_init.sql`
-- `drizzle/migrations/0003_remove_rate_limits.sql`
 
 Apply it with:
 
@@ -186,7 +184,7 @@ Current scoring modes:
 
 Current limitation:
 
-- food, budget, location, travel distance, and indoor/outdoor preferences are stored but not used in scoring yet
+- food, budget, location, and indoor/outdoor preferences are stored but not used in scoring yet
 
 ## Current constraints
 

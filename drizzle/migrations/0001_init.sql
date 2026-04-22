@@ -80,7 +80,6 @@ CREATE TABLE IF NOT EXISTS `participant_preferences` (
   `event_id` text NOT NULL REFERENCES `events`(`id`) ON DELETE CASCADE,
   `participant_id` text NOT NULL REFERENCES `participants`(`id`) ON DELETE CASCADE,
   `preferred_area` text,
-  `max_travel_distance` integer,
   `food_preference` text DEFAULT 'no_preference',
   `food_note` text,
   `budget_preference` text DEFAULT 'no_preference',

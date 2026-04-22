@@ -43,8 +43,8 @@ const PANELS = [
   },
   {
     step: "02",
-    label: "Guest reply",
-    title: "Reply in a minute",
+    label: "Guest response",
+    title: "Respond in a minute",
     copy: "Invitees open the link, tap the times that work, and add only the context you asked for.",
     glow: "bg-[#F1E8DA]",
     content: (
@@ -104,7 +104,7 @@ const PANELS = [
               <p className="text-xs font-medium text-muted">Top options</p>
               <p className="font-medium text-text">Ranked by overlap and fit</p>
             </div>
-            <span className="text-xs text-muted tabular-nums">5 replies</span>
+            <span className="text-xs text-muted tabular-nums">5 responses</span>
           </div>
 
           <div className="space-y-2 text-xs">

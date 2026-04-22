@@ -1,4 +1,5 @@
 import { clsx, type ClassValue } from "clsx";
+import { fromZonedTime } from "date-fns-tz";
 import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
@@ -51,6 +52,15 @@ export function formatDuration(minutes: number): string {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
+
+export function zonedDateTimeToUnix(value: string, timezone: string): number {
+  const normalizedValue = value.length === 16 ? `${value}:00` : value;
+  return Math.floor(fromZonedTime(normalizedValue, timezone).getTime() / 1000);
+}
+
+export function zonedDateToUnixEndOfDay(value: string, timezone: string): number {
+  return zonedDateTimeToUnix(`${value}T23:59:59`, timezone);
 }
 
 export function getTimezones(): string[] {

@@ -7,8 +7,8 @@ interface FaqItem {
 
 const FAQS = [
   {
-    q: "Do people need an account to reply?",
-    a: "No. Everyone gets a private link and can reply right away without creating an account.",
+    q: "Do people need an account to respond?",
+    a: "No. Everyone gets a private link and can respond right away without creating an account.",
   },
   {
     q: "What do invitees actually fill out?",
@@ -20,7 +20,7 @@ const FAQS = [
   },
   {
     q: "What does the organizer see?",
-    a: "You get a private dashboard with reply status, ranked time suggestions, participant details, and an availability heatmap so you can make a decision quickly.",
+    a: "You get a private dashboard with response status, ranked time suggestions, participant details, and an availability heatmap so you can make a decision quickly.",
   },
   {
     q: "How does Togoo decide which times to recommend?",

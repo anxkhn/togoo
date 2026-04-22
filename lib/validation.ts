@@ -69,13 +69,6 @@ export const CreateEventSchema = z.object({
     });
   }
 
-  if (data.response_deadline !== undefined && data.response_deadline < data.date_range_start) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Reply deadline cannot be before the event starts",
-      path: ["response_deadline"],
-    });
-  }
 });
 
 export const UpdateEventSchema = z.object({
@@ -140,13 +133,6 @@ export const UpdateEventSchema = z.object({
     });
   }
 
-  if (data.response_deadline !== undefined && data.response_deadline !== null && data.response_deadline < data.date_range_start) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Reply deadline cannot be before the event starts",
-      path: ["response_deadline"],
-    });
-  }
 });
 
 export const AddParticipantSchema = z.object({
@@ -179,7 +165,6 @@ export const SubmitResponseSchema = z.object({
   preferences: z
     .object({
       preferred_area: z.string().max(200).optional(),
-      max_travel_distance: z.number().int().min(0).max(200).optional(),
       food_preference: z
         .enum(["veg", "non_veg", "vegan", "jain", "halal", "eggetarian", "no_preference", "custom"])
         .default("no_preference"),

@@ -229,7 +229,7 @@ The product is built from a small number of recurring patterns.
 
 **Pill toggles** are a signature interaction. They should support quick mobile tapping, short labels, and very obvious selected states.
 
-**Badges** should communicate state, not decoration. Use them for reply status, confirmation, warnings, and priority labeling.
+**Badges** should communicate state, not decoration. Use them for response status, confirmation, warnings, and priority labeling.
 
 **Ranked options and heatmaps** should surface the answer, not the scoring engine. Data display in Togoo should stay simple, legible, and low-drama.
 

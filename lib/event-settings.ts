@@ -20,7 +20,6 @@ export function parseEnabledPreferences(raw: string | null | undefined): string[
 
 interface PreferenceValuesLike {
   preferred_area?: string | null;
-  max_travel_distance?: number | string | null;
   food_preference?: string | null;
   food_note?: string | null;
   budget_preference?: string | null;
@@ -49,10 +48,7 @@ export function hasMeaningfulPreferences(
 
     if (
       field === "location" &&
-      ((preferences.preferred_area && preferences.preferred_area.trim().length > 0) ||
-        preferences.max_travel_distance !== null &&
-          preferences.max_travel_distance !== undefined &&
-          String(preferences.max_travel_distance).trim().length > 0)
+      preferences.preferred_area && preferences.preferred_area.trim().length > 0
     ) {
       return true;
     }

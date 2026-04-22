@@ -40,7 +40,7 @@ flowchart TD
     C --> D[Recommendations API]
     C --> E[Participants API]
     C --> F[Finalize API]
-    G[Participant reply page] --> H[Validate token API]
+    G[Participant response page] --> H[Validate token API]
     G --> I[Respond API]
     C --> J[Final page]
     C --> K[Live summary page]
@@ -55,7 +55,7 @@ flowchart TD
 | `/` | landing page and local recent-plan shortcuts |
 | `/faq` | FAQ page |
 | `/events/new` | organizer create flow |
-| `/r/[token]` | participant reply flow |
+| `/r/[token]` | participant response flow |
 | `/e/[eventId]/organizer/[token]` | organizer dashboard |
 | `/e/[eventId]/summary/[token]` | token-gated live summary |
 | `/e/[eventId]/final` | finalized plan page |
@@ -74,7 +74,7 @@ flowchart TD
 | `PUT` | `/api/events/[eventId]/participants/[participantId]` | update participant |
 | `DELETE` | `/api/events/[eventId]/participants/[participantId]` | delete participant |
 | `POST` | `/api/events/[eventId]/participants/[participantId]/token` | regenerate participant token |
-| `POST` | `/api/events/[eventId]/respond` | submit or update participant reply |
+| `POST` | `/api/events/[eventId]/respond` | submit or update participant response |
 | `GET` | `/api/events/[eventId]/recommendations` | compute ranked meeting options |
 | `POST` | `/api/events/[eventId]/finalize` | finalize selected slot |
 | `POST` | `/api/events/[eventId]/reopen` | reopen finalized event |
@@ -94,7 +94,7 @@ There are two token classes:
 
 Organizer-only routes require `x-organizer-token` in the request headers.
 
-Participant reply routes use the participant token in the request body or query string.
+Participant response routes use the participant token in the request body or query string.
 
 There is no session cookie or account-based auth layer.
 
@@ -109,7 +109,7 @@ There is no session cookie or account-based auth layer.
 5. Insert `event_created` entry into `activity_log`
 6. Return organizer dashboard URL
 
-### Participant reply
+### Participant response
 
 1. Validate request with `SubmitResponseSchema`
 2. Resolve participant token
@@ -150,7 +150,7 @@ Schema source:
 | `events` | `title`, `timezone`, `date_range_start`, `date_range_end`, `meeting_duration_minutes`, `slot_granularity_minutes`, `min_attendance_threshold`, `participants_required_by_default`, `allow_participant_edit`, `show_results_to_participants`, `preferences_required`, `enabled_preferences`, `scoring_mode`, `suggested_time_start`, `suggested_time_end`, `status`, `response_deadline` | one row per plan with one continuous scheduling range |
 | `participants` | `name`, `email`, `phone`, `role`, `is_required`, `priority_tier`, `response_status` | includes organizer row |
 | `invite_tokens` | `token`, `role`, `is_active`, `expires_at` | one active organizer token, rotating participant tokens; links stay active until regenerated or removed |
-| `availability_windows` | `participant_id`, `start_time`, `end_time` | raw reply windows |
+| `availability_windows` | `participant_id`, `start_time`, `end_time` | raw response windows |
 | `participant_preferences` | food, budget, location, day/time, indoor/outdoor, notes | one row per event-participant pair |
 | `organizer_overrides` | `override_type`, `data` | backend-only today |
 | `normalized_slots` | `slot_start`, `slot_end` | slotized windows used by scoring |
@@ -223,7 +223,6 @@ Preferences that are stored but not scored today:
 - food
 - budget
 - preferred area
-- travel distance
 - indoor/outdoor
 
 ## Recommendation flow diagram

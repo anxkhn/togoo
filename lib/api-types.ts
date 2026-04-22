@@ -48,7 +48,6 @@ export interface FinalSelectionData {
 
 export interface ExistingPreferences {
   preferred_area: string | null;
-  max_travel_distance: number | null;
   food_preference: string | null;
   food_note: string | null;
   budget_preference: string | null;

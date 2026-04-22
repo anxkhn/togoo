@@ -136,7 +136,6 @@ export async function POST(
           .update(schema.participant_preferences)
           .set({
             preferred_area: preferences.preferred_area ?? null,
-            max_travel_distance: preferences.max_travel_distance ?? null,
             food_preference: preferences.food_preference,
             food_note: preferences.food_note ?? null,
             budget_preference: preferences.budget_preference,
@@ -153,7 +152,6 @@ export async function POST(
           event_id: eventId,
           participant_id: participant.id,
           preferred_area: preferences.preferred_area ?? null,
-          max_travel_distance: preferences.max_travel_distance ?? null,
           food_preference: preferences.food_preference,
           food_note: preferences.food_note ?? null,
           budget_preference: preferences.budget_preference,

@@ -13,7 +13,7 @@ import { InfoTooltip } from "@/components/ui/field-label";
 import { RecommendationCards } from "@/components/recommendation-cards";
 import { OverlapHeatmap } from "@/components/overlap-heatmap";
 import { ShareButtons } from "@/components/share-buttons";
-import { cn, formatDate, formatEventDate } from "@/lib/utils";
+import { cn, formatDate, formatEventDate, zonedDateTimeToUnix, zonedDateToUnixEndOfDay } from "@/lib/utils";
 import type { RecommendationSet, ScoredMeeting } from "@/lib/scheduling";
 import type { AddParticipantInviteResponse } from "@/lib/api-types";
 import { clientApi } from "@/lib/client-api";
@@ -261,10 +261,6 @@ function unixToDateTimeInput(unix: number, timezone: string): string {
   return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
 }
 
-function localDateToUnix(localDate: string): number {
-  return Math.floor(new Date(localDate).getTime() / 1000);
-}
-
 function eventToPlanForm(event: Event): PlanFormState {
   let enabledPreferences: string[] = [];
   try {
@@ -372,7 +368,7 @@ function ParticipantRow({
                 <TierBadge tier={participant.priority_tier} />
                 {participant.is_required === 1 && <Badge variant="warning" className="text-xs">Required</Badge>}
                 <Badge variant={participant.response_status === "responded" ? "success" : "default"}>
-                  {participant.response_status === "responded" ? "Replied" : "Awaiting reply"}
+                  {participant.response_status === "responded" ? "Responded" : "Awaiting response"}
                 </Badge>
               </div>
               {participant.email && <p className="text-xs text-muted mt-0.5">{participant.email}</p>}
@@ -484,6 +480,7 @@ export default function OrganizerDashboard() {
   const [newTier, setNewTier] = useState("0");
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [addParticipantError, setAddParticipantError] = useState("");
+  const [exportingParticipants, setExportingParticipants] = useState(false);
   const [deletingPlan, setDeletingPlan] = useState(false);
   const [pageError, setPageError] = useState("");
 
@@ -560,6 +557,36 @@ export default function OrganizerDashboard() {
   useEffect(() => { fetchDashboard(); }, [fetchDashboard]);
   useEffect(() => { if (!loading) fetchRecommendations(); }, [loading, fetchRecommendations]);
   useEffect(() => { if (!loading) fetchOverrides(); }, [loading, fetchOverrides]);
+
+  const handleExportParticipants = async () => {
+    setExportingParticipants(true);
+    try {
+      const res = await fetch(clientApi.exportParticipants(eventId), { headers });
+      if (!res.ok) {
+        setPageError("We couldn't export participant responses.");
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const titleSlug = (event?.title ?? "togoo")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "") || "togoo";
+
+      link.href = url;
+      link.download = `${titleSlug}-participant-responses.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      setPageError("We couldn't export participant responses.");
+    } finally {
+      setExportingParticipants(false);
+    }
+  };
 
   const handleAddParticipant = async () => {
     if (!newName.trim() || newEmailError) return;
@@ -779,8 +806,10 @@ export default function OrganizerDashboard() {
 
   const handleSavePlan = async () => {
     if (!planForm) return;
+    const eventStartUnix = zonedDateTimeToUnix(planForm.date_range_start_local, planForm.timezone);
+    const eventEndUnix = zonedDateTimeToUnix(planForm.date_range_end_local, planForm.timezone);
 
-    if (localDateToUnix(planForm.date_range_end_local) <= localDateToUnix(planForm.date_range_start_local)) {
+    if (eventEndUnix <= eventStartUnix) {
       setPlanError("End date and time must be after the start date and time.");
       return;
     }
@@ -800,7 +829,8 @@ export default function OrganizerDashboard() {
     if (
       planForm.suggested_time_start_local &&
       planForm.suggested_time_end_local &&
-      localDateToUnix(planForm.suggested_time_end_local) <= localDateToUnix(planForm.suggested_time_start_local)
+      zonedDateTimeToUnix(planForm.suggested_time_end_local, planForm.timezone) <=
+        zonedDateTimeToUnix(planForm.suggested_time_start_local, planForm.timezone)
     ) {
       setPlanError("Suggested end time must be after the suggested start time.");
       return;
@@ -818,25 +848,25 @@ export default function OrganizerDashboard() {
           description: planForm.description.trim() || undefined,
           event_type: planForm.event_type,
           timezone: planForm.timezone,
-          date_range_start: localDateToUnix(planForm.date_range_start_local),
-          date_range_end: localDateToUnix(planForm.date_range_end_local),
+          date_range_start: eventStartUnix,
+          date_range_end: eventEndUnix,
           meeting_duration_minutes: parseInt(planForm.meeting_duration_minutes),
           slot_granularity_minutes: parseInt(planForm.slot_granularity_minutes),
           scoring_mode: planForm.scoring_mode,
           suggested_time_start:
             planForm.suggested_time_start_local && planForm.suggested_time_end_local
-              ? localDateToUnix(planForm.suggested_time_start_local)
+              ? zonedDateTimeToUnix(planForm.suggested_time_start_local, planForm.timezone)
               : null,
           suggested_time_end:
             planForm.suggested_time_start_local && planForm.suggested_time_end_local
-              ? localDateToUnix(planForm.suggested_time_end_local)
+              ? zonedDateTimeToUnix(planForm.suggested_time_end_local, planForm.timezone)
               : null,
           participants_required_by_default: planForm.participants_required_by_default,
           allow_participant_edit: planForm.allow_participant_edit,
           show_results_to_participants: planForm.show_results_to_participants,
           preferences_required: planForm.preferences_required,
           response_deadline: planForm.response_deadline_local
-            ? localDateToUnix(`${planForm.response_deadline_local}T23:59:59`)
+            ? zonedDateToUnixEndOfDay(planForm.response_deadline_local, planForm.timezone)
             : null,
           enabled_preferences: planForm.enabled_preferences,
         }),
@@ -902,12 +932,12 @@ export default function OrganizerDashboard() {
                 Live summary
               </Link>
             )}
-            <Badge variant={event.status === "finalized" ? "success" : "default"}>
-              {event.status === "finalized" ? "Confirmed" : "Collecting replies"}
-            </Badge>
-            {event.status === "finalized" && (
-              <Button variant="secondary" size="sm" onClick={handleReopen}>Reopen replies</Button>
-            )}
+              <Badge variant={event.status === "finalized" ? "success" : "default"}>
+                {event.status === "finalized" ? "Confirmed" : "Collecting responses"}
+              </Badge>
+              {event.status === "finalized" && (
+                <Button variant="secondary" size="sm" onClick={handleReopen}>Reopen responses</Button>
+              )}
           </div>
         </div>
       </header>
@@ -924,7 +954,7 @@ export default function OrganizerDashboard() {
           </p>
             {event.response_deadline && (
               <p className="mt-1 text-sm text-muted tabular-nums">
-                Reply by <span className="font-medium text-text">{formatDate(event.response_deadline, event.timezone)}</span>
+                Respond by <span className="font-medium text-text">{formatDate(event.response_deadline, event.timezone)}</span>
               </p>
             )}
             {event.suggested_time_start && event.suggested_time_end && (
@@ -939,7 +969,7 @@ export default function OrganizerDashboard() {
             <div>
               <h2 className="section-title mb-1">Edit plan details</h2>
               <p className="text-sm text-muted">
-                Update the title, timing rules, reply settings, and suggested time. Saved changes immediately update what invitees see.
+                Update the title, timing rules, response settings, and suggested time. Saved changes immediately update what invitees see.
               </p>
             </div>
 
@@ -1045,8 +1075,8 @@ export default function OrganizerDashboard() {
             </div>
 
             <DatePickerField
-              label="Reply deadline"
-              tooltip="After this date, new replies are closed. Existing invitees can still open the plan, but they cannot send fresh availability."
+              label="Response deadline"
+              tooltip="After this date, new responses are closed. Existing invitees can still open the plan, but they cannot send fresh availability."
               optional
               value={planForm.response_deadline_local}
               onChange={(value) => setPlanForm((current) => current ? { ...current, response_deadline_local: value } : current)}
@@ -1094,7 +1124,7 @@ export default function OrganizerDashboard() {
                 },
                 {
                   title: "Allow participants to edit",
-                  description: "Invitees can come back and update their reply after they submit.",
+                  description: "Invitees can come back and update their response after they submit.",
                   value: planForm.allow_participant_edit,
                   key: "allow_participant_edit" as const,
                 },
@@ -1158,8 +1188,8 @@ export default function OrganizerDashboard() {
         <div className="grid grid-cols-3 gap-4 mb-8">
             {[
               { label: "Invited", value: stats.total_invited },
-              { label: "Replied", value: stats.total_responded },
-              { label: "Reply rate", value: `${responseRate}%` },
+              { label: "Responded", value: stats.total_responded },
+              { label: "Response rate", value: `${responseRate}%` },
             ].map((stat) => (
               <div key={stat.label} className="card p-4 text-center">
                 <p className="font-display text-3xl font-bold text-text tabular-nums">{stat.value}</p>
@@ -1187,7 +1217,12 @@ export default function OrganizerDashboard() {
           <div className="animate-fade-in">
             <div className="flex items-center justify-between mb-4">
               <h2 className="section-title">People ({nonOrganizerParticipants.length})</h2>
-              <Button size="sm" variant="secondary" onClick={() => setAddingParticipant(true)}>+ Add invitee</Button>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="secondary" loading={exportingParticipants} onClick={handleExportParticipants}>
+                  Export responses
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => setAddingParticipant(true)}>+ Add invitee</Button>
+              </div>
             </div>
 
             {addingParticipant && (
@@ -1257,7 +1292,7 @@ export default function OrganizerDashboard() {
 
             <div className="card divide-y-0">
               {nonOrganizerParticipants.length === 0 && pendingInvites.length === 0 ? (
-                <div className="p-8 text-center text-muted text-sm">No invitees yet. Add people to start collecting replies.</div>
+                <div className="p-8 text-center text-muted text-sm">No invitees yet. Add people to start collecting responses.</div>
               ) : (
                 <div className="p-4">
                   {pendingInvites.map((participant) => (
@@ -1297,7 +1332,7 @@ export default function OrganizerDashboard() {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="section-title">Best times</h2>
                 <div className="flex items-center gap-3">
-                  {recStats && <span className="text-xs text-muted tabular-nums">Based on a {recStats.response_rate}% reply rate</span>}
+                  {recStats && <span className="text-xs text-muted tabular-nums">Based on a {recStats.response_rate}% response rate</span>}
                   <button onClick={fetchRecommendations} disabled={recLoading} className="inline-flex min-h-10 items-center text-xs text-muted transition-[color] duration-150 hover:text-accent">
                     {recLoading ? "Refreshing..." : "Refresh"}
                   </button>
@@ -1317,7 +1352,7 @@ export default function OrganizerDashboard() {
                 />
               ) : (
                 <div className="text-center py-12 text-muted">
-                  <p className="font-medium text-text mb-1">No replies yet</p>
+                  <p className="font-medium text-text mb-1">No responses yet</p>
                   <p className="text-sm">Ranked times appear after people start replying.</p>
                 </div>
               )}
@@ -1461,7 +1496,7 @@ export default function OrganizerDashboard() {
             <h2 className="section-title mb-4">Recent activity</h2>
             {activityLog.length === 0 ? (
               <div className="card p-8 text-center text-muted text-sm">
-                New replies and changes will show up here.
+                New responses and changes will show up here.
               </div>
             ) : (
               <div className="card divide-y divide-border">

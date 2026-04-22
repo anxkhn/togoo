@@ -15,7 +15,7 @@ export function ShareButtons({ path, title, description, organizerName, particip
   const invite = organizerName
     ? `${organizerName} is trying to lock in the best time for ${title}.`
     : `Can you make ${title}?`;
-  const body = `${greeting}${invite}\n\n${description ? description + "\n\n" : ""}Reply here: ${url}`;
+  const body = `${greeting}${invite}\n\n${description ? description + "\n\n" : ""}Respond here: ${url}`;
 
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(body)}`;
   const mailtoUrl = `mailto:${participantEmail ?? ""}?subject=${encodeURIComponent(`${organizerName ?? "Someone"} invited you to ${title}`)}&body=${encodeURIComponent(body)}`;

@@ -64,7 +64,7 @@ export default function RespondPage() {
         }
 
         if (data.role !== "participant") {
-          setTokenError("This link is for the organizer dashboard, not guest replies.");
+          setTokenError("This link is for the organizer dashboard, not guest responses.");
           return;
         }
 
@@ -85,7 +85,6 @@ export default function RespondPage() {
           const p = data.existing_preferences;
           setPreferences({
             preferred_area: p.preferred_area ?? "",
-            max_travel_distance: p.max_travel_distance?.toString() ?? "",
             food_preference: p.food_preference ?? "no_preference",
             food_note: p.food_note ?? "",
             budget_preference: p.budget_preference ?? "no_preference",
@@ -141,16 +140,6 @@ export default function RespondPage() {
   }
 
   function chooseCustomTimes() {
-    if (!suggestedWindow) return;
-    setWindows((current) =>
-      current.filter(
-        (window) =>
-          !(
-            window.start_time === suggestedWindow.start_time &&
-            window.end_time === suggestedWindow.end_time
-          )
-      )
-    );
     setError("");
   }
 
@@ -160,11 +149,11 @@ export default function RespondPage() {
       return;
     }
     if (responseClosed) {
-      setError("Replies are closed for this plan.");
+      setError("Responses are closed for this plan.");
       return;
     }
     if (!preferencesSatisfied) {
-      setError("Please add at least one preference before sending your reply.");
+      setError("Please add at least one preference before sending your response.");
       return;
     }
     if (!eventId) return;
@@ -180,9 +169,6 @@ export default function RespondPage() {
         })),
         preferences: {
           preferred_area: preferences.preferred_area || undefined,
-          max_travel_distance: preferences.max_travel_distance
-            ? parseInt(preferences.max_travel_distance)
-            : undefined,
           food_preference: preferences.food_preference,
           food_note: preferences.food_note || undefined,
           budget_preference: preferences.budget_preference,
@@ -201,7 +187,7 @@ export default function RespondPage() {
 
       const data = await res.json() as ApiError;
       if (!res.ok) {
-        setError(data.error ?? "We couldn't save your reply. Please try again.");
+        setError(data.error ?? "We couldn't save your response. Please try again.");
         return;
       }
 
@@ -217,7 +203,7 @@ export default function RespondPage() {
 
       setStep("success");
     } catch {
-      setError("We couldn't save your reply. Please try again.");
+      setError("We couldn't save your response. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -259,7 +245,7 @@ export default function RespondPage() {
           </div>
           <h1 className="font-display text-3xl font-bold text-text mb-2">You're in</h1>
           <p className="text-muted mb-2">
-            Thanks, <span className="font-medium text-text">{participant?.name}</span>. Your reply is saved.
+            Thanks, <span className="font-medium text-text">{participant?.name}</span>. Your response is saved.
           </p>
           <p className="text-sm text-muted mb-8">
             The organizer can now factor your availability into the final decision.
@@ -275,7 +261,7 @@ export default function RespondPage() {
                 onClick={() => setStep("availability")}
                 className="btn-secondary text-sm"
               >
-                Edit my reply
+                  Edit my response
               </button>
             )}
             <Link href="/" className="text-sm text-muted hover:text-accent transition-colors">
@@ -298,7 +284,7 @@ export default function RespondPage() {
           <Link href="/" className="font-display text-xl font-semibold text-text">Togoo</Link>
           {isUpdate && (
               <span className="inline-flex min-h-10 items-center rounded-full bg-surface-alt px-3 py-1 text-xs text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
-                Editing reply
+                Editing response
               </span>
             )}
         </div>
@@ -316,7 +302,7 @@ export default function RespondPage() {
               </p>
             {event.response_deadline && (
               <p className="mt-1 text-sm text-muted tabular-nums">
-                Reply by <span className="font-medium text-text">{formatDate(event.response_deadline, event.timezone)}</span>
+                Respond by <span className="font-medium text-text">{formatDate(event.response_deadline, event.timezone)}</span>
               </p>
             )}
             {participant && (
@@ -329,13 +315,13 @@ export default function RespondPage() {
 
         {responseClosed && (
             <div className="mb-5 rounded-input bg-warning-light px-4 py-3 text-sm text-warning shadow-[inset_0_0_0_1px_rgba(180,83,9,0.12)]">
-             Replies are closed for this plan.
+             Responses are closed for this plan.
             </div>
         )}
 
         {isUpdate && (
           <div className="mb-5 rounded-input bg-accent-subtle px-4 py-3 text-sm text-text shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)]">
-            <p className="font-medium text-accent">Your previous reply is loaded</p>
+            <p className="font-medium text-accent">Your previous response is loaded</p>
             <p className="mt-1 text-sm text-muted">
               You can review what you already sent, and {canEditExistingResponse ? "edit it if anything changed." : "keep it as-is."}
             </p>
@@ -345,7 +331,7 @@ export default function RespondPage() {
                 onClick={() => setStep("availability")}
                 className="mt-3 inline-flex min-h-10 items-center rounded-full px-3 text-xs font-medium text-accent shadow-[inset_0_0_0_1px_rgba(47,104,68,0.18)] transition-[color,background-color] duration-150 hover:bg-white/60"
               >
-                Edit my reply
+                Edit my response
               </button>
             )}
           </div>
@@ -449,7 +435,7 @@ export default function RespondPage() {
           {step === "review" && event && (
             <div>
               <h2 className="font-display text-xl font-semibold text-text mb-1">
-                {isUpdate ? "Here is your saved reply" : "Ready to send your reply?"}
+                {isUpdate ? "Here is your saved response" : "Ready to send your response?"}
               </h2>
               <p className="text-sm text-muted mb-5">
                 {isUpdate
@@ -510,8 +496,14 @@ export default function RespondPage() {
                       {preferences.budget_preference !== "no_preference" && (
                         <div className="flex gap-2"><dt className="text-muted">Budget:</dt><dd className="text-text">{preferences.budget_preference.replace(/_/g, " ")}</dd></div>
                       )}
+                      {preferences.preferred_day_type !== "no_preference" && (
+                        <div className="flex gap-2"><dt className="text-muted">Best day:</dt><dd className="text-text">{preferences.preferred_day_type.replace(/_/g, " ")}</dd></div>
+                      )}
                       {preferences.preferred_time_of_day !== "no_preference" && (
                         <div className="flex gap-2"><dt className="text-muted">Time:</dt><dd className="text-text">{preferences.preferred_time_of_day.replace(/_/g, " ")}</dd></div>
+                      )}
+                      {preferences.indoor_outdoor !== "no_preference" && (
+                        <div className="flex gap-2"><dt className="text-muted">Setting:</dt><dd className="text-text">{preferences.indoor_outdoor.replace(/_/g, " ")}</dd></div>
                       )}
                       {preferences.preferred_area && (
                         <div className="flex gap-2"><dt className="text-muted">Area:</dt><dd className="text-text">{preferences.preferred_area}</dd></div>
@@ -543,7 +535,7 @@ export default function RespondPage() {
               if (step === "review") setStep("preferences");
               if (step === "preferences") setStep("availability");
             }}>
-              {step === "review" && isUpdate ? "Edit reply" : "Back"}
+              {step === "review" && isUpdate ? "Edit response" : "Back"}
             </Button>
           ) : (
             <div />
@@ -571,7 +563,7 @@ export default function RespondPage() {
           )}
           {step === "review" && (
             <Button loading={submitting} disabled={responseClosed || !preferencesSatisfied} onClick={handleSubmit}>
-              {isUpdate ? "Update my reply" : "Send my reply"}
+              {isUpdate ? "Update my response" : "Send my response"}
             </Button>
           )}
         </div>

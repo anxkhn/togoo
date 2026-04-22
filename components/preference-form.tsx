@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 
 export interface PreferenceValues {
   preferred_area: string;
-  max_travel_distance: string;
   food_preference: string;
   food_note: string;
   budget_preference: string;
@@ -17,7 +16,6 @@ export interface PreferenceValues {
 
 export const defaultPreferences: PreferenceValues = {
   preferred_area: "",
-  max_travel_distance: "",
   food_preference: "no_preference",
   food_note: "",
   budget_preference: "no_preference",

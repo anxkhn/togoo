@@ -108,7 +108,7 @@ export default async function SummaryPage({
         <div className="grid grid-cols-2 gap-4 mb-8">
           <div className="card p-4 text-center">
             <p className="font-display text-3xl font-bold text-text tabular-nums">{responded}</p>
-            <p className="text-xs text-muted mt-1">Replied</p>
+            <p className="text-xs text-muted mt-1">Responded</p>
           </div>
           <div className="card p-4 text-center">
             <p className="font-display text-3xl font-bold text-text tabular-nums">{totalParticipants - responded}</p>
@@ -118,7 +118,7 @@ export default async function SummaryPage({
 
         {responded < totalParticipants && (
           <div className="mb-6 rounded-input bg-warning-light px-4 py-3 text-sm text-warning shadow-[inset_0_0_0_1px_rgba(180,83,9,0.12)]">
-            <span className="font-medium">More replies are still coming in.</span> {totalParticipants - responded} {totalParticipants - responded === 1 ? "person has not" : "people have not"} replied yet, so these results may change.
+            <span className="font-medium">More responses are still coming in.</span> {totalParticipants - responded} {totalParticipants - responded === 1 ? "person has not" : "people have not"} responded yet, so these results may change.
           </div>
         )}
 
@@ -178,7 +178,7 @@ export default async function SummaryPage({
 
         {popularTimings.length === 0 && (
           <div className="card p-8 text-center text-muted text-sm">
-            <p className="font-medium text-text mb-1">No replies yet</p>
+            <p className="font-medium text-text mb-1">No responses yet</p>
             <p>Suggestions will appear after people start replying.</p>
           </div>
         )}

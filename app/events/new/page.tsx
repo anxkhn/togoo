@@ -9,11 +9,10 @@ import { Select } from "@/components/ui/select";
 import { DatePickerField, DateTimePickerField } from "@/components/ui/date-time-picker";
 import { InfoTooltip } from "@/components/ui/field-label";
 import { getTimeZones } from "@vvo/tzdb";
-import { fromZonedTime } from "date-fns-tz";
 import { saveEvent } from "@/components/my-events";
 import type { CreateEventResponse, AddParticipantInviteResponse, ApiError } from "@/lib/api-types";
 import { clientApi } from "@/lib/client-api";
-import { formatDuration } from "@/lib/utils";
+import { formatDuration, zonedDateTimeToUnix, zonedDateToUnixEndOfDay } from "@/lib/utils";
 
 const ALL_TIMEZONES = getTimeZones({ includeUtc: true });
 
@@ -99,14 +98,6 @@ function avatarColor(name: string): string {
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
   return AVATAR_COLORS[hash % AVATAR_COLORS.length] as string;
-}
-
-function localDateToUnix(localDate: string): number {
-  return Math.floor(new Date(localDate).getTime() / 1000);
-}
-
-function zonedLocalDateTimeToUnix(dateTime: string, timezone: string): number {
-  return Math.floor(fromZonedTime(`${dateTime}:00`, timezone).getTime() / 1000);
 }
 
 function todayPlus(days: number): string {
@@ -293,13 +284,15 @@ export default function NewEventPage() {
 
   async function handleSubmit() {
     const now = Math.floor(Date.now() / 1000);
+    const eventStartUnix = zonedDateTimeToUnix(form.date_range_start_local, form.timezone);
+    const eventEndUnix = zonedDateTimeToUnix(form.date_range_end_local, form.timezone);
 
-    if (localDateToUnix(form.date_range_start_local) < now) {
+    if (eventStartUnix < now) {
       setError("Start date and time cannot be in the past.");
       return;
     }
 
-    if (localDateToUnix(form.date_range_end_local) <= localDateToUnix(form.date_range_start_local)) {
+    if (eventEndUnix <= eventStartUnix) {
       setError("End date and time must be after the start date and time.");
       return;
     }
@@ -318,8 +311,8 @@ export default function NewEventPage() {
     if (
       form.suggested_time_start_local &&
       form.suggested_time_end_local &&
-      zonedLocalDateTimeToUnix(form.suggested_time_end_local, form.timezone) <=
-        zonedLocalDateTimeToUnix(form.suggested_time_start_local, form.timezone)
+      zonedDateTimeToUnix(form.suggested_time_end_local, form.timezone) <=
+        zonedDateTimeToUnix(form.suggested_time_start_local, form.timezone)
     ) {
       setError("Suggested end time must be after the suggested start time.");
       return;
@@ -334,19 +327,19 @@ export default function NewEventPage() {
         description: form.description.trim() || undefined,
         event_type: form.event_type,
         timezone: form.timezone,
-        date_range_start: localDateToUnix(form.date_range_start_local),
-        date_range_end: localDateToUnix(form.date_range_end_local),
+        date_range_start: eventStartUnix,
+        date_range_end: eventEndUnix,
         meeting_duration_minutes: parseInt(form.meeting_duration_minutes),
         slot_granularity_minutes: parseInt(form.slot_granularity_minutes),
         scoring_mode: form.scoring_mode,
         min_attendance_threshold: 0,
         suggested_time_start:
           form.suggested_time_start_local && form.suggested_time_end_local
-            ? zonedLocalDateTimeToUnix(form.suggested_time_start_local, form.timezone)
+            ? zonedDateTimeToUnix(form.suggested_time_start_local, form.timezone)
             : undefined,
         suggested_time_end:
           form.suggested_time_start_local && form.suggested_time_end_local
-            ? zonedLocalDateTimeToUnix(form.suggested_time_end_local, form.timezone)
+            ? zonedDateTimeToUnix(form.suggested_time_end_local, form.timezone)
             : undefined,
         allow_participant_edit: form.allow_participant_edit,
         show_results_to_participants: form.show_results_to_participants,
@@ -354,7 +347,7 @@ export default function NewEventPage() {
         preferences_required: form.preferences_required,
         enabled_preferences: form.enabled_preferences,
         response_deadline: form.response_deadline_local
-          ? localDateToUnix(`${form.response_deadline_local}T23:59:59`)
+          ? zonedDateToUnixEndOfDay(form.response_deadline_local, form.timezone)
           : undefined,
         organizer_name: form.organizer_name.trim(),
       };
@@ -464,8 +457,8 @@ export default function NewEventPage() {
           </h1>
           <p className="text-muted">
             {step === 4
-              ? "Add the people who should reply. Every invite gets a private link, and you can always add more later from the dashboard."
-              : "Set the window, choose what to ask, and Togoo will rank the best time once replies come in."}
+              ? "Add the people who should respond. Every invite gets a private link, and you can always add more later from the dashboard."
+              : "Set the window, choose what to ask, and Togoo will rank the best time once responses come in."}
           </p>
         </div>
 
@@ -519,7 +512,7 @@ export default function NewEventPage() {
               <Textarea
                 label="What should people know?"
                 optional
-                placeholder="Add the area, occasion, or any details people should know before they reply."
+                placeholder="Add the area, occasion, or any details people should know before they respond."
                 rows={3}
                 value={form.description}
                 onChange={(e) => set("description", e.target.value)}
@@ -614,8 +607,8 @@ export default function NewEventPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <DatePickerField
-                  label="Reply deadline"
-                  tooltip="After this date, new replies are closed. People can still view the plan, but they cannot submit new availability."
+                  label="Response deadline"
+                  tooltip="After this date, new responses are closed. People can still view the plan, but they cannot submit new availability."
                   optional
                   value={form.response_deadline_local}
                   onChange={(value) => set("response_deadline_local", value)}
@@ -686,7 +679,7 @@ export default function NewEventPage() {
               <div className="flex items-start justify-between py-3 border-b border-border">
                 <div>
                   <p className="text-sm font-medium text-text">Allow participants to edit</p>
-                  <p className="mt-0.5 text-xs text-muted">Invitees can come back and change their availability after sending their first reply.</p>
+                  <p className="mt-0.5 text-xs text-muted">Invitees can come back and change their availability after sending their first response.</p>
                 </div>
                 <button
                   type="button"
@@ -726,7 +719,7 @@ export default function NewEventPage() {
               <div className="flex items-start justify-between py-3 border-b border-border">
                 <div>
                   <p className="text-sm font-medium text-text">Let participants view the live summary</p>
-                  <p className="mt-0.5 text-xs text-muted">Invitees can open a live snapshot of who has replied and which times are currently looking strongest.</p>
+                  <p className="mt-0.5 text-xs text-muted">Invitees can open a live snapshot of who has responded and which times are currently looking strongest.</p>
                 </div>
                 <button
                   type="button"
@@ -776,7 +769,7 @@ export default function NewEventPage() {
                   )}
                   {form.response_deadline_local && (
                     <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-                      <dt>Reply deadline</dt>
+                      <dt>Response deadline</dt>
                       <dd className="text-text tabular-nums sm:text-right">{form.response_deadline_local}</dd>
                     </div>
                   )}

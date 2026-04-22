@@ -101,7 +101,7 @@ Check at least these routes:
 
 - `/`
 - `/events/new`
-- `/api/events`
+- `/faq`
 
 ## 8. Add a custom domain
 

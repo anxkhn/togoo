@@ -10,7 +10,7 @@ It is not a roadmap pitch. It is a product requirements document for what the ap
 
 Togoo is a group scheduling product for small plans.
 
-The organizer defines the time window and constraints once, sends private invite links, collects replies, reviews ranked options, and confirms one final slot.
+The organizer defines the time window and constraints once, sends private invite links, collects responses, reviews ranked options, and confirms one final slot.
 
 The product is designed for low-friction coordination without requiring accounts from invitees.
 
@@ -21,8 +21,8 @@ Small-group planning usually happens in chat threads.
 That creates a few recurring problems:
 
 - availability is scattered across messages
-- people reply in different formats
-- organizers have to manually compare replies
+- people respond in different formats
+- organizers have to manually compare responses
 - important attendees are easy to miss
 - the final answer gets buried in the thread
 
@@ -37,7 +37,7 @@ The organizer:
 - creates the plan
 - chooses one continuous scheduling window and scoring rules
 - invites people
-- monitors replies
+- monitors responses
 - makes the final decision
 
 Typical use cases:
@@ -54,13 +54,13 @@ The invitee:
 - opens a private token link
 - shares availability
 - optionally shares preferences
-- may return later to edit the reply if allowed
+- may return later to edit the response if allowed
 
 ## Product goals
 
 - reduce scheduling work for the organizer
 - keep the invitee flow short and obvious
-- rank meeting options instead of forcing the organizer to manually compare replies
+- rank meeting options instead of forcing the organizer to manually compare responses
 - support plans where some attendees matter more than others
 - give the group one final page once the plan is confirmed
 
@@ -77,9 +77,9 @@ The invitee:
 ### Organizer flow
 
 1. Create a plan
-2. Configure timing rules and reply settings
+2. Configure timing rules and response settings
 3. Add invitees and generate private links
-4. Watch replies come in on the organizer dashboard
+4. Watch responses come in on the organizer dashboard
 5. Review ranked options and the overlap heatmap
 6. Finalize one slot
 7. Share the final page back to the group
@@ -90,7 +90,7 @@ The invitee:
 2. Review plan details
 3. Select exact meeting slots
 4. Optionally add preferences
-5. Submit reply
+5. Submit response
 6. Optionally edit later if allowed
 7. Optionally view the live summary if enabled
 
@@ -133,17 +133,17 @@ The product must let the organizer define:
 
 The product must preserve in-progress create-flow state through a browser refresh on the create page.
 
-### Invitee replies
+### Invitee responses
 
 The product must:
 
-- allow replies without account creation
-- validate token access before showing the reply page
+- allow responses without account creation
+- validate token access before showing the response page
 - support multiple exact meeting slots derived from organizer timing rules
 - support preference collection
-- preload prior replies when present
-- block reply changes if the event is finalized
-- block reply changes if the deadline has passed
+- preload prior responses when present
+- block response changes if the event is finalized
+- block response changes if the deadline has passed
 - block edits when participant edits are disabled
 - show any organizer-suggested slot as a highlighted suggestion without preselecting it for the participant
 - let invitees answer a suggested slot quickly, then still pick custom slots if needed
@@ -220,8 +220,8 @@ stateDiagram-v2
 ## Product constraints in current code
 
 - scoring only uses attendance, required-attendee coverage, time-of-day preference, and weekday/weekend preference
-- stored food, budget, area, travel distance, and indoor/outdoor preferences are not scored yet
-- organizer overrides exist in the backend but are not exposed in the dashboard UI
+- stored food, budget, area, and indoor/outdoor preferences are not scored yet
+- organizer overrides exist in the backend and are exposed in the organizer dashboard UI
 - the app uses token links instead of user accounts
 - recent plans are stored in the local browser only
 
@@ -241,7 +241,7 @@ stateDiagram-v2
 The product is doing its job if:
 
 - organizers can go from empty plan to invite links quickly
-- invitees can reply without needing explanation
+- invitees can respond without needing explanation
 - organizers can choose a final slot from ranked options instead of reading chat logs
 - finalized plans are easy to share back to the group
 
