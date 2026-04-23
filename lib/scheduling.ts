@@ -336,3 +336,11 @@ export function computeRecommendations(
     top_candidates: sorted.slice(0, 10).map((c) => ({ ...c, explanation: buildExplanation(c) })),
   };
 }
+
+export function isValidFinalizationSlot(
+  candidates: ScoredMeeting[],
+  slotStart: number,
+  slotEnd: number
+): boolean {
+  return candidates.some((candidate) => candidate.start === slotStart && candidate.end === slotEnd);
+}

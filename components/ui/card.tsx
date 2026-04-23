@@ -8,7 +8,7 @@ interface CardProps {
 
 export function Card({ children, className, elevated = false }: CardProps) {
   return (
-    <div className={cn("card p-5", elevated && "shadow-card-elevated", className)}>
+    <div className={cn("card p-5 sm:p-6", elevated && "shadow-card-elevated", className)}>
       {children}
     </div>
   );
@@ -23,5 +23,5 @@ export function CardTitle({ children, className }: { children: React.ReactNode; 
 }
 
 export function CardBody({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("text-pretty text-sm text-muted", className)}>{children}</div>;
+  return <div className={cn("text-pretty text-sm leading-relaxed text-text/80", className)}>{children}</div>;
 }

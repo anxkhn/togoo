@@ -10,6 +10,7 @@ colors:
   surface: "#FFFFFF"
   surface-alt: "#F9F8F5"
   text: "#1A1714"
+  muted: "#7D7671"
   accent-subtle: "#EBF5EF"
   warning: "#B45309"
   warning-surface: "#FEF3C7"
@@ -76,28 +77,35 @@ components:
     textColor: "{colors.on-primary}"
     typography: "{typography.label-sm}"
     rounded: "{rounded.sm}"
-    padding: 12px
+    padding: "10px 20px"
     height: 40px
   button-primary-hover:
     backgroundColor: "{colors.primary-hover}"
     textColor: "{colors.on-primary}"
     typography: "{typography.label-sm}"
     rounded: "{rounded.sm}"
-    padding: 12px
+    padding: "10px 20px"
     height: 40px
   button-secondary:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.text}"
     typography: "{typography.label-sm}"
     rounded: "{rounded.sm}"
-    padding: 12px
+    padding: "10px 20px"
     height: 40px
   button-ghost:
-    backgroundColor: "{colors.surface-alt}"
-    textColor: "{colors.text}"
+    backgroundColor: transparent
+    textColor: "{colors.muted}"
     typography: "{typography.label-sm}"
     rounded: "{rounded.sm}"
-    padding: 12px
+    padding: "6px 12px"
+    height: 40px
+  button-danger:
+    backgroundColor: "{colors.danger}"
+    textColor: "{colors.on-primary}"
+    typography: "{typography.label-sm}"
+    rounded: "{rounded.sm}"
+    padding: "10px 20px"
     height: 40px
   input:
     backgroundColor: "{colors.surface}"
@@ -242,6 +250,11 @@ In code, this system currently lives in:
 - `components/ui/input.tsx`
 - `components/ui/select.tsx`
 - `components/ui/badge.tsx`
+- `components/ui/field-label.tsx`
+- `components/ui/date-time-picker.tsx`
+- `components/share-buttons.tsx`
+
+Implementation note: Tailwind uses the token name `accent` for the primary green action color. Treat `accent` and `primary` as the same semantic color until the token names are consolidated.
 
 ## Do's and Don'ts
 

@@ -40,7 +40,7 @@
   :focus-visible {
     outline: 2px solid #2F6844;
     outline-offset: 2px;
-    border-radius: 4px;
+    border-radius: inherit;
   }
 
   * {
@@ -106,9 +106,20 @@
       color var(--duration-fast) var(--ease-standard);
   }
 
+  .btn-danger {
+    @apply inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap
+           rounded-input bg-danger px-5 py-2.5 text-sm font-medium text-white
+           active:scale-[0.96]
+           focus-visible:outline-danger disabled:cursor-not-allowed disabled:opacity-50;
+    box-shadow: 0 10px 24px rgba(185, 28, 28, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    transition:
+      background-color var(--duration-fast) var(--ease-standard),
+      box-shadow var(--duration-fast) var(--ease-standard);
+  }
+
   .input {
-    @apply w-full min-h-10 bg-surface rounded-input px-3.5 py-2.5 text-sm text-text
-           placeholder:text-muted-light focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent;
+    @apply w-full min-h-10 border border-transparent bg-surface rounded-input px-4 py-2.5 text-sm text-text
+           placeholder:text-muted-light focus:outline-none focus-visible:border-accent focus-visible:ring-1 focus-visible:ring-accent;
     box-shadow: inset 0 0 0 1px rgba(26, 23, 20, 0.08), 0 1px 2px rgba(26, 23, 20, 0.03);
     transition:
       border-color var(--duration-fast) var(--ease-standard),
@@ -137,7 +148,7 @@
   }
 
   .pill-toggle {
-    @apply inline-flex min-h-10 items-center justify-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-medium active:scale-[0.96];
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium active:scale-[0.96];
     box-shadow: inset 0 0 0 1px rgba(26, 23, 20, 0.08);
     transition:
       background-color var(--duration-fast) var(--ease-standard),
@@ -145,6 +156,11 @@
       color var(--duration-fast) var(--ease-standard),
       box-shadow var(--duration-fast) var(--ease-standard),
       transform var(--duration-micro) var(--ease-out-cubic);
+  }
+
+  .pill-toggle-selected {
+    @apply bg-accent text-white;
+    box-shadow: 0 10px 24px rgba(47, 104, 68, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.12);
   }
 
   .toggle-switch {
@@ -201,13 +217,17 @@
   }
 
   .btn-secondary:hover {
-    border-color: #D5CFC4;
     background-color: #F9F8F5;
+    box-shadow: inset 0 0 0 1px rgba(213, 207, 196, 0.95), 0 8px 20px rgba(26, 23, 20, 0.05);
   }
 
   .btn-ghost:hover {
     color: #1A1714;
     background-color: #F9F8F5;
+  }
+
+  .btn-danger:hover {
+    background-color: #991B1B;
   }
 
   .card-interactive:hover {
@@ -246,6 +266,7 @@
   .btn-primary,
   .btn-secondary,
   .btn-ghost,
+  .btn-danger,
   .pill-toggle,
   .toggle-switch,
   .toggle-thumb {

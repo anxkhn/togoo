@@ -111,6 +111,32 @@ npm run dev
 
 Open `http://localhost:3000`.
 
+In another terminal, verify the full local scheduling loop:
+
+```bash
+npm run smoke:local
+```
+
+Expected migration output ends with lines similar to:
+
+```text
+Migrations to be applied:
+0001_init.sql
+Your database is now up to date.
+```
+
+Expected smoke output includes:
+
+```text
+PASS local app reachable
+PASS event created
+PASS participant invite generated
+PASS response submitted
+PASS recommendations returned candidates
+PASS final slot accepted
+PASS local smoke completed in 0.0s
+```
+
 ### Optional demo data
 
 ```bash
@@ -129,6 +155,8 @@ Apply it with:
 npm run db:migrate:local
 npm run db:migrate:remote
 ```
+
+Schema changes should be made through a new file in `drizzle/migrations/`, not by editing an already-applied migration. Apply locally first with `npm run db:migrate:local`, then include migration notes in the release or PR, then apply remotely through `npm run deploy:prod`.
 
 ## Environment
 
@@ -149,6 +177,35 @@ CLOUDFLARE_ACCOUNT_ID=your_account_id
 CLOUDFLARE_DATABASE_ID=your_database_id
 CLOUDFLARE_D1_TOKEN=your_api_token
 ```
+
+Local app development through `vinext dev` and local D1 does not require these production values. Keep `.env` for local tooling only and do not commit it.
+
+### Local D1 troubleshooting
+
+- If `npm run db:migrate:local` cannot find the database, confirm `wrangler.toml` has a D1 binding named `DB` and `database_name = "togoo-db"`.
+- If local D1 behaves like an empty database, rerun `npm run db:migrate:local`; Wrangler stores local SQLite state under `.wrangler/`.
+- If Wrangler asks you to log in for local commands, run `npx wrangler login`. Local D1 usually works without remote writes, but Wrangler still needs a valid project configuration.
+- If `npm run smoke:local` fails to connect, make sure `npm run dev` is running and set `SMOKE_BASE_URL=http://localhost:3000` if you use a different port.
+- If remote migration commands fail, check `.env` has `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_DATABASE_ID`, and `CLOUDFLARE_D1_TOKEN`.
+
+## Verification
+
+Use these commands before shipping scheduling or recommendation changes:
+
+```bash
+npm test
+npm run check
+```
+
+For local end-to-end confidence, keep the dev server running and run:
+
+```bash
+npm run db:migrate:local
+npm run dev
+npm run smoke:local
+```
+
+`npm run check` runs type checking, unit regression tests, and a production build. `npm run smoke:local` creates local test data and verifies create, invite, respond, recommend, and finalize through the HTTP API.
 
 ## Data model
 

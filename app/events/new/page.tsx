@@ -557,7 +557,7 @@ export default function NewEventPage() {
                   onChange={(value) => set("date_range_end_local", value)}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Select
                   label="How long will it last?"
                   required
@@ -636,8 +636,8 @@ export default function NewEventPage() {
                         }}
                         className={`pill-toggle ${
                           enabled
-                            ? "bg-accent text-white shadow-[0_10px_24px_rgba(47,104,68,0.16),inset_0_1px_0_rgba(255,255,255,0.12)]"
-                            : "bg-surface text-text hover:border-accent/40"
+                            ? "pill-toggle-selected"
+                            : "bg-surface text-text"
                         }`}
                       >
                         {enabled && (
@@ -786,7 +786,7 @@ export default function NewEventPage() {
 
           {step === 4 && (
             <div className="space-y-5">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <Input
                     label="Name"
@@ -817,7 +817,7 @@ export default function NewEventPage() {
                     <p className="text-xs text-danger mt-1">{inviteEmailError}</p>
                   )}
                 </div>
-                <div className="col-span-2">
+                <div className="sm:col-span-2">
                   <Input
                     label="Phone for WhatsApp (optional)"
                     type="tel"
@@ -829,7 +829,7 @@ export default function NewEventPage() {
                     }}
                   />
                 </div>
-                <div className="col-span-2 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_220px]">
+                <div className="sm:col-span-2 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_220px]">
                   <label className="flex min-h-12 items-center gap-3 rounded-input bg-surface px-4 py-3 text-sm text-text shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08),0_1px_2px_rgba(26,23,20,0.03)]">
                     <input
                       type="checkbox"
@@ -895,7 +895,7 @@ export default function NewEventPage() {
                       <button
                         type="button"
                         onClick={() => navigator.clipboard.writeText(p.invite_url)}
-                        className="inline-flex min-h-10 flex-shrink-0 items-center rounded-full px-3 text-xs font-medium text-accent shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)] transition-[color,background-color] duration-150 hover:bg-accent-subtle active:scale-[0.96]"
+                        className="btn-ghost flex-shrink-0 rounded-full px-3 text-xs text-accent shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)]"
                       >
                         Copy link
                       </button>

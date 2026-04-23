@@ -328,7 +328,7 @@ export default function RespondPage() {
               <button
                 type="button"
                 onClick={() => setStep("availability")}
-                className="mt-3 inline-flex min-h-10 items-center rounded-full px-3 text-xs font-medium text-accent shadow-[inset_0_0_0_1px_rgba(47,104,68,0.18)] transition-[color,background-color] duration-150 hover:bg-white/60"
+                className="btn-ghost mt-3 rounded-full bg-white/40 px-3 text-xs text-accent shadow-[inset_0_0_0_1px_rgba(47,104,68,0.18)]"
               >
                 Edit my response
               </button>

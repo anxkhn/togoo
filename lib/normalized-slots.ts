@@ -1,6 +1,6 @@
-import * as schema from "@/lib/db/schema";
-import type { DB } from "@/lib/db";
-import { generateId } from "@/lib/tokens";
+import * as schema from "./db/schema";
+import type { DB } from "./db";
+import { generateId } from "./tokens";
 
 const NORMALIZED_SLOT_BATCH_SIZE = 10;
 

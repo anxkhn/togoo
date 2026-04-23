@@ -24,14 +24,13 @@ export function Button({
     primary: "btn-primary",
     secondary: "btn-secondary",
     ghost: "btn-ghost",
-    danger:
-      "inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-input bg-danger px-5 py-2.5 text-sm font-medium text-white hover:bg-danger/90 focus-visible:outline-danger disabled:cursor-not-allowed disabled:opacity-50 motion-safe:transition-[background-color,box-shadow] motion-safe:duration-150 motion-safe:ease shadow-[0_10px_24px_rgba(185,28,28,0.14),inset_0_1px_0_rgba(255,255,255,0.14)]",
+    danger: "btn-danger",
   };
 
   const sizes = {
-    sm: "!px-3.5 !py-1.5 !text-xs",
+    sm: "!min-h-9 !px-3 !py-1.5 !text-sm",
     md: "",
-    lg: "!px-6 !py-3 !text-base",
+    lg: "!min-h-12 !px-6 !py-3 !text-base",
   };
 
   return (
@@ -40,7 +39,7 @@ export function Button({
         "inline-flex items-center justify-center gap-2 whitespace-nowrap",
         variants[variant],
         sizes[size],
-        isStatic ? "active:scale-100" : variant === "danger" ? "active:scale-[0.96]" : null,
+        isStatic ? "active:scale-100" : null,
         className
       )}
       disabled={disabled || loading}

@@ -8,7 +8,7 @@ interface BadgeProps {
 
 export function Badge({ children, variant = "default", className }: BadgeProps) {
   const variants = {
-    default: "bg-surface-alt text-muted",
+    default: "bg-surface-alt text-text",
     success: "bg-accent-subtle text-accent shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)]",
     warning: "bg-warning-light text-warning shadow-[inset_0_0_0_1px_rgba(180,83,9,0.12)]",
     danger: "bg-danger-light text-danger shadow-[inset_0_0_0_1px_rgba(185,28,28,0.12)]",

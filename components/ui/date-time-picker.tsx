@@ -17,6 +17,7 @@ import {
   Popover,
 } from "react-aria-components";
 import { CalendarDate, CalendarDateTime, parseDate, parseDateTime } from "@internationalized/date";
+import { useId } from "react";
 import { useDateFormatter } from "react-aria";
 import { cn } from "@/lib/utils";
 import { FieldLabel } from "@/components/ui/field-label";
@@ -72,11 +73,12 @@ function PickerFieldShell({
   error,
   required,
   optional,
+  id,
   children,
-}: BaseFieldProps & { children: React.ReactNode }) {
+}: BaseFieldProps & { id?: string; children: React.ReactNode }) {
   return (
     <div className="w-full">
-      {label && <FieldLabel label={label} tooltip={tooltip} required={required} optional={optional} />}
+      {label && <FieldLabel htmlFor={id} label={label} tooltip={tooltip} required={required} optional={optional} />}
       {children}
       {hint && !error && <p className="mt-1.5 text-pretty text-xs text-muted">{hint}</p>}
       {error && <p className="mt-1.5 text-pretty text-xs text-danger">{error}</p>}
@@ -104,18 +106,18 @@ function PickerCalendar({ bare = false }: { bare?: boolean }) {
           <header className="mb-2 flex items-center justify-between gap-1 px-0.5">
             <AriaButton
               slot="previous"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted transition-[background-color,color] duration-150 hover:bg-surface-alt hover:text-text active:scale-[0.96]"
+              className="btn-ghost h-9 min-h-9 w-9 rounded-full px-0 py-0"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="m15 19-7-7 7-7" />
               </svg>
             </AriaButton>
-            <Heading className="font-display text-base font-semibold text-text">
+            <Heading className="font-sans text-base font-semibold text-text">
               {monthFormatter.format(state.visibleRange.start.add({ months: 1 }).toDate(state.timeZone))}
             </Heading>
             <AriaButton
               slot="next"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted transition-[background-color,color] duration-150 hover:bg-surface-alt hover:text-text active:scale-[0.96]"
+              className="btn-ghost h-9 min-h-9 w-9 rounded-full px-0 py-0"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="m9 5 7 7-7 7" />
@@ -142,7 +144,7 @@ function PickerCalendar({ bare = false }: { bare?: boolean }) {
                       isDisabled && "opacity-40",
                       isSelected
                         ? "bg-accent text-white shadow-[0_10px_24px_rgba(47,104,68,0.16)]"
-                        : "text-text hover:bg-accent-subtle data-[focused]:bg-accent-subtle"
+                        : "text-text data-[focused]:bg-accent-subtle data-[focused]:ring-2 data-[focused]:ring-accent/30"
                     )
                   }
                 />
@@ -165,7 +167,7 @@ function SegmentField() {
             cn(
               segment.type === "literal"
                 ? "px-0 py-0 text-sm leading-none text-muted"
-                : "rounded px-[1px] py-0 text-sm leading-none outline-none data-[focused]:bg-accent-subtle data-[focused]:text-text",
+                : "rounded px-[1px] py-0 text-sm leading-none outline-none data-[focused]:bg-accent-subtle data-[focused]:text-text data-[focused]:ring-1 data-[focused]:ring-accent/30",
               isPlaceholder ? "text-muted-light" : "text-text"
             )
           }
@@ -179,7 +181,7 @@ function TriggerButton() {
   return (
     <AriaButton
       slot="trigger"
-      className="inline-flex h-10 w-10 shrink-0 items-center justify-center self-center rounded-input text-muted transition-[background-color,color] duration-150 hover:bg-surface-alt hover:text-text active:scale-[0.96]"
+      className="btn-ghost h-10 w-10 shrink-0 self-center px-0 py-0"
     >
       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -190,10 +192,11 @@ function TriggerButton() {
 
 export function DatePickerField({ label, tooltip, hint, error, value, onChange, required, optional }: DatePickerFieldProps) {
   const parsedValue = value ? parseDate(value) : null;
+  const id = useId();
 
   return (
-    <PickerFieldShell label={label} tooltip={tooltip} hint={hint} error={error} required={required} optional={optional}>
-      <AriaDatePicker value={parsedValue} onChange={(next) => onChange(next ? formatCalendarDate(next as CalendarDate) : "")} granularity="day">
+    <PickerFieldShell id={id} label={label} tooltip={tooltip} hint={hint} error={error} required={required} optional={optional}>
+      <AriaDatePicker id={id} value={parsedValue} onChange={(next) => onChange(next ? formatCalendarDate(next as CalendarDate) : "")} granularity="day">
         <Group className={cn("input flex h-10 min-h-10 items-center px-0 py-0", error && "border-danger focus-within:border-danger focus-within:ring-danger")}>
           <SegmentField />
           <TriggerButton />
@@ -211,6 +214,7 @@ export function DatePickerField({ label, tooltip, hint, error, value, onChange, 
 export function DateTimePickerField({ label, tooltip, hint, error, value, onChange, required, optional }: DateTimePickerFieldProps) {
   const parsedValue = value ? parseDateTime(value) : null;
   const selectedTime = value ? value.slice(11, 16) : "09:00";
+  const id = useId();
 
   function updateTime(nextTime: string) {
     if (!value) return;
@@ -219,8 +223,9 @@ export function DateTimePickerField({ label, tooltip, hint, error, value, onChan
   }
 
   return (
-    <PickerFieldShell label={label} tooltip={tooltip} hint={hint} error={error} required={required} optional={optional}>
+    <PickerFieldShell id={id} label={label} tooltip={tooltip} hint={hint} error={error} required={required} optional={optional}>
       <AriaDatePicker
+        id={id}
         value={parsedValue}
         onChange={(next) => onChange(next ? formatCalendarDateTime(next as CalendarDateTime) : "")}
         granularity="minute"
@@ -237,7 +242,7 @@ export function DateTimePickerField({ label, tooltip, hint, error, value, onChan
               <PickerCalendar bare />
               <div className="relative">
                 <select
-                  className="w-full min-h-10 appearance-none rounded-input bg-surface px-3.5 py-2 pr-10 text-sm text-text shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)] transition-[border-color,box-shadow] duration-150 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
+                  className="input appearance-none pr-10 disabled:cursor-not-allowed disabled:opacity-50"
                   value={selectedTime}
                   onChange={(event) => updateTime(event.target.value)}
                   disabled={!value}

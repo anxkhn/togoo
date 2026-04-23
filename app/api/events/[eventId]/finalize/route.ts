@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { getDB } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
 import { generateId } from "@/lib/tokens";
-import { computeCandidateMeetings, normalizeAvailabilityWindows } from "@/lib/scheduling";
+import { computeCandidateMeetings, isValidFinalizationSlot, normalizeAvailabilityWindows } from "@/lib/scheduling";
 import { FinalizeEventSchema } from "@/lib/validation";
 import { unixNow } from "@/lib/utils";
 import { findOrganizerInviteToken } from "@/lib/auth";
@@ -95,11 +95,7 @@ export async function POST(
       overrides
     );
 
-    const isValidCandidate = validCandidates.some(
-      (candidate) => candidate.start === parsed.data.slot_start && candidate.end === parsed.data.slot_end
-    );
-
-    if (!isValidCandidate) {
+    if (!isValidFinalizationSlot(validCandidates, parsed.data.slot_start, parsed.data.slot_end)) {
       return NextResponse.json({ error: "Selected time is no longer a valid recommendation" }, { status: 400 });
     }
 

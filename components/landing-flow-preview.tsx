@@ -7,7 +7,7 @@ const PANELS = [
     glow: "bg-[#DDEDE4]",
     content: (
       <div className="space-y-3">
-        <div className="rounded-[18px] bg-surface p-4 shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
+        <div className="rounded-card bg-surface p-4 shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
           <div className="mb-3 flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-muted">Plan title</p>
@@ -20,7 +20,7 @@ const PANELS = [
           </div>
         </div>
 
-        <div className="rounded-[18px] bg-surface p-4 shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
+        <div className="rounded-card bg-surface p-4 shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
           <p className="mb-2 text-xs font-medium text-muted">Collect these preferences</p>
           <div className="flex flex-wrap gap-2 text-[11px] font-medium">
             {[
@@ -49,10 +49,10 @@ const PANELS = [
     glow: "bg-[#F1E8DA]",
     content: (
       <div className="space-y-3">
-        <div className="rounded-[18px] bg-surface p-4 shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
+        <div className="rounded-card bg-surface p-4 shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
           <div className="mb-3 flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-muted">Alex is replying</p>
+              <p className="text-xs font-medium text-muted">Alex is responding</p>
               <p className="font-medium text-text">Friday dinner</p>
             </div>
           </div>
@@ -80,7 +80,7 @@ const PANELS = [
           </div>
         </div>
 
-        <div className="rounded-[18px] bg-surface p-4 shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
+        <div className="rounded-card bg-surface p-4 shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
           <p className="mb-2 text-xs font-medium text-muted">Extra context</p>
           <div className="space-y-2 text-xs text-text">
             <div className="rounded-xl bg-surface-alt px-3 py-2 shadow-[inset_0_0_0_1px_rgba(26,23,20,0.06)]">Prefers somewhere near downtown</div>
@@ -98,7 +98,7 @@ const PANELS = [
     glow: "bg-[#E6EFE8]",
     content: (
       <div className="space-y-3">
-        <div className="rounded-[18px] bg-surface p-4 shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
+        <div className="rounded-card bg-surface p-4 shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
           <div className="mb-3 flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-muted">Top options</p>
@@ -133,9 +133,9 @@ const PANELS = [
           </div>
         </div>
 
-        <div className="rounded-[18px] bg-surface p-4 shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
+        <div className="rounded-card bg-surface p-4 shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
           <p className="mb-2 text-xs font-medium text-muted">Final share page</p>
-          <div className="rounded-[18px] bg-accent-subtle px-4 py-4 text-center shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)]">
+          <div className="rounded-card bg-accent-subtle px-4 py-4 text-center shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)]">
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">confirmed</p>
             <p className="mt-1 font-display text-xl font-semibold text-text tabular-nums">Wednesday 7:00 PM</p>
             <p className="mt-1 text-xs text-muted">Ready to send back to everyone</p>
@@ -165,7 +165,7 @@ export function LandingFlowPreview() {
 
         <div className="grid gap-4 lg:grid-cols-3">
           {PANELS.map((panel) => (
-            <section key={panel.step} className="card card-interactive relative overflow-hidden p-5">
+            <section key={panel.step} className="card relative overflow-hidden p-5">
               <div className={`absolute -right-8 -top-8 h-28 w-28 rounded-full opacity-70 blur-2xl ${panel.glow}`} />
               <div className="relative">
                 <div className="mb-4 flex items-start justify-between gap-3">

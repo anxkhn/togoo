@@ -6,8 +6,11 @@
     "dev": "vinext dev",
     "build": "vinext build",
     "deploy": "vinext deploy",
-    "deploy:prod": "npm run db:migrate:remote && vinext deploy",
+    "deploy:prod": "npm run check && npm run db:migrate:remote && vinext deploy",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run --config tests/vitest.config.ts",
+    "check": "npm run typecheck && npm test && npm run build",
+    "smoke:local": "node scripts/smoke-local.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply togoo-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply togoo-db --remote",
@@ -44,6 +47,7 @@
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.0",
     "vinext": "latest",
+    "vitest": "^4.1.5",
     "wrangler": "^4.83.0"
   },
   "type": "module"

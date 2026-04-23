@@ -70,7 +70,7 @@ export default function FAQPage() {
 
         <div className="space-y-4 animate-fade-in" style={{ animationDelay: "0.1s" }}>
           {FAQS.map((item) => (
-            <div key={item.q} className="card card-interactive p-6">
+            <div key={item.q} className="card p-6">
               <h2 className="font-display text-base font-semibold text-text mb-2">{item.q}</h2>
               <p className="text-sm text-muted leading-relaxed">{item.a}</p>
             </div>

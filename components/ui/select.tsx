@@ -26,7 +26,7 @@ export function Select({ label, error, hint, tooltip, className, id, options, op
           id={inputId}
           className={cn(
             "input appearance-none cursor-pointer pr-10",
-            error && "border-danger focus:border-danger focus:ring-danger",
+            error && "border-danger focus-visible:border-danger focus-visible:ring-danger",
             className
           )}
           {...props}

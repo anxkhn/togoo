@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export interface StoredEvent {
   id: string;
@@ -46,18 +47,18 @@ function ConfirmDeleteDialog({
             <span className="font-medium text-text">{title}</span> will be removed from your recent plans on this device only.
           </p>
         <div className="flex gap-3 justify-end">
-          <button
+          <Button
             onClick={onCancel}
-            className="inline-flex min-h-10 items-center justify-center rounded-lg border border-transparent px-4 py-2 text-sm text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)] transition-[background-color,color,border-color] duration-150 ease hover:bg-surface-alt hover:text-text active:scale-[0.96]"
+            variant="secondary"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={onConfirm}
-            className="inline-flex min-h-10 items-center justify-center rounded-lg bg-danger px-4 py-2 text-sm font-medium text-white shadow-[0_10px_24px_rgba(185,28,28,0.14),inset_0_1px_0_rgba(255,255,255,0.14)] transition-[background-color,box-shadow] duration-150 ease hover:bg-danger/90 active:scale-[0.96]"
+            variant="danger"
           >
             Remove
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -119,7 +120,7 @@ export function MyEvents() {
               </Link>
               <button
                 onClick={() => setPendingDelete(ev)}
-                className="absolute right-2 top-2 inline-flex h-10 w-10 items-center justify-center rounded-full text-muted transition-[color,background-color] duration-150 ease hover:bg-danger/10 hover:text-danger active:scale-[0.96]"
+                className="btn-ghost absolute right-2 top-2 h-10 w-10 rounded-full px-0 text-muted"
                 title="Remove shortcut"
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

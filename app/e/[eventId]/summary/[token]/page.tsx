@@ -143,7 +143,7 @@ export default async function SummaryPage({
             <p className="text-xs text-muted mb-4">These are the times with the strongest overlap so far.</p>
             <div className="space-y-3">
               {popularTimings.map((slot, i) => (
-                <div key={slot.start} className="card card-interactive flex items-center gap-4 p-4">
+                <div key={slot.start} className="card flex items-center gap-4 p-4">
                   <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-accent-subtle font-display text-sm font-bold text-accent shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)] tabular-nums">
                     {i + 1}
                   </div>
@@ -194,7 +194,7 @@ export default async function SummaryPage({
         {popularTimings.length === 0 && (
           <div className="card p-8 text-center text-muted text-sm">
             <p className="font-medium text-text mb-1">No responses yet</p>
-            <p>Suggestions will appear after people start replying.</p>
+            <p>Suggestions will appear after people start responding.</p>
           </div>
         )}
       </main>

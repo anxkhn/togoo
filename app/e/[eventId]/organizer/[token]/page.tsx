@@ -170,7 +170,7 @@ function CopyButton({ text, label }: { readonly text: string; readonly label: st
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <button onClick={copy} className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-accent transition-[color,background-color] duration-150 ease py-1 px-2 rounded hover:bg-accent-subtle flex-shrink-0">
+    <button onClick={copy} className="btn-ghost min-h-8 flex-shrink-0 rounded-full px-2 py-1 text-xs">
       {copied ? (
         <><svg className="w-3.5 h-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>Link copied</>
       ) : (
@@ -1136,7 +1136,7 @@ export default function OrganizerDashboard() {
               <div className="mb-3 flex items-center gap-1.5">
                 <p className="text-sm font-medium text-text">Preference questions</p>
                 <span className="text-muted text-[12px]">(optional)</span>
-                <InfoTooltip text="Turn on only the extra questions invitees should see while replying. Keep this short unless the plan really needs more context." />
+                <InfoTooltip text="Turn on only the extra questions invitees should see while responding. Keep this short unless the plan really needs more context." />
               </div>
               <div className="flex flex-wrap gap-2">
                 {ALL_PREF_FIELDS.map(({ key, label }) => {
@@ -1153,8 +1153,8 @@ export default function OrganizerDashboard() {
                       } : current)}
                       className={`pill-toggle ${
                         enabled
-                          ? "bg-accent text-white shadow-[0_10px_24px_rgba(47,104,68,0.16),inset_0_1px_0_rgba(255,255,255,0.12)]"
-                          : "bg-surface text-text hover:border-accent/40"
+                            ? "pill-toggle-selected"
+                          : "bg-surface text-text"
                       }`}
                     >
                       {label}
@@ -1235,7 +1235,7 @@ export default function OrganizerDashboard() {
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 gap-4 mb-8 sm:grid-cols-3">
             {[
               { label: "Invited", value: stats.total_invited },
               { label: "Responded", value: stats.total_responded },
@@ -1278,11 +1278,12 @@ export default function OrganizerDashboard() {
             {addingParticipant && (
                 <div className="card p-4 mb-4 animate-scale-in">
                   <p className="text-sm font-medium text-text mb-3">Add someone to this plan</p>
-                <div className="grid grid-cols-2 gap-3 mb-3">
-                  <Input placeholder="Name" value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleAddParticipant()} />
+                <div className="grid grid-cols-1 gap-3 mb-3 sm:grid-cols-2">
+                  <Input label="Name" placeholder="Alex Chen" value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleAddParticipant()} />
                   <div>
                     <Input
-                      placeholder="Email (optional)"
+                      label="Email"
+                      placeholder="alex@example.com"
                       type="email"
                       value={newEmail}
                       onChange={(e) => { setNewEmail(e.target.value); setNewEmailTouched(false); }}
@@ -1294,6 +1295,7 @@ export default function OrganizerDashboard() {
                 <div className="grid grid-cols-1 gap-3 mb-3 sm:grid-cols-2">
                   <Input
                     type="tel"
+                    label="Phone"
                     placeholder="+91 9000000000"
                     value={newPhone}
                     onChange={(e) => setNewPhone(e.target.value)}
@@ -1320,7 +1322,7 @@ export default function OrganizerDashboard() {
                       <option value="2">★★ Key person</option>
                     </select>
                   </div>
-                  <div className="rounded-[18px] bg-surface-alt px-4 py-3 text-sm text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
+                  <div className="rounded-card bg-surface-alt px-4 py-3 text-sm text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
                     Invite links stay active until you regenerate or remove them.
                   </div>
                 </div>
@@ -1407,7 +1409,7 @@ export default function OrganizerDashboard() {
               ) : (
                 <div className="text-center py-12 text-muted">
                   <p className="font-medium text-text mb-1">No responses yet</p>
-                  <p className="text-sm">Ranked times appear after people start replying.</p>
+                  <p className="text-sm">Ranked times appear after people start responding.</p>
                 </div>
               )}
             </div>

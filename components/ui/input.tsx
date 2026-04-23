@@ -48,7 +48,7 @@ export function Input({ label, error, hint, tooltip, className, id, optional, ..
           <div
             className={cn(
               "input flex items-center justify-between pr-11",
-              error && "border-danger focus:border-danger focus:ring-danger"
+                error && "border-danger focus-visible:border-danger focus-visible:ring-danger"
             )}
           >
             <span className={cn("truncate", dateValue ? "text-text tabular-nums" : "text-muted-light")}>
@@ -64,7 +64,7 @@ export function Input({ label, error, hint, tooltip, className, id, optional, ..
       ) : (
         <input
           id={inputId}
-          className={cn("input", error && "border-danger focus:border-danger focus:ring-danger", className)}
+          className={cn("input", error && "border-danger focus-visible:border-danger focus-visible:ring-danger", className)}
           {...props}
         />
       )}

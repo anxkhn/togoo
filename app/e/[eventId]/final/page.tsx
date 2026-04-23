@@ -80,27 +80,33 @@ export default async function FinalPage({
   const shareText = `${event.title} is confirmed for ${startDate}, ${startTime}-${endTime} (${event.timezone})`;
 
   return (
-    <div className="min-h-screen bg-bg flex items-center justify-center px-5">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-10 animate-slide-up">
+    <div className="min-h-screen bg-bg">
+      <header className="sticky top-0 z-10 border-b border-border bg-surface/80 backdrop-blur-sm">
+        <div className="mx-auto flex h-14 max-w-xl items-center justify-between px-5">
+          <Link href="/" className="font-display text-xl font-semibold text-text">
+            Togoo
+          </Link>
+        </div>
+      </header>
+
+      <main className="mx-auto flex min-h-[calc(100vh-56px)] max-w-xl items-center px-5 py-10">
+        <div className="w-full">
+        <div className="text-center mb-8 animate-slide-up">
           <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-accent-subtle shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)]">
             <svg className="w-7 h-7 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
-          <Link href="/" className="font-display text-xl font-semibold text-text block mb-8">
-            Togoo
-          </Link>
           <p className="text-xs font-medium text-accent uppercase tracking-wide mb-2">
-            {event.event_type} | confirmed
+            Plan confirmed
           </p>
-          <h1 className="font-display text-4xl font-bold text-text mb-2">{event.title}</h1>
+          <h1 className="font-display text-4xl font-bold text-text mb-2 sm:text-5xl">{event.title}</h1>
           {event.description && (
             <p className="text-muted">{event.description}</p>
           )}
         </div>
 
-        <div className="card p-8 text-center shadow-card-elevated animate-scale-in">
+        <div className="card p-6 text-center shadow-card-elevated animate-scale-in sm:p-8">
           <p className="text-sm text-muted mb-1">Confirmed for</p>
           <p className="mb-2 font-display text-3xl font-bold text-text">{startDate}</p>
           <div className="mb-4 inline-flex min-h-10 items-center gap-2 rounded-full bg-accent-subtle px-4 py-2 shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)]">
@@ -118,12 +124,13 @@ export default async function FinalPage({
             </div>
           )}
 
-          <div className="mt-6 pt-5 border-t border-border flex items-center justify-center gap-2">
+          <div className="mt-6 flex flex-col items-center justify-center gap-3 border-t border-border pt-5 sm:flex-row">
             <span className="text-xs text-muted">Share the confirmed plan</span>
             <ShareButtons
               path={`/e/${eventId}/final`}
               title={event.title}
               description={shareText}
+              mode="final"
             />
           </div>
         </div>
@@ -134,7 +141,8 @@ export default async function FinalPage({
             Togoo
           </Link>
         </p>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }

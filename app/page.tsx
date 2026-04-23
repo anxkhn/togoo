@@ -81,7 +81,7 @@ export default function LandingPage() {
                 ),
               },
             ].map((item) => (
-                <div key={item.step} className="card card-interactive p-6">
+                <div key={item.step} className="card p-6">
                   <div className="flex items-start gap-4">
                     <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-accent-subtle text-accent shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)]">
                       {item.icon}
