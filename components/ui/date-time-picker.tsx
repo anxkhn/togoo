@@ -139,7 +139,7 @@ function PickerCalendar({ bare = false }: { bare?: boolean }) {
                   date={date}
                   className={({ isSelected, isOutsideMonth, isDisabled }) =>
                     cn(
-                      "flex h-8 w-8 items-center justify-center rounded-full text-xs tabular-nums outline-none transition-[background-color,color,box-shadow] duration-150 active:scale-[0.96]",
+                      "flex h-8 w-8 items-center justify-center rounded-full text-xs tabular-nums outline-none active:scale-[0.97] motion-safe:transition-[background-color,color,box-shadow] motion-safe:duration-150 motion-safe:ease",
                       isOutsideMonth && "text-muted-light",
                       isDisabled && "opacity-40",
                       isSelected

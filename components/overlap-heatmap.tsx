@@ -77,7 +77,7 @@ export function OverlapHeatmap({ slots, timezone, totalParticipants }: OverlapHe
                     key={start}
                     title={`${timeLabel}: ${count}/${totalParticipants} available`}
                     className={cn(
-                      "h-6 rounded-sm flex-1 min-w-[6px] cursor-default transition-opacity hover:opacity-80",
+                      "heatmap-cell h-6 rounded-sm flex-1 min-w-[6px] cursor-default",
                       getIntensityClass(ratio)
                     )}
                   />

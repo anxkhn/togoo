@@ -211,6 +211,18 @@ The goal is not dramatic layering. The goal is quiet polish.
 
 Hard borders alone make the product feel flat and generic. Heavy shadows make it feel noisy. Stay in the middle.
 
+## Motion
+
+Motion should feel immediate and useful, never decorative inside the product flow.
+
+- Entering UI uses `ease-out` and stays under 250ms.
+- On-screen movement uses `ease-in-out`.
+- Hover and color changes use `ease` at about 150ms.
+- Active button presses scale instantly to `0.97`, without a transform transition.
+- Hover styles only run inside `@media (hover: hover) and (pointer: fine)` so touch screens do not get stuck hover states.
+- Reduced motion disables animation and transition without using `!important`.
+- Prefer `transform` and `opacity`; avoid animating layout properties such as width, height, padding, and margin.
+
 ## Shapes
 
 The shape language is soft but not bubbly.

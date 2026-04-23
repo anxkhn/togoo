@@ -9,8 +9,8 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto px-5 h-14 flex items-center justify-between">
           <span className="font-display text-xl font-semibold text-text">Togoo</span>
           <nav className="flex items-center gap-4">
-            <Link href="/faq" className="inline-flex min-h-10 items-center px-2 text-sm text-muted transition-[color] duration-150 hover:text-text">FAQ</Link>
-            <a href="https://github.com/anxkhn/togoo" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center px-2 text-sm text-muted transition-[color] duration-150 hover:text-text">GitHub</a>
+            <Link href="/faq" className="link-muted px-2 text-sm">FAQ</Link>
+            <a href="https://github.com/anxkhn/togoo" target="_blank" rel="noopener noreferrer" className="link-muted px-2 text-sm">GitHub</a>
             <Link href="/events/new" className="btn-primary text-sm">Create a plan</Link>
           </nav>
         </div>
@@ -115,8 +115,8 @@ export default function LandingPage() {
           <span>Togoo</span>
           <span>&copy; 2026</span>
           <span>v0.5.1</span>
-          <Link href="/faq" className="inline-flex min-h-10 items-center px-1 hover:text-accent transition-[color] duration-150">FAQ</Link>
-          <a href="https://github.com/anxkhn/togoo" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center px-1 hover:text-accent transition-[color] duration-150">GitHub</a>
+          <Link href="/faq" className="link-accent px-1">FAQ</Link>
+          <a href="https://github.com/anxkhn/togoo" target="_blank" rel="noopener noreferrer" className="link-accent px-1">GitHub</a>
         </div>
       </footer>
     </div>

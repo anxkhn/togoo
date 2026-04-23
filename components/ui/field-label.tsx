@@ -5,7 +5,7 @@ function InfoTooltip({ text }: { text: string }) {
     <span className="group/tooltip relative inline-flex items-center">
       <button
         type="button"
-        className="-m-1 inline-flex h-8 w-8 items-center justify-center rounded-full text-muted transition-[color,background-color] duration-150 ease hover:bg-surface-alt hover:text-text focus-visible:bg-surface-alt focus-visible:text-text active:scale-[0.96]"
+        className="tooltip-trigger"
         aria-label={text}
       >
         <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

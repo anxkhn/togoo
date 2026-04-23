@@ -83,14 +83,14 @@ export default function FAQPage() {
           <span>Togoo</span>
           <span>&copy; 2026</span>
           <span>v0.5.1</span>
-          <Link href="/faq" className="inline-flex min-h-10 items-center px-1 hover:text-accent transition-[color] duration-150 ease">
+          <Link href="/faq" className="link-accent px-1">
             FAQ
           </Link>
           <a
             href="https://github.com/anxkhn/togoo"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex min-h-10 items-center px-1 hover:text-accent transition-[color] duration-150 ease"
+            className="link-accent px-1"
           >
             GitHub
           </a>

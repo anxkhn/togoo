@@ -137,7 +137,7 @@ export default async function FinalPage({
 
         <p className="text-center text-xs text-muted mt-6">
           Planned with{" "}
-          <Link href="/" className="text-accent hover:underline">
+          <Link href="/" className="link-accent inline min-h-0 underline-offset-2">
             Togoo
           </Link>
         </p>

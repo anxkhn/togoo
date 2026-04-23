@@ -78,8 +78,8 @@ function PillGroup({
             className={cn(
               "pill-toggle",
               value === opt.value
-                ? "bg-accent text-white shadow-[0_10px_24px_rgba(47,104,68,0.16),inset_0_1px_0_rgba(255,255,255,0.12)]"
-                : "bg-surface text-text hover:border-accent/50 hover:bg-accent-subtle/20"
+                ? "pill-toggle-selected"
+                : "bg-surface text-text"
             )}
           >
             {opt.label}

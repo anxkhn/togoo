@@ -19,8 +19,8 @@ function ScoreBar({ score, className }: { score: number; className?: string }) {
     <div className={cn("flex items-center gap-2", className)}>
       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-border shadow-[inset_0_1px_1px_rgba(26,23,20,0.06)]">
         <div
-          className="h-full rounded-full bg-accent motion-safe:transition-[width] motion-safe:duration-[220ms] motion-safe:[transition-timing-function:cubic-bezier(0.165,0.84,0.44,1)]"
-          style={{ width: `${Math.round(score * 100)}%` }}
+          className="h-full origin-left rounded-full bg-accent motion-safe:transition-transform motion-safe:duration-[220ms] motion-safe:ease-out-quart"
+          style={{ transform: `scaleX(${Math.max(0, Math.min(1, score))})` }}
         />
       </div>
       <span className="w-9 text-right text-xs font-medium text-muted tabular-nums">{Math.round(score * 100)}%</span>
@@ -48,11 +48,10 @@ function RecommendationCard({
   return (
     <div
       className={cn(
-        "card p-5 motion-safe:transition-[box-shadow,border-color,background-color] motion-safe:duration-200 motion-safe:ease",
-        "motion-safe:[transition-timing-function:ease]",
+        "card p-5",
         highlight && "border-accent/40 bg-accent-subtle/30 shadow-card-hover",
         selected && "border-accent ring-2 ring-accent/20",
-        onSelect && "cursor-pointer hover:shadow-card-hover focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:ring-offset-2 focus-visible:ring-offset-bg active:scale-[0.96]"
+        onSelect && "recommendation-selectable focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:ring-offset-2 focus-visible:ring-offset-bg active:scale-[0.97]"
       )}
       onClick={() => onSelect?.(meeting)}
       onKeyDown={(event) => {

@@ -219,7 +219,7 @@ export function AvailabilityPicker({
             <button
               type="button"
               onClick={() => updateSlots([])}
-              className="inline-flex min-h-10 items-center text-xs text-muted transition-[color] duration-150 hover:text-danger"
+              className="link-muted-danger text-xs"
             >
               Clear selection
             </button>
@@ -227,7 +227,7 @@ export function AvailabilityPicker({
           <button
             type="button"
             onClick={selectAll}
-            className="inline-flex min-h-10 items-center text-xs font-medium text-accent transition-[color] duration-150 hover:text-accent-hover"
+            className="link-accent text-xs font-medium"
           >
             Select every slot
           </button>
@@ -261,7 +261,7 @@ export function AvailabilityPicker({
                   <button
                     type="button"
                     onClick={() => clearDay(dateStr)}
-                    className="inline-flex min-h-10 items-center rounded-full px-3 text-xs text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)] transition-[color,background-color] duration-150 hover:bg-surface-alt hover:text-text"
+                    className="btn-ghost rounded-full px-3 text-xs shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]"
                   >
                     Clear day
                   </button>
@@ -280,10 +280,10 @@ export function AvailabilityPicker({
                       type="button"
                       onClick={() => toggleSlot(slot)}
                       className={cn(
-                        "inline-flex min-h-10 items-center rounded-full px-3 text-sm tabular-nums transition-[color,background-color,border-color,box-shadow] duration-150 active:scale-[0.96]",
+                        "slot-pill",
                         selected
-                          ? "bg-accent text-white shadow-[0_10px_24px_rgba(47,104,68,0.16),inset_0_1px_0_rgba(255,255,255,0.12)]"
-                          : "bg-bg text-text shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)] hover:bg-accent-subtle/30 hover:shadow-[inset_0_0_0_1px_rgba(47,104,68,0.22)]"
+                          ? "slot-pill-selected"
+                          : "slot-pill-idle"
                       )}
                       >
                       <span>{formatTime(slot.start_time, timezone)} - {formatTime(slot.end_time, timezone)}</span>

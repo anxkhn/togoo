@@ -467,7 +467,7 @@ export default function NewEventPage() {
           {steps.map((s, i) => (
             <div key={s.n} className="flex flex-shrink-0 items-center gap-2">
               <div
-                className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold tabular-nums transition-[background-color,color,box-shadow] duration-200 ${
+                className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold tabular-nums motion-safe:transition-[background-color,color,box-shadow] motion-safe:duration-150 motion-safe:ease ${
                   step === s.n
                     ? "bg-accent text-white shadow-[0_8px_20px_rgba(47,104,68,0.16)]"
                     : step > s.n

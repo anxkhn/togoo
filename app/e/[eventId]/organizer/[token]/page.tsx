@@ -189,7 +189,7 @@ function QRModal({ url, name, onClose }: { readonly url: string; readonly name: 
           <p className="text-sm font-medium text-text">Invite QR code for {name}</p>
           <button
             onClick={onClose}
-            className="text-muted hover:text-text transition-[color] duration-150 ease"
+            className="link-muted min-h-0"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -431,7 +431,7 @@ function ParticipantRow({
             </button>
             <button
               onClick={() => { if (confirm(`Remove ${participant.name}?`)) onRemove(participant.id); }}
-              className="btn-ghost p-1.5 hover:!text-danger"
+              className="btn-ghost p-1.5"
               title="Remove participant"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1255,7 +1255,7 @@ export default function OrganizerDashboard() {
               onClick={() => setTab(t)}
               className={cn(
                 "-mb-px min-h-10 border-b-2 px-4 py-2.5 text-sm font-medium capitalize motion-safe:transition-[color,border-color] motion-safe:duration-150 motion-safe:ease",
-                tab === t ? "border-accent text-accent" : "border-transparent text-muted hover:text-text"
+                tab === t ? "border-accent text-accent" : "border-transparent text-muted"
               )}
             >
                 {t === "participants" ? "people" : t === "recommendations" ? "best times" : "activity"}
@@ -1385,7 +1385,7 @@ export default function OrganizerDashboard() {
                 <h2 className="section-title">Best times</h2>
                 <div className="flex items-center gap-3">
                   {recStats && <span className="text-xs text-muted tabular-nums">Based on a {recStats.response_rate}% response rate</span>}
-                  <button onClick={fetchRecommendations} disabled={recLoading} className="inline-flex min-h-10 items-center text-xs text-muted transition-[color] duration-150 hover:text-accent">
+                  <button onClick={fetchRecommendations} disabled={recLoading} className="link-accent text-xs disabled:opacity-50">
                     {recLoading ? "Refreshing..." : "Refresh"}
                   </button>
                 </div>
@@ -1436,7 +1436,7 @@ export default function OrganizerDashboard() {
                     <div className="mt-3 space-y-2">
                       <div className="flex items-center gap-2">
                         <CopyButton text={`${window.location.origin}${finalPath}`} label="Copy final page" />
-                        <Link href={finalPath} className="text-xs text-accent hover:underline">
+                        <Link href={finalPath} className="link-accent inline min-h-0 text-xs underline-offset-2">
                           Open final page
                         </Link>
                       </div>
@@ -1577,7 +1577,7 @@ export default function OrganizerDashboard() {
       </main>
 
       <footer className="border-t border-border py-6 text-center text-xs text-muted">
-        <a href="https://github.com/anxkhn/togoo" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors">
+        <a href="https://github.com/anxkhn/togoo" target="_blank" rel="noopener noreferrer" className="link-accent inline min-h-0">
           github.com/anxkhn/togoo
         </a>
       </footer>

@@ -264,7 +264,7 @@ export default function RespondPage() {
                   Edit my response
               </button>
             )}
-            <Link href="/" className="text-sm text-muted hover:text-accent transition-colors">
+            <Link href="/" className="link-muted-accent text-sm">
               Go home
             </Link>
           </div>
@@ -341,7 +341,7 @@ export default function RespondPage() {
           {(["availability", "preferences", "review"] as const).map((s, i) => (
             <div key={s} className="flex flex-shrink-0 items-center gap-2">
               <div className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold tabular-nums transition-[background-color,color,box-shadow] duration-200",
+                "flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold tabular-nums motion-safe:transition-[background-color,color,box-shadow] motion-safe:duration-150 motion-safe:ease",
                 step === s
                   ? "bg-accent text-white shadow-[0_8px_20px_rgba(47,104,68,0.16)]"
                   : stepIndex > i
