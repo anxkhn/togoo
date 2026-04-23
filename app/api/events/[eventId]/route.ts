@@ -4,6 +4,7 @@ import { getDB } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { generateId } from "@/lib/tokens";
+import { insertNormalizedSlots } from "@/lib/normalized-slots";
 import { findOrganizerInviteToken } from "@/lib/auth";
 import { normalizeAvailabilityWindows } from "@/lib/scheduling";
 import { unixNow } from "@/lib/utils";
@@ -152,16 +153,7 @@ export async function PUT(
     });
 
     if (normalizedSlots.length > 0) {
-      await db.insert(schema.normalized_slots).values(
-        normalizedSlots.map((slot) => ({
-          id: generateId(),
-          event_id: eventId,
-          participant_id: slot.participant_id,
-          slot_start: slot.slot_start,
-          slot_end: slot.slot_end,
-          created_at: now,
-        }))
-      );
+      await insertNormalizedSlots(db, eventId, normalizedSlots, now);
     }
 
     await db.insert(schema.activity_log).values({

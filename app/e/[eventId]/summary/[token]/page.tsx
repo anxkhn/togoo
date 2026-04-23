@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDB } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
-import { computeRecommendations } from "@/lib/scheduling";
+import { computeRecommendations, normalizeAvailabilityWindows } from "@/lib/scheduling";
 import { formatDate } from "@/lib/utils";
 import { findActiveInviteToken } from "@/lib/auth";
 
@@ -43,7 +43,23 @@ export default async function SummaryPage({
   if (tokenRecord.role === "participant" && event.show_results_to_participants !== 1) return notFound();
 
   const participants = await db.select().from(schema.participants).where(eq(schema.participants.event_id, eventId));
-  const slots = await db.select().from(schema.normalized_slots).where(eq(schema.normalized_slots.event_id, eventId));
+  const rawWindows = await db.select().from(schema.availability_windows).where(eq(schema.availability_windows.event_id, eventId));
+  const slots = normalizeAvailabilityWindows(
+    rawWindows.map((window) => ({
+      participant_id: window.participant_id,
+      start_time: window.start_time,
+      end_time: window.end_time,
+    })),
+    {
+      timezone: event.timezone,
+      date_range_start: event.date_range_start,
+      date_range_end: event.date_range_end,
+      meeting_duration_minutes: event.meeting_duration_minutes,
+      slot_granularity_minutes: event.slot_granularity_minutes,
+      scoring_mode: event.scoring_mode,
+      min_attendance_threshold: event.min_attendance_threshold,
+    }
+  );
   const preferences = await db.select().from(schema.participant_preferences).where(eq(schema.participant_preferences.event_id, eventId));
   const overrides = await db.select().from(schema.organizer_overrides).where(eq(schema.organizer_overrides.event_id, eventId));
 
@@ -96,7 +112,6 @@ export default async function SummaryPage({
 
       <main className="max-w-xl mx-auto px-5 py-8">
         <div className="mb-8 animate-fade-in">
-          <p className="text-xs font-medium text-accent uppercase tracking-wide mb-1">{event.event_type}</p>
           <h1 className="font-display text-3xl font-bold text-text">{event.title}</h1>
           {event.description && <p className="text-sm text-muted mt-1">{event.description}</p>}
           <p className="mt-2 text-sm text-muted tabular-nums">

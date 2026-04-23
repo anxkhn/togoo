@@ -4,7 +4,8 @@ import { eq } from "drizzle-orm";
 import { getDB } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
 import { generateId } from "@/lib/tokens";
-import { computeRecommendations } from "@/lib/scheduling";
+import { insertNormalizedSlots } from "@/lib/normalized-slots";
+import { computeRecommendations, normalizeAvailabilityWindows } from "@/lib/scheduling";
 import { unixNow } from "@/lib/utils";
 import { findOrganizerInviteToken } from "@/lib/auth";
 
@@ -30,10 +31,33 @@ export async function GET(
       .from(schema.participants)
       .where(eq(schema.participants.event_id, eventId));
 
-    const slots = await db
+    const rawWindows = await db
       .select()
-      .from(schema.normalized_slots)
-      .where(eq(schema.normalized_slots.event_id, eventId));
+      .from(schema.availability_windows)
+      .where(eq(schema.availability_windows.event_id, eventId));
+
+    const slots = normalizeAvailabilityWindows(
+      rawWindows.map((window) => ({
+        participant_id: window.participant_id,
+        start_time: window.start_time,
+        end_time: window.end_time,
+      })),
+      {
+        timezone: event.timezone,
+        date_range_start: event.date_range_start,
+        date_range_end: event.date_range_end,
+        meeting_duration_minutes: event.meeting_duration_minutes,
+        slot_granularity_minutes: event.slot_granularity_minutes,
+        scoring_mode: event.scoring_mode,
+        min_attendance_threshold: event.min_attendance_threshold,
+      }
+    );
+
+    await db.delete(schema.normalized_slots).where(eq(schema.normalized_slots.event_id, eventId));
+
+    if (slots.length > 0) {
+      await insertNormalizedSlots(db, eventId, slots, unixNow());
+    }
 
     const preferences = await db
       .select()

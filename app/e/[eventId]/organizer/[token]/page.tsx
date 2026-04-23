@@ -454,6 +454,7 @@ export default function OrganizerDashboard() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [stats, setStats] = useState({ total_invited: 0, total_responded: 0, pending: 0 });
   const [recommendations, setRecommendations] = useState<RecommendationSet | null>(null);
+  const [recError, setRecError] = useState("");
   const [recStats, setRecStats] = useState<{ response_rate: number } | null>(null);
   const [heatmapSlots, setHeatmapSlots] = useState<Array<{ slot_start: number; participant_ids: string[] }>>([]);
   const [overrides, setOverrides] = useState<OrganizerOverrideRecord[]>([]);
@@ -522,6 +523,7 @@ export default function OrganizerDashboard() {
 
   const fetchRecommendations = useCallback(async () => {
     setRecLoading(true);
+    setRecError("");
     try {
       const res = await fetch(clientApi.recommendations(eventId), { headers });
       if (res.ok) {
@@ -537,8 +539,16 @@ export default function OrganizerDashboard() {
         setHeatmapSlots(
           [...bySlot.entries()].map(([slot_start, ids]) => ({ slot_start, participant_ids: [...ids] }))
         );
+      } else {
+        const data = await res.json().catch(() => ({ error: "We couldn't load recommendations." })) as { error?: string };
+        setRecommendations(null);
+        setHeatmapSlots([]);
+        setRecError(data.error ?? "We couldn't load recommendations.");
       }
     } catch {
+      setRecommendations(null);
+      setHeatmapSlots([]);
+      setRecError("We couldn't load recommendations.");
     } finally {
       setRecLoading(false);
     }
@@ -910,9 +920,55 @@ export default function OrganizerDashboard() {
   }
 
   const nonOrganizerParticipants = participants.filter((p) => p.role !== "organizer");
+  const organizerParticipantId = participants.find((p) => p.role === "organizer")?.id ?? null;
   const organizerName = participants.find((p) => p.role === "organizer")?.name ?? "";
   const responseRate = stats.total_invited > 0 ? Math.round((stats.total_responded / stats.total_invited) * 100) : 0;
   const participantNamesById = Object.fromEntries(nonOrganizerParticipants.map((participant) => [participant.id, participant.name]));
+
+  const formatActivityEntry = (entry: ActivityLog): string => {
+    const actorName = entry.actor_id ? participantNamesById[entry.actor_id] ?? (entry.actor_id === organizerParticipantId ? organizerName : null) : null;
+    let data: Record<string, unknown> = {};
+
+    try {
+      data = entry.data ? JSON.parse(entry.data) as Record<string, unknown> : {};
+    } catch {
+      data = {};
+    }
+
+    const targetParticipantId = typeof data.participant_id === "string" ? data.participant_id : null;
+    const targetName = (targetParticipantId ? participantNamesById[targetParticipantId] : null) ?? (typeof data.name === "string" ? data.name : null);
+
+    switch (entry.action) {
+      case "response_submitted":
+        return actorName ? `${actorName} submitted a response` : "Response submitted";
+      case "response_updated":
+        return actorName ? `${actorName} updated their response` : "Response updated";
+      case "participant_added":
+        return actorName && targetName ? `${actorName} added ${targetName}` : targetName ? `Added ${targetName}` : "Participant added";
+      case "participant_updated":
+        return actorName && targetName ? `${actorName} updated ${targetName}` : targetName ? `Updated ${targetName}` : "Participant updated";
+      case "participant_removed":
+        return actorName && targetName ? `${actorName} removed ${targetName}` : targetName ? `Removed ${targetName}` : "Participant removed";
+      case "invite_token_regenerated":
+        return actorName && targetName ? `${actorName} regenerated ${targetName}'s invite link` : targetName ? `Invite link regenerated for ${targetName}` : "Invite link regenerated";
+      case "event_created":
+        return actorName ? `${actorName} created the plan` : "Event created";
+      case "event_updated":
+        return actorName ? `${actorName} updated the plan` : "Event updated";
+      case "event_updated_and_reopened":
+        return actorName ? `${actorName} updated the plan and reopened responses` : "Event updated and reopened";
+      case "event_finalized":
+        return actorName ? `${actorName} finalized the plan` : "Event finalized";
+      case "event_reopened":
+        return actorName ? `${actorName} reopened responses` : "Event reopened";
+      case "override_added":
+        return actorName ? `${actorName} added a scheduling override` : "Scheduling override added";
+      case "override_removed":
+        return actorName ? `${actorName} removed a scheduling override` : "Scheduling override removed";
+      default:
+        return actorName ? `${actorName}: ${entry.action.replace(/_/g, " ")}` : entry.action.replace(/_/g, " ");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">
@@ -928,7 +984,7 @@ export default function OrganizerDashboard() {
               {editingPlan ? "Close editor" : "Edit plan"}
             </Button>
             {event.show_results_to_participants === 1 && (
-              <Link href={`/e/${eventId}/summary/${token}`} className="btn-secondary text-sm">
+              <Link href={`/e/${eventId}/summary/${token}`} className="btn-secondary !px-3.5 !py-1.5 !text-xs">
                 Live summary
               </Link>
             )}
@@ -944,7 +1000,6 @@ export default function OrganizerDashboard() {
 
       <main className="max-w-5xl mx-auto px-5 py-8 flex-1 w-full">
         <div className="mb-8 animate-slide-up">
-          <p className="text-xs font-medium text-muted uppercase tracking-wide mb-1">{event.event_type}</p>
           <h1 className="font-display text-3xl sm:text-4xl font-bold text-text">{event.title}</h1>
           {event.description && <p className="mt-2 text-muted">{event.description}</p>}
           <p className="mt-2 text-sm text-muted tabular-nums">
@@ -955,11 +1010,6 @@ export default function OrganizerDashboard() {
             {event.response_deadline && (
               <p className="mt-1 text-sm text-muted tabular-nums">
                 Respond by <span className="font-medium text-text">{formatDate(event.response_deadline, event.timezone)}</span>
-              </p>
-            )}
-            {event.suggested_time_start && event.suggested_time_end && (
-              <p className="mt-1 text-sm text-muted tabular-nums">
-                Suggested time: <span className="font-medium text-text">{formatEventDate(event.suggested_time_start, event.timezone)} - {formatEventDate(event.suggested_time_end, event.timezone)}</span>
               </p>
             )}
         </div>
@@ -1341,6 +1391,10 @@ export default function OrganizerDashboard() {
 
               {recLoading ? (
                 <div className="text-center py-12 text-muted animate-pulse">Ranking the best times...</div>
+              ) : recError ? (
+                <div className="rounded-input bg-danger-light px-4 py-3 text-sm text-danger shadow-[inset_0_0_0_1px_rgba(185,28,28,0.12)]">
+                  {recError}
+                </div>
               ) : recommendations ? (
                 <RecommendationCards
                   recommendations={recommendations}
@@ -1504,7 +1558,7 @@ export default function OrganizerDashboard() {
                   <div key={entry.id} className="px-4 py-3 flex items-center gap-3">
                     <div className="w-1.5 h-1.5 rounded-full bg-accent-light flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm text-text">{entry.action.replace(/_/g, " ")}</p>
+                      <p className="text-sm text-text">{formatActivityEntry(entry)}</p>
                       <p className="text-xs text-muted tabular-nums">
                         {new Intl.DateTimeFormat("en-US", {
                           month: "short", day: "numeric",

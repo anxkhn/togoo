@@ -293,7 +293,6 @@ export default function RespondPage() {
       <main className="max-w-xl mx-auto px-5 py-8">
         {event && (
           <div className="mb-8 animate-fade-in">
-            <p className="text-xs font-medium text-accent uppercase tracking-wide mb-1">{event.event_type}</p>
             <h1 className="font-display text-3xl font-bold text-text mb-1">{event.title}</h1>
             {event.description && <p className="text-muted text-sm mb-2">{event.description}</p>}
               <p className="text-sm text-muted tabular-nums">
@@ -307,7 +306,7 @@ export default function RespondPage() {
             )}
             {participant && (
               <p className="text-sm text-muted mt-1">
-                  Replying as <span className="font-medium text-text">{participant.name}</span>
+                  Responding as <span className="font-medium text-text">{participant.name}</span>
                 </p>
               )}
           </div>

@@ -2,6 +2,10 @@ import { clsx, type ClassValue } from "clsx";
 import { fromZonedTime } from "date-fns-tz";
 import { twMerge } from "tailwind-merge";
 
+function pad2(value: number): string {
+  return String(value).padStart(2, "0");
+}
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -61,6 +65,35 @@ export function zonedDateTimeToUnix(value: string, timezone: string): number {
 
 export function zonedDateToUnixEndOfDay(value: string, timezone: string): number {
   return zonedDateTimeToUnix(`${value}T23:59:59`, timezone);
+}
+
+export function snapUnixToTimezoneStep(unixTs: number, stepMinutes: number, timezone: string): number {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date(unixTs * 1000));
+
+  const getPart = (type: "year" | "month" | "day" | "hour" | "minute") =>
+    Number(parts.find((part) => part.type === type)?.value ?? 0);
+
+  const year = getPart("year");
+  const month = getPart("month");
+  const day = getPart("day");
+  const hour = getPart("hour");
+  const minute = getPart("minute");
+
+  const roundedMinutes = Math.ceil((hour * 60 + minute) / stepMinutes) * stepMinutes;
+  const roundedDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+  roundedDate.setUTCMinutes(roundedMinutes);
+
+  const localDateTime = `${roundedDate.getUTCFullYear()}-${pad2(roundedDate.getUTCMonth() + 1)}-${pad2(roundedDate.getUTCDate())}T${pad2(roundedDate.getUTCHours())}:${pad2(roundedDate.getUTCMinutes())}`;
+
+  return zonedDateTimeToUnix(localDateTime, timezone);
 }
 
 export function getTimezones(): string[] {

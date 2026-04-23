@@ -85,7 +85,9 @@ export function normalizeAvailabilityWindows(
   const slots: NormalizedSlot[] = [];
 
   for (const win of windows) {
-    let current = Math.ceil(win.start_time / granularitySec) * granularitySec;
+    // Availability windows are already concrete meeting-slot picks from the UI.
+    // Preserve the submitted start time so older :30 responses continue to rank correctly.
+    let current = win.start_time;
     while (current + granularitySec <= win.end_time) {
       const slotEnd = current + granularitySec;
       const withinDateRange =

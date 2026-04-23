@@ -1,7 +1,7 @@
 "use client";
 
 import { fromZonedTime } from "date-fns-tz";
-import { cn } from "@/lib/utils";
+import { cn, snapUnixToTimezoneStep } from "@/lib/utils";
 
 export interface TimeWindow {
   id: string;
@@ -99,7 +99,7 @@ function buildSlotOptions(
   const latestStart = Math.min(dayEnd, dateRangeEnd + 1) - meetingDurationMinutes * 60;
   const stepSeconds = slotGranularityMinutes * 60;
 
-  let current = Math.ceil(earliestStart / stepSeconds) * stepSeconds;
+  let current = snapUnixToTimezoneStep(earliestStart, slotGranularityMinutes, tz);
   while (current <= latestStart) {
     const start_time = current;
     const end_time = current + meetingDurationMinutes * 60;
@@ -119,14 +119,15 @@ function buildSlotOptions(
 function normalizeWindows(
   windows: TimeWindow[],
   meetingDurationMinutes: number,
-  slotGranularityMinutes: number
+  slotGranularityMinutes: number,
+  _timezone: string
 ): TimeWindow[] {
   const normalized = new Map<string, TimeWindow>();
   const meetingDurationSeconds = meetingDurationMinutes * 60;
   const stepSeconds = slotGranularityMinutes * 60;
 
   for (const window of windows) {
-    let start = Math.ceil(window.start_time / stepSeconds) * stepSeconds;
+    let start = window.start_time;
     while (start + meetingDurationSeconds <= window.end_time) {
       const key = `${start}-${start + meetingDurationSeconds}`;
       if (!normalized.has(key)) {
@@ -158,7 +159,7 @@ export function AvailabilityPicker({
   suggestedWindow = null,
 }: AvailabilityPickerProps) {
   const dates = getDates(dateRangeStart, dateRangeEnd, timezone);
-  const selectedWindows = normalizeWindows(windows, meetingDurationMinutes, slotGranularityMinutes);
+  const selectedWindows = normalizeWindows(windows, meetingDurationMinutes, slotGranularityMinutes, timezone);
 
   function updateSlots(nextSlots: TimeWindow[]) {
     onChange(nextSlots);
