@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AppFooter } from "@/components/app-footer";
 import { getDB } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
 import { computeRecommendations, normalizeAvailabilityWindows } from "@/lib/scheduling";
@@ -198,6 +199,7 @@ export default async function SummaryPage({
           </div>
         )}
       </main>
+      <AppFooter maxWidth="xl" />
     </div>
   );
 }

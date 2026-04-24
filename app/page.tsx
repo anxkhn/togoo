@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AppFooter } from "@/components/app-footer";
 import { MyEvents } from "@/components/my-events";
 import { LandingFlowPreview } from "@/components/landing-flow-preview";
 
@@ -110,15 +111,7 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className="border-t border-border py-6 text-[11px] text-muted">
-        <div className="mx-auto flex max-w-5xl items-center justify-center gap-3 overflow-x-auto whitespace-nowrap px-5 text-center">
-          <span>Togoo</span>
-          <span>&copy; 2026</span>
-          <span>v0.5.1</span>
-          <Link href="/faq" className="link-accent px-1">FAQ</Link>
-          <a href="https://github.com/anxkhn/togoo" target="_blank" rel="noopener noreferrer" className="link-accent px-1">GitHub</a>
-        </div>
-      </footer>
+      <AppFooter maxWidth="5xl" />
     </div>
   );
 }

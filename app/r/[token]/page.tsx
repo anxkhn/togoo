@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { AppFooter } from "@/components/app-footer";
 import { AvailabilityPicker, type TimeWindow } from "@/components/availability-picker";
 import { PreferenceForm, type PreferenceValues, defaultPreferences } from "@/components/preference-form";
 import { cn, formatDate, formatEventDate } from "@/lib/utils";
@@ -567,6 +568,7 @@ export default function RespondPage() {
           )}
         </div>
       </main>
+      <AppFooter maxWidth="xl" />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
+import { AppFooter } from "@/components/app-footer";
 import { Input, Textarea } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { DatePickerField, DateTimePickerField } from "@/components/ui/date-time-picker";
@@ -1576,11 +1577,7 @@ export default function OrganizerDashboard() {
         )}
       </main>
 
-      <footer className="border-t border-border py-6 text-center text-xs text-muted">
-        <a href="https://github.com/anxkhn/togoo" target="_blank" rel="noopener noreferrer" className="link-accent inline min-h-0">
-          github.com/anxkhn/togoo
-        </a>
-      </footer>
+      <AppFooter maxWidth="5xl" />
     </div>
   );
 }

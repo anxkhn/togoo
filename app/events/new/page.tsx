@@ -8,6 +8,7 @@ import { Input, Textarea } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { DatePickerField, DateTimePickerField } from "@/components/ui/date-time-picker";
 import { InfoTooltip } from "@/components/ui/field-label";
+import { AppFooter } from "@/components/app-footer";
 import { getTimeZones } from "@vvo/tzdb";
 import { saveEvent } from "@/components/my-events";
 import type { CreateEventResponse, AddParticipantInviteResponse, ApiError } from "@/lib/api-types";
@@ -978,6 +979,7 @@ export default function NewEventPage() {
           )}
         </div>
       </main>
+      <AppFooter maxWidth="2xl" />
     </div>
   );
 }

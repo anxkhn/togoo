@@ -6,6 +6,7 @@ import { getDB } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
 import { formatDuration } from "@/lib/utils";
 import { notFound } from "next/navigation";
+import { AppFooter } from "@/components/app-footer";
 import { ShareButtons } from "@/components/share-buttons";
 
 export async function generateMetadata({
@@ -143,6 +144,7 @@ export default async function FinalPage({
         </p>
         </div>
       </main>
+      <AppFooter maxWidth="xl" />
     </div>
   );
 }

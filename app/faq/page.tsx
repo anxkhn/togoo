@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AppFooter } from "@/components/app-footer";
 
 interface FaqItem {
   q: string;
@@ -78,24 +79,7 @@ export default function FAQPage() {
         </div>
       </main>
 
-      <footer className="border-t border-border py-6 text-[11px] text-muted">
-        <div className="mx-auto flex max-w-3xl items-center justify-center gap-3 overflow-x-auto whitespace-nowrap px-5 text-center">
-          <span>Togoo</span>
-          <span>&copy; 2026</span>
-          <span>v0.5.1</span>
-          <Link href="/faq" className="link-accent px-1">
-            FAQ
-          </Link>
-          <a
-            href="https://github.com/anxkhn/togoo"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="link-accent px-1"
-          >
-            GitHub
-          </a>
-        </div>
-      </footer>
+      <AppFooter maxWidth="3xl" />
     </div>
   );
 }
