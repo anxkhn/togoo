@@ -1,255 +1,366 @@
-# PRD
+# Product Requirements Document
 
-## Document status
+## Document Status
 
-This PRD describes the current shipped product in this repository.
+This PRD describes the current shipped product in this repository. It is not a speculative roadmap. It captures what Togoo does today, who it serves, how the main flows work, and which product constraints are intentional or still unresolved.
 
-It is not a roadmap pitch. It is a product requirements document for what the app does now, the users it serves, and the constraints already present in the code.
+## Product Summary
 
-## Product summary
+Togoo is a lightweight group scheduling product for small plans. It replaces messy chat-thread coordination with a structured flow where one organizer defines the scheduling constraints, invites people with private links, collects availability and preferences, reviews ranked meeting-time recommendations, and finalizes one confirmed time.
 
-Togoo is a group scheduling product for small plans.
+The product is optimized for low-friction coordination. Invitees do not create accounts, install apps, or connect calendars.
 
-The organizer defines the time window and constraints once, sends private invite links, collects responses, reviews ranked options, and confirms one final slot.
+## Problem Statement
 
-The product is designed for low-friction coordination without requiring accounts from invitees.
+Small-group planning often happens in chat threads. This creates repeated failure modes:
 
-## Problem
+- Availability answers arrive in inconsistent formats.
+- The organizer has to manually compare responses.
+- Important attendees can be missed.
+- People change availability after the organizer already counted them.
+- Preference information gets mixed with scheduling messages.
+- The final answer gets buried.
 
-Small-group planning usually happens in chat threads.
+Togoo gives the organizer one source of truth and gives invitees a short, structured response form.
 
-That creates a few recurring problems:
+## Target Users
 
-- availability is scattered across messages
-- people respond in different formats
-- organizers have to manually compare responses
-- important attendees are easy to miss
-- the final answer gets buried in the thread
+### Primary Persona: Organizer
 
-Togoo replaces that with one structured flow.
+The organizer creates the plan and makes the final decision.
 
-## Users
+Organizer needs:
 
-### Primary user: organizer
+- Create a plan quickly.
+- Share invite links manually in the channel they already use.
+- Know who has and has not responded.
+- Mark some attendees as required or higher priority.
+- Compare candidate times without spreadsheet work.
+- Finalize one time and send a clean final page back to the group.
 
-The organizer:
+Typical organizer scenarios:
 
-- creates the plan
-- chooses one continuous scheduling window and scoring rules
-- invites people
-- monitors responses
-- makes the final decision
+- Birthday dinner.
+- Weekend meetup.
+- Casual hangout.
+- Study or work session.
+- Small team social plan.
 
-Typical use cases:
+### Secondary Persona: Invitee
 
-- birthday dinner
-- meetup
-- hangout
-- work session
+The invitee receives a private link and submits availability.
 
-### Secondary user: invitee
+Invitee needs:
 
-The invitee:
+- Open the link without logging in.
+- Understand the plan context.
+- Pick exact times that work.
+- Add useful preferences if requested.
+- Edit the response later when the organizer allows it.
+- Avoid accidentally submitting a suggested time without confirming availability.
 
-- opens a private token link
-- shares availability
-- optionally shares preferences
-- may return later to edit the response if allowed
+## Product Goals
 
-## Product goals
+| Goal | Requirement |
+| --- | --- |
+| Reduce organizer work | Rank options automatically from submitted responses |
+| Keep invitees moving | Avoid account creation and keep the response page focused |
+| Support priority differences | Required attendees and priority tiers affect recommendation quality |
+| Preserve final clarity | Publish one final page after confirmation |
+| Handle realistic edits | Allow plan updates, response edits, and reopening finalized plans |
+| Keep data portable | Let organizers export participant responses as CSV |
 
-- reduce scheduling work for the organizer
-- keep the invitee flow short and obvious
-- rank meeting options instead of forcing the organizer to manually compare responses
-- support plans where some attendees matter more than others
-- give the group one final page once the plan is confirmed
+## Non-Goals
 
-## Non-goals
+- Account-based collaboration.
+- Enterprise calendar scheduling.
+- Automatic email, SMS, or WhatsApp delivery.
+- Calendar sync or ICS export.
+- Venue discovery or restaurant recommendations.
+- Payment collection.
+- Full analytics dashboard.
 
-- team calendars and enterprise scheduling workflows
-- account-based collaboration
-- venue discovery
-- messaging delivery infrastructure
-- calendar sync or export
+## Product Principles
 
-## Core product flows
+1. The organizer owns the final decision.
+2. Invitees should need only a private link.
+3. Availability should be exact enough to rank real meeting windows.
+4. Recommendations should explain tradeoffs, not hide them.
+5. Finalization must be server-validated so stale or manipulated client choices do not become final.
 
-### Organizer flow
-
-1. Create a plan
-2. Configure timing rules and response settings
-3. Add invitees and generate private links
-4. Watch responses come in on the organizer dashboard
-5. Review ranked options and the overlap heatmap
-6. Finalize one slot
-7. Share the final page back to the group
-
-### Invitee flow
-
-1. Open private link
-2. Review plan details
-3. Select exact meeting slots
-4. Optionally add preferences
-5. Submit response
-6. Optionally edit later if allowed
-7. Optionally view the live summary if enabled
-
-## User flow diagram
+## End-to-End Flow
 
 ```mermaid
 flowchart TD
-    A[Organizer creates plan] --> B[Organizer adds invitees]
-    B --> C[Private token links shared]
-    C --> D[Invitee opens /r/token]
-    D --> E[Invitee submits availability and preferences]
-    E --> F[Organizer dashboard updates]
-    F --> G[Recommendations and heatmap]
-    G --> H[Organizer finalizes slot]
-    H --> I[Final page shared with group]
+    A[Organizer creates plan] --> B[Organizer configures timing and preferences]
+    B --> C[Organizer adds invitees]
+    C --> D[Private participant links are shared]
+    D --> E[Invitees submit exact availability]
+    E --> F[Optional preferences are stored]
+    F --> G[Organizer reviews dashboard]
+    G --> H[Recommendations and heatmap show best options]
+    H --> I[Organizer finalizes one server-validated slot]
+    I --> J[Final page is shared with the group]
+    I --> K[Organizer can reopen if needed]
+    K --> G
 ```
 
-## Functional requirements
+## Functional Requirements
 
-### Event creation
+### Event Creation
 
 The product must let the organizer define:
 
-- title
-- optional description
-- event type
-- timezone
-- start date and time
-- end date and time
-- meeting duration
-- slot granularity
-- scoring mode
-- optional suggested start and end time
-- optional response deadline
-- enabled preference questions
-- participant edit setting
-- participant live summary visibility
-- required-preference setting
-- default required-attendee behavior for new invitees
+| Field | Requirement |
+| --- | --- |
+| Title | Required, human-readable plan title |
+| Description | Optional context for invitees |
+| Event type | One of dinner, meetup, hangout, work session, or custom |
+| Timezone | Required and used for display, slot generation, scoring, and CSV export |
+| Date range start | Required Unix timestamp |
+| Date range end | Required Unix timestamp after start |
+| Meeting duration | 15 to 480 minutes |
+| Slot granularity | 15, 30, 60, 120, or 360 minutes |
+| Minimum attendance threshold | Optional filter for candidate recommendations |
+| Scoring mode | One of the supported recommendation modes |
+| Suggested time | Optional start and end inside the event range |
+| Response deadline | Optional timestamp after which new responses are blocked |
+| Enabled preferences | Controls which preference inputs invitees see |
+| Required preferences | Forces at least one meaningful enabled preference |
+| Participant edit setting | Controls whether submitted responses can be changed |
+| Participant summary setting | Controls whether invitees can view live results |
+| Required-by-default setting | Controls default required flag for new invitees |
 
-The product must preserve in-progress create-flow state through a browser refresh on the create page.
+The create flow must persist draft state in browser `localStorage` so refreshing `/events/new` does not erase progress.
 
-### Invitee responses
-
-The product must:
-
-- allow responses without account creation
-- validate token access before showing the response page
-- support multiple exact meeting slots derived from organizer timing rules
-- support preference collection
-- preload prior responses when present
-- block response changes if the event is finalized
-- block response changes if the deadline has passed
-- block edits when participant edits are disabled
-- show any organizer-suggested slot as a highlighted suggestion without preselecting it for the participant
-- let invitees answer a suggested slot quickly, then still pick custom slots if needed
-
-### Participant management
+### Participant Invitations
 
 The organizer must be able to:
 
-- add participants
-- update participant details
-- remove participants
-- mark participants as required
-- assign priority tier
-- regenerate invite tokens
+- Add a participant with name, optional email, optional phone, required flag, and priority tier.
+- Generate a private `/r/[token]` response link for each participant.
+- Copy or share links manually.
+- Regenerate a participant token.
+- Update participant details.
+- Delete participants except the organizer.
+
+Participant token regeneration must deactivate older participant tokens for that participant.
+
+### Invitee Response
+
+The invitee response page must:
+
+- Validate the token before showing event details.
+- Show event title, description, timezone, duration, and response constraints.
+- Generate exact selectable meeting slots from the organizer's range, duration, and granularity.
+- Highlight an organizer-suggested time when present.
+- Avoid preselecting suggested times automatically.
+- Preload existing availability and preferences for returning invitees.
+- Submit at least one availability window.
+- Store optional preferences if the organizer enabled them.
+- Block submissions when the event is finalized.
+- Block submissions after the response deadline.
+- Block response updates when participant editing is disabled.
+- Show clear validation feedback when required information is missing.
+
+### Preferences
+
+The product can collect:
+
+| Preference | Current usage |
+| --- | --- |
+| Food preference | Stored, exported, not scored |
+| Food note | Stored, exported, not scored |
+| Budget | Stored, exported, not scored |
+| Preferred area | Stored, exported, not scored |
+| Weekday/weekend | Stored, exported, scored |
+| Time of day | Stored, exported, scored |
+| Indoor/outdoor | Stored, exported, not scored |
+| Notes | Stored, exported, not scored |
+
+### Organizer Dashboard
+
+The organizer dashboard must provide:
+
+- Event summary.
+- Response counts.
+- Participant list.
+- Add, update, delete, and token-regenerate participant controls.
+- Event edit controls.
+- CSV export for participant responses.
+- Recommendation cards.
+- Availability overlap heatmap.
+- Organizer overrides.
+- Activity feed.
+- Finalization action.
+- Reopen action for finalized plans.
+- Delete plan action.
 
 ### Recommendations
 
-The product must:
+The recommendation engine must:
 
-- normalize raw availability into slots
-- compute ranked candidate windows
-- expose at least:
-  - best overall
-  - best attendance
-  - best required-attendee match
-  - best time fit
-  - most popular
-- show the organizer a heatmap of overlap
+- Normalize submitted windows into fixed-width slots.
+- Generate candidate meeting windows that cover the configured duration.
+- Require all slots in a candidate window to be covered by the same attending participants.
+- Drop candidates outside the event range.
+- Drop candidates below the minimum attendance threshold.
+- Apply organizer overrides.
+- Score candidates according to the selected scoring mode.
+- Return named recommendation buckets and the top candidate list.
+
+Named recommendation buckets:
+
+| Bucket | Definition |
+| --- | --- |
+| `best_overall` | Highest composite score |
+| `best_attendance` | Highest attending count |
+| `best_required_match` | Best required attendee coverage, then attendance |
+| `best_time_fit` | Best time preference score, then attendance |
+| `most_popular` | Same selected candidate as best attendance, labeled for presentation |
+| `top_candidates` | Up to the top 10 composite-ranked candidates |
+
+### Scoring Modes
+
+| Mode | Product intent |
+| --- | --- |
+| `maximize_attendance` | Best default for casual groups where attendance count matters most |
+| `prioritize_required` | Best when required attendees must be included |
+| `vip_priority` | Best when priority-tier attendees should influence ranking more heavily |
+| `time_optimized` | Best when time-of-day fit matters more than raw attendance |
+
+### Organizer Overrides
+
+The organizer can influence candidate recommendations with:
+
+| Override | Behavior |
+| --- | --- |
+| `block_time` | Removes candidates that overlap a blocked time range |
+| `force_exclude` | Removes a candidate with the matching slot start |
+| `force_include` | Keeps a candidate with the matching slot start even if other filters would remove it |
 
 ### Finalization
 
 The organizer must be able to:
 
-- select a recommendation
-- finalize one slot
-- reopen the event later if needed
-- delete the plan entirely
-- access a final public-facing summary page
+- Select a recommendation.
+- Finalize one slot.
+- Store optional final notes through the API.
+- Publish `/e/[eventId]/final`.
+- Reopen the event later.
 
-## Product settings
+Finalization must recompute valid candidates server-side and reject a selected slot if it is no longer valid.
 
-### Scoring modes
+### Live Summary
 
-The product supports these scoring modes:
+When `show_results_to_participants` is enabled, invitees can view a token-gated summary page. The summary should expose useful group status without giving invitees organizer-only controls.
 
-- `maximize_attendance`
-- `prioritize_required`
-- `vip_priority`
-- `time_optimized`
+### CSV Export
 
-### Preference inputs
+The organizer must be able to download participant responses as CSV. The export includes participant identity fields, response status, required flag, priority tier, last updated time in event timezone, selected slot count, selected slots, and stored preferences.
 
-The product can ask invitees about:
-
-- food preference
-- budget
-- preferred area
-- weekday or weekend
-- time of day
-- indoor or outdoor
-- freeform notes
-
-## Plan states
-
-The event state machine is small.
+## State Model
 
 ```mermaid
 stateDiagram-v2
     [*] --> active
-    active --> finalized: organizer finalizes slot
+    active --> finalized: organizer finalizes validated slot
     finalized --> active: organizer reopens event
+    finalized --> active: organizer edits schedule-affecting settings
 ```
 
-## Product constraints in current code
+State behavior:
 
-- scoring only uses attendance, required-attendee coverage, time-of-day preference, and weekday/weekend preference
-- stored food, budget, area, and indoor/outdoor preferences are not scored yet
-- organizer overrides exist in the backend and are exposed in the organizer dashboard UI
-- the app uses token links instead of user accounts
-- recent plans are stored in the local browser only
+| State | Behavior |
+| --- | --- |
+| `active` | Invitees can respond if token, deadline, and edit rules allow it |
+| `finalized` | Response submission is blocked and final page is available |
 
-## UX requirements
+## Access Requirements
 
-- invitee flow must stay usable on mobile
-- organizer dashboard must prioritize scanability over dense tables
-- primary actions must stay obvious at each step
-- validation failures must give immediate feedback
-- reduced-motion users must not be forced through motion-heavy interactions
-- create-flow progress should survive refresh without making the user restart from step one
-- adding invitees should feel non-blocking, with clear pending feedback while links are generated in the background
-- date and datetime controls should be keyboard-friendly, accessible, and usable without forcing the native browser picker UI
+```mermaid
+flowchart LR
+    OrganizerLink[Organizer token link] --> OrganizerDashboard[Organizer dashboard]
+    OrganizerDashboard --> OrganizerApis[Organizer-only APIs]
+    ParticipantLink[Participant token link] --> ResponsePage[Response page]
+    ResponsePage --> RespondApi[Response API]
+    ParticipantLink --> SummaryPage[Live summary if enabled]
+```
 
-## Success criteria
+Access model requirements:
 
-The product is doing its job if:
+- The product must not require accounts.
+- Organizer APIs must require an active organizer token.
+- Participant response must require an active participant token.
+- Token lookup must reject inactive or expired tokens.
+- Participant token regeneration must invalidate old participant links.
+- Organizer token rotation is not currently required by the shipped product.
 
-- organizers can go from empty plan to invite links quickly
-- invitees can respond without needing explanation
-- organizers can choose a final slot from ranked options instead of reading chat logs
-- finalized plans are easy to share back to the group
+## UX Requirements
 
-## Known gaps
+- The invitee flow must be usable on mobile.
+- The organizer dashboard must prioritize scanability over dense tables.
+- Primary actions must be obvious at each step.
+- Validation failures must be understandable and close to the related action.
+- Suggested times must look helpful without coercing a response.
+- Reduced-motion users must not be forced through motion-heavy interactions.
+- Date and datetime fields must be keyboard-friendly and accessible.
+- Adding invitees should feel non-blocking while links are generated.
+- The shared footer must show consistent `© 2026`, `v0.5.1`, `FAQ`, and `GitHub` links across app screens.
 
-- no notification delivery
-- no ICS export
-- no account system
-- no venue workflow
-- no analytics for organizer outcomes
-- no override management UI
+## Data Retention and Persistence Requirements
+
+| Data | Persistence |
+| --- | --- |
+| Events and responses | Cloudflare D1 |
+| Invite tokens | Cloudflare D1 |
+| Recommendation snapshot | Latest snapshot per event in Cloudflare D1 |
+| Activity log | Cloudflare D1 |
+| Recent events | Browser-local `localStorage` |
+| In-progress create draft | Browser-local `localStorage` |
+
+## Success Criteria
+
+The product is successful when:
+
+- Organizers can create a plan and generate invite links quickly.
+- Invitees can respond without instructions beyond the private link.
+- Organizers can see which people have responded.
+- Recommendations reduce manual comparison work.
+- Finalization creates one clear answer for the group.
+- The local smoke test can complete create, invite, respond, recommend, and finalize.
+
+## Current Constraints
+
+- No account system.
+- No notification delivery.
+- No ICS export.
+- No external calendar sync.
+- No venue recommendation workflow.
+- No payment workflow.
+- No organizer token rotation UI.
+- No append-only recommendation history.
+- Food, budget, preferred area, and indoor/outdoor preferences are stored but not scored.
+
+## Known Product Gaps
+
+| Gap | Impact |
+| --- | --- |
+| No notification delivery | Organizer must manually share links and final page |
+| No calendar export | Participants must manually add the final time to calendars |
+| No venue workflow | Togoo decides when, not where |
+| No accounts | Simpler invitee flow, but no cross-device organizer identity |
+| No analytics | Product success is verified by tests and manual usage rather than built-in metrics |
+| No organizer token rotation | Lost organizer links require database-level recovery or plan recreation |
+
+## Future Considerations
+
+These are not current requirements, but they are natural product extensions:
+
+- ICS export for final pages.
+- Organizer token rotation or recovery.
+- Optional notification delivery.
+- Venue shortlist after time finalization.
+- Scoring for food, budget, area, and indoor/outdoor preferences.
+- Multi-organizer plans.
+- Historical recommendation snapshots for audit or trend analysis.

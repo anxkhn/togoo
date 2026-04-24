@@ -4,7 +4,21 @@ dist/
 
 .env
 .env.*
+*.env
+*.env.*
+.envrc
+.direnv/
 .dev.vars
+.dev.vars.*
+*.dev.vars
+
+*.key
+*.pem
+*.p12
+*.pfx
+credentials*.json
+service-account*.json
+secrets.*
 
 *.log
 *.tsbuildinfo
