@@ -1,8 +1,18 @@
 # Togoo
 
+[![Live](https://img.shields.io/badge/live-togoo.anaskhaaan--28.workers.dev-2f855a)](https://togoo.anaskhaaan-28.workers.dev)
+[![GitHub](https://img.shields.io/badge/github-anxkhn%2Ftogoo-181717?logo=github)](https://github.com/anxkhn/togoo)
+[![Cloudflare Workers](https://img.shields.io/badge/runtime-Cloudflare%20Workers-f38020?logo=cloudflare)](https://workers.cloudflare.com/)
+[![React](https://img.shields.io/badge/react-19-61dafb?logo=react)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/typescript-5.7-3178c6?logo=typescript)](https://www.typescriptlang.org/)
+
 Togoo is a token-based group scheduling app for small plans.
 
 An organizer creates a plan, shares private invite links, collects exact slot availability and lightweight preferences, reviews ranked recommendations, and publishes one final confirmed time. Invitees do not need accounts.
+
+Live app: <https://togoo.anaskhaaan-28.workers.dev>
+
+Repository: <https://github.com/anxkhn/togoo>
 
 ## Current Version
 
