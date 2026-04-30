@@ -30,6 +30,9 @@ interface Participant {
   is_required: number;
   priority_tier: number;
   response_status: string;
+  final_rsvp_status: string;
+  final_rsvp_note: string | null;
+  final_rsvp_updated_at: number | null;
   invite_token: string | null;
 }
 
@@ -79,6 +82,10 @@ interface FinalSelection {
   id: string;
   slot_start: number;
   slot_end: number;
+  location_name: string | null;
+  location_address: string | null;
+  google_maps_url: string | null;
+  invite_message: string | null;
   notes: string | null;
   finalized_at: number;
 }
@@ -210,6 +217,12 @@ function TierBadge({ tier }: { tier: number }) {
   return null;
 }
 
+function FinalRsvpBadge({ status }: { status: string }) {
+  if (status === "yes") return <Badge variant="success" className="text-xs">Final RSVP yes</Badge>;
+  if (status === "no") return <Badge variant="warning" className="text-xs">Final RSVP no</Badge>;
+  return <Badge variant="default" className="text-xs">Final RSVP pending</Badge>;
+}
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const ALL_TIMEZONES = getTimeZones({ includeUtc: true });
@@ -296,6 +309,7 @@ function ParticipantRow({
   eventId,
   eventTitle,
   organizerName,
+  eventFinalized,
   onUpdate,
   onRemove,
   onRegenerateToken,
@@ -304,6 +318,7 @@ function ParticipantRow({
   eventId: string;
   eventTitle: string;
   organizerName: string;
+  eventFinalized: boolean;
   onUpdate: (id: string, updates: Partial<Participant>) => Promise<void>;
   onRemove: (id: string) => Promise<void>;
   onRegenerateToken: (id: string) => Promise<string>;
@@ -321,6 +336,7 @@ function ParticipantRow({
   const currentToken = newToken ?? participant.invite_token;
   const inviteUrl = currentToken ? `${window.location.origin}/r/${currentToken}` : null;
   const waPhone = participant.phone?.replace(/\D/g, "");
+  const finalInviteDescription = `${eventTitle} is confirmed. Please RSVP yes or no.`;
 
   return (
     <>
@@ -371,9 +387,13 @@ function ParticipantRow({
                 <Badge variant={participant.response_status === "responded" ? "success" : "default"}>
                   {participant.response_status === "responded" ? "Responded" : "Awaiting response"}
                 </Badge>
+                {eventFinalized && <FinalRsvpBadge status={participant.final_rsvp_status ?? "pending"} />}
               </div>
               {participant.email && <p className="text-xs text-muted mt-0.5">{participant.email}</p>}
-              {inviteUrl && (
+              {eventFinalized && participant.final_rsvp_note && (
+                <p className="mt-1 text-xs text-muted">RSVP note: {participant.final_rsvp_note}</p>
+              )}
+              {inviteUrl && !eventFinalized && (
                 <div className="mt-2 space-y-1.5">
                   <div className="flex items-center gap-1">
                     <span className="text-xs text-muted font-mono break-all">{inviteUrl}</span>
@@ -382,9 +402,30 @@ function ParticipantRow({
                   <ShareButtons
                     path={`/r/${currentToken}`}
                     title={eventTitle}
+                    description={eventFinalized ? `${eventTitle} is confirmed. Please RSVP yes or no.` : undefined}
                     organizerName={organizerName}
                     participantName={participant.name}
                     participantEmail={participant.email}
+                  />
+                </div>
+              )}
+              {inviteUrl && eventFinalized && (
+                <div className="mt-3 rounded-input bg-accent-subtle/60 px-3 py-3 shadow-[inset_0_0_0_1px_rgba(47,104,68,0.12)]">
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-medium text-accent">Final invite</p>
+                      <p className="mt-0.5 text-xs text-muted">Send {participant.name} their private RSVP link.</p>
+                    </div>
+                    <CopyButton text={inviteUrl} label="Copy RSVP link" />
+                  </div>
+                  <ShareButtons
+                    path={`/r/${currentToken}`}
+                    title={eventTitle}
+                    description={finalInviteDescription}
+                    organizerName={organizerName}
+                    participantName={participant.name}
+                    participantEmail={participant.email}
+                    mode="final"
                   />
                 </div>
               )}
@@ -467,6 +508,10 @@ export default function OrganizerDashboard() {
   const [finalPath, setFinalPath] = useState<string | null>(null);
   const [finalizing, setFinalizing] = useState(false);
   const [finalNotes, setFinalNotes] = useState("");
+  const [finalLocationName, setFinalLocationName] = useState("");
+  const [finalLocationAddress, setFinalLocationAddress] = useState("");
+  const [finalMapsUrl, setFinalMapsUrl] = useState("");
+  const [finalInviteMessage, setFinalInviteMessage] = useState("");
   const [overrideLoading, setOverrideLoading] = useState(false);
   const [editingPlan, setEditingPlan] = useState(false);
   const [savingPlan, setSavingPlan] = useState(false);
@@ -512,6 +557,10 @@ export default function OrganizerDashboard() {
       setFinalSelection(eventData.final_selection ?? null);
       setFinalPath(eventData.final_selection ? `/e/${eventId}/final` : null);
       setFinalNotes(eventData.final_selection?.notes ?? "");
+      setFinalLocationName(eventData.final_selection?.location_name ?? "");
+      setFinalLocationAddress(eventData.final_selection?.location_address ?? "");
+      setFinalMapsUrl(eventData.final_selection?.google_maps_url ?? "");
+      setFinalInviteMessage(eventData.final_selection?.invite_message ?? "");
       setParticipants(participantsData.participants ?? []);
       setNewIsRequired(eventData.event.participants_required_by_default === 1);
       setPlanForm(eventToPlanForm(eventData.event));
@@ -635,6 +684,9 @@ export default function OrganizerDashboard() {
             phone: added.participant.phone ?? null,
             role: "participant",
             response_status: "pending",
+            final_rsvp_status: "pending",
+            final_rsvp_note: null,
+            final_rsvp_updated_at: null,
             invite_token: added.invite_token,
             priority_tier: added.participant.priority_tier ?? participant.priority_tier,
           },
@@ -716,6 +768,10 @@ export default function OrganizerDashboard() {
         body: JSON.stringify({
           slot_start: selectedMeeting.start,
           slot_end: selectedMeeting.end,
+          location_name: finalLocationName.trim() || undefined,
+          location_address: finalLocationAddress.trim() || undefined,
+          google_maps_url: finalMapsUrl.trim() || undefined,
+          invite_message: finalInviteMessage.trim() || undefined,
           notes: finalNotes.trim() || undefined,
         }),
       });
@@ -726,6 +782,10 @@ export default function OrganizerDashboard() {
           id: "pending-final-selection",
           slot_start: selectedMeeting.start,
           slot_end: selectedMeeting.end,
+          location_name: finalLocationName.trim() || null,
+          location_address: finalLocationAddress.trim() || null,
+          google_maps_url: finalMapsUrl.trim() || null,
+          invite_message: finalInviteMessage.trim() || null,
           notes: finalNotes.trim() || null,
           finalized_at: Math.floor(Date.now() / 1000),
         });
@@ -741,8 +801,12 @@ export default function OrganizerDashboard() {
     await fetch(clientApi.reopen(eventId), { method: "POST", headers });
     setEvent((e) => e ? { ...e, status: "active" } : e);
     setSelectedMeeting(null);
-    setFinalSelection(null);
-    setFinalPath(null);
+      setFinalSelection(null);
+      setFinalPath(null);
+      setFinalLocationName("");
+      setFinalLocationAddress("");
+      setFinalMapsUrl("");
+      setFinalInviteMessage("");
   };
 
   const handleAddOverride = async (overrideType: "block_time" | "force_include" | "force_exclude") => {
@@ -925,6 +989,7 @@ export default function OrganizerDashboard() {
   const organizerName = participants.find((p) => p.role === "organizer")?.name ?? "";
   const responseRate = stats.total_invited > 0 ? Math.round((stats.total_responded / stats.total_invited) * 100) : 0;
   const participantNamesById = Object.fromEntries(nonOrganizerParticipants.map((participant) => [participant.id, participant.name]));
+  const finalYesCount = nonOrganizerParticipants.filter((participant) => participant.final_rsvp_status === "yes").length;
 
   const formatActivityEntry = (entry: ActivityLog): string => {
     const actorName = entry.actor_id ? participantNamesById[entry.actor_id] ?? (entry.actor_id === organizerParticipantId ? organizerName : null) : null;
@@ -960,6 +1025,10 @@ export default function OrganizerDashboard() {
         return actorName ? `${actorName} updated the plan and reopened responses` : "Event updated and reopened";
       case "event_finalized":
         return actorName ? `${actorName} finalized the plan` : "Event finalized";
+      case "final_rsvp_submitted": {
+        const status = data.status === "yes" ? "yes" : data.status === "no" ? "no" : "a response";
+        return actorName ? `${actorName} RSVP'd ${status} to the final invite` : `Final RSVP ${status}`;
+      }
       case "event_reopened":
         return actorName ? `${actorName} reopened responses` : "Event reopened";
       case "override_added":
@@ -1236,11 +1305,12 @@ export default function OrganizerDashboard() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-4 mb-8 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 mb-8 sm:grid-cols-4">
             {[
               { label: "Invited", value: stats.total_invited },
               { label: "Responded", value: stats.total_responded },
               { label: "Response rate", value: `${responseRate}%` },
+              { label: event.status === "finalized" ? "Final yes" : "Pending", value: event.status === "finalized" ? `${finalYesCount}/${stats.total_invited}` : stats.pending },
             ].map((stat) => (
               <div key={stat.label} className="card p-4 text-center">
                 <p className="font-display text-3xl font-bold text-text tabular-nums">{stat.value}</p>
@@ -1368,6 +1438,7 @@ export default function OrganizerDashboard() {
                       eventId={eventId}
                       eventTitle={event.title}
                       organizerName={organizerName}
+                      eventFinalized={event.status === "finalized"}
                       onUpdate={handleUpdateParticipant}
                       onRemove={handleRemoveParticipant}
                       onRegenerateToken={handleRegenerateToken}
@@ -1433,19 +1504,18 @@ export default function OrganizerDashboard() {
                   {finalSelection.notes && (
                     <p className="mt-2 text-sm text-muted">{finalSelection.notes}</p>
                   )}
+                  {(finalSelection.location_name || finalSelection.location_address) && (
+                    <div className="mt-3 rounded-input bg-surface/70 px-3 py-2 text-sm shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
+                      {finalSelection.location_name && <p className="font-medium text-text">{finalSelection.location_name}</p>}
+                      {finalSelection.location_address && <p className="mt-0.5 text-xs text-muted">{finalSelection.location_address}</p>}
+                    </div>
+                  )}
+                  {finalSelection.invite_message && (
+                    <p className="mt-3 text-sm text-muted">{finalSelection.invite_message}</p>
+                  )}
                   {finalPath && (
-                    <div className="mt-3 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <CopyButton text={`${window.location.origin}${finalPath}`} label="Copy final page" />
-                        <Link href={finalPath} className="link-accent inline min-h-0 text-xs underline-offset-2">
-                          Open final page
-                        </Link>
-                      </div>
-                      <ShareButtons
-                        path={finalPath}
-                        title={event.title}
-                        description={`${event.title} is confirmed.`}
-                      />
+                    <div className="mt-3 rounded-input bg-surface/70 px-3 py-2 text-xs text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
+                      Send final invites from the People tab so each guest gets their private RSVP link.
                     </div>
                   )}
                 </div>
@@ -1463,6 +1533,38 @@ export default function OrganizerDashboard() {
                   <p className="mt-0.5 text-sm text-muted tabular-nums">
                     {selectedMeeting.attendingCount} of {selectedMeeting.totalParticipants} can make it
                   </p>
+                  <div className="mt-3 space-y-3">
+                    <Input
+                      label="Location"
+                      optional
+                      placeholder="Restaurant, park, office, or meetup spot"
+                      value={finalLocationName}
+                      onChange={(e) => setFinalLocationName(e.target.value)}
+                    />
+                    <Textarea
+                      label="Address or navigation note"
+                      optional
+                      placeholder="Floor, gate, landmark, parking note, or how to get there."
+                      rows={2}
+                      value={finalLocationAddress}
+                      onChange={(e) => setFinalLocationAddress(e.target.value)}
+                    />
+                    <Input
+                      label="Google Maps link"
+                      optional
+                      placeholder="https://maps.google.com/..."
+                      value={finalMapsUrl}
+                      onChange={(e) => setFinalMapsUrl(e.target.value)}
+                    />
+                    <Textarea
+                      label="Invite message"
+                      optional
+                      placeholder="You are invited. Please RSVP so I know who is coming."
+                      rows={3}
+                      value={finalInviteMessage}
+                      onChange={(e) => setFinalInviteMessage(e.target.value)}
+                    />
+                  </div>
                   <Textarea
                     label="Final note (optional)"
                     placeholder="Add anything the group should know about this confirmed plan."

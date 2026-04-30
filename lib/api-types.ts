@@ -26,6 +26,9 @@ export interface ParticipantData {
   email: string | null;
   role: string;
   response_status?: string;
+  final_rsvp_status?: string;
+  final_rsvp_note?: string | null;
+  final_rsvp_updated_at?: number | null;
 }
 
 export interface ActivityLogEntry {
@@ -41,6 +44,10 @@ export interface FinalSelectionData {
   event_id: string;
   slot_start: number;
   slot_end: number;
+  location_name: string | null;
+  location_address: string | null;
+  google_maps_url: string | null;
+  invite_message: string | null;
   notes: string | null;
   selected_by: string;
   finalized_at: number;
@@ -65,6 +72,7 @@ export interface ValidateTokenResponse {
   participant: ParticipantData;
   existing_windows: Array<{ id: string; start_time: number; end_time: number }> | null;
   existing_preferences: ExistingPreferences | null;
+  final_selection: FinalSelectionData | null;
 }
 
 export interface CreateEventResponse {

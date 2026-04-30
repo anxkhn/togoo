@@ -41,6 +41,10 @@ export async function GET(request: NextRequest) {
         )
       );
 
+    const finalSelection = await db.query.final_selections.findFirst({
+      where: eq(schema.final_selections.event_id, tokenRecord.event_id),
+    });
+
     return NextResponse.json({
       valid: true,
       role: tokenRecord.role,
@@ -50,6 +54,7 @@ export async function GET(request: NextRequest) {
       participant,
       existing_windows: existingWindows,
       existing_preferences: existingPrefs ?? null,
+      final_selection: finalSelection ?? null,
     });
   } catch (err) {
     console.error("Validate token error:", err);

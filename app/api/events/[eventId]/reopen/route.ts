@@ -30,6 +30,11 @@ export async function POST(
       .delete(schema.final_selections)
       .where(eq(schema.final_selections.event_id, eventId));
 
+    await db
+      .update(schema.participants)
+      .set({ final_rsvp_status: "pending", final_rsvp_note: null, final_rsvp_updated_at: null, updated_at: now })
+      .where(eq(schema.participants.event_id, eventId));
+
     await db.insert(schema.activity_log).values({
       id: generateId(),
       event_id: eventId,

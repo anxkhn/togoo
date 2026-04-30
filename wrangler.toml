@@ -14,5 +14,5 @@ binding = "IMAGES"
 [[d1_databases]]
 binding = "DB"
 database_name = "togoo-db"
-database_id = "REPLACE_WITH_YOUR_DATABASE_ID"
+database_id = "6ef22bb4-76f5-46e4-8980-42829808248e"
 migrations_dir = "drizzle/migrations"

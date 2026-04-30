@@ -8,6 +8,7 @@ import { formatDuration } from "@/lib/utils";
 import { notFound } from "next/navigation";
 import { AppFooter } from "@/components/app-footer";
 import { ShareButtons } from "@/components/share-buttons";
+import { buildGoogleCalendarUrl, buildGoogleMapsUrl, buildIcsDataUri } from "@/lib/calendar";
 
 export async function generateMetadata({
   params,
@@ -78,7 +79,24 @@ export default async function FinalPage({
     timeZone: event.timezone,
   }).format(new Date(finalSelection.slot_end * 1000));
 
-  const shareText = `${event.title} is confirmed for ${startDate}, ${startTime}-${endTime} (${event.timezone})`;
+  const shareText = `${event.title} is confirmed for ${startDate}, ${startTime}-${endTime} (${event.timezone}).`;
+  const locationText = [finalSelection.location_name, finalSelection.location_address].filter(Boolean).join(", ");
+  const mapsUrl = buildGoogleMapsUrl(finalSelection.location_name, finalSelection.location_address, finalSelection.google_maps_url);
+  const calendarDescription = [finalSelection.invite_message, finalSelection.notes, event.description].filter(Boolean).join("\n\n");
+  const googleCalendarUrl = buildGoogleCalendarUrl({
+    title: event.title,
+    description: calendarDescription,
+    start: finalSelection.slot_start,
+    end: finalSelection.slot_end,
+    location: locationText,
+  });
+  const icsUrl = buildIcsDataUri({
+    title: event.title,
+    description: calendarDescription,
+    start: finalSelection.slot_start,
+    end: finalSelection.slot_end,
+    location: locationText,
+  });
 
   return (
     <div className="min-h-screen bg-bg">
@@ -105,6 +123,9 @@ export default async function FinalPage({
           {event.description && (
             <p className="text-muted">{event.description}</p>
           )}
+          {finalSelection.invite_message && (
+            <p className="mx-auto mt-4 max-w-md text-sm text-text">{finalSelection.invite_message}</p>
+          )}
         </div>
 
         <div className="card p-6 text-center shadow-card-elevated animate-scale-in sm:p-8">
@@ -119,11 +140,32 @@ export default async function FinalPage({
           <p className="text-sm text-muted tabular-nums">
             {event.timezone} &middot; {formatDuration(event.meeting_duration_minutes)}
           </p>
+          {(finalSelection.location_name || finalSelection.location_address) && (
+            <div className="mt-5 rounded-card bg-surface-alt px-4 py-4 text-left shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">Location</p>
+              {finalSelection.location_name && <p className="mt-1 font-display text-xl font-semibold text-text">{finalSelection.location_name}</p>}
+              {finalSelection.location_address && <p className="mt-1 text-sm text-muted">{finalSelection.location_address}</p>}
+              {mapsUrl && (
+                <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="link-accent mt-3 inline-flex min-h-0 text-sm underline-offset-2">
+                  Open in Google Maps
+                </a>
+              )}
+            </div>
+          )}
           {finalSelection.notes && (
             <div className="mt-5 pt-5 border-t border-border">
               <p className="text-sm text-muted">{finalSelection.notes}</p>
             </div>
           )}
+
+          <div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <a href={googleCalendarUrl} target="_blank" rel="noopener noreferrer" className="btn-primary text-sm">
+              Add to Calendar
+            </a>
+            <a href={icsUrl} download={`${event.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "togoo"}.ics`} className="btn-secondary text-sm">
+              Download calendar file
+            </a>
+          </div>
 
           <div className="mt-6 flex flex-col items-center justify-center gap-3 border-t border-border pt-5 sm:flex-row">
             <span className="text-xs text-muted">Share the confirmed plan</span>

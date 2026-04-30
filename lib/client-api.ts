@@ -12,6 +12,7 @@ export const clientApi = {
   respond: (eventId: string) => `${CLIENT_API_BASE}/${eventId}/respond`,
   recommendations: (eventId: string) => `${CLIENT_API_BASE}/${eventId}/recommendations`,
   finalize: (eventId: string) => `${CLIENT_API_BASE}/${eventId}/finalize`,
+  rsvp: (eventId: string) => `${CLIENT_API_BASE}/${eventId}/rsvp`,
   reopen: (eventId: string) => `${CLIENT_API_BASE}/${eventId}/reopen`,
   overrides: (eventId: string) => `${CLIENT_API_BASE}/${eventId}/overrides`,
 };

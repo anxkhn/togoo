@@ -4,14 +4,16 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/input";
 import { AppFooter } from "@/components/app-footer";
 import { AvailabilityPicker, type TimeWindow } from "@/components/availability-picker";
 import { PreferenceForm, type PreferenceValues, defaultPreferences } from "@/components/preference-form";
 import { cn, formatDate, formatEventDate } from "@/lib/utils";
 import { saveEvent } from "@/components/my-events";
-import type { ValidateTokenResponse, ApiError, EventData, ParticipantData } from "@/lib/api-types";
+import type { ValidateTokenResponse, ApiError, EventData, ParticipantData, FinalSelectionData } from "@/lib/api-types";
 import { clientApi } from "@/lib/client-api";
 import { hasMeaningfulPreferences, parseEnabledPreferences } from "@/lib/event-settings";
+import { buildGoogleCalendarUrl, buildGoogleMapsUrl, buildIcsDataUri } from "@/lib/calendar";
 
 type Step = "availability" | "preferences" | "review" | "success";
 
@@ -37,10 +39,15 @@ export default function RespondPage() {
   const [eventId, setEventId] = useState<string | null>(null);
   const [event, setEvent] = useState<EventData | null>(null);
   const [participant, setParticipant] = useState<ParticipantData | null>(null);
+  const [finalSelection, setFinalSelection] = useState<FinalSelectionData | null>(null);
   const [step, setStep] = useState<Step>("availability");
   const [windows, setWindows] = useState<TimeWindow[]>([]);
   const [preferences, setPreferences] = useState<PreferenceValues>(defaultPreferences);
   const [localTimezone, setLocalTimezone] = useState("UTC");
+  const [finalRsvpNote, setFinalRsvpNote] = useState("");
+  const [finalRsvpSubmitting, setFinalRsvpSubmitting] = useState(false);
+  const [finalRsvpError, setFinalRsvpError] = useState("");
+  const [finalRsvpSaved, setFinalRsvpSaved] = useState(false);
   const enabledPreferenceFields = parseEnabledPreferences(event?.enabled_preferences);
   const responseClosed = Boolean(event?.response_deadline && Date.now() / 1000 > event.response_deadline);
   const preferencesSatisfied =
@@ -72,6 +79,8 @@ export default function RespondPage() {
         setEventId(data.event_id);
         setEvent(data.event);
         setParticipant(data.participant);
+        setFinalSelection(data.final_selection ?? null);
+        setFinalRsvpNote(data.participant.final_rsvp_note ?? "");
 
         if (data.participant.response_status === "responded") {
           setStep("review");
@@ -210,6 +219,39 @@ export default function RespondPage() {
     }
   };
 
+  const handleFinalRsvp = async (status: "yes" | "no") => {
+    if (!eventId) return;
+    setFinalRsvpSubmitting(true);
+    setFinalRsvpError("");
+    setFinalRsvpSaved(false);
+
+    try {
+      const res = await fetch(clientApi.rsvp(eventId), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, status, note: finalRsvpNote.trim() || undefined }),
+      });
+      const data = await res.json() as ApiError | { status: string };
+
+      if (!res.ok) {
+        setFinalRsvpError((data as ApiError).error ?? "We couldn't save your RSVP.");
+        return;
+      }
+
+      setParticipant((current) => current ? {
+        ...current,
+        final_rsvp_status: status,
+        final_rsvp_note: finalRsvpNote.trim() || null,
+        final_rsvp_updated_at: Math.floor(Date.now() / 1000),
+      } : current);
+      setFinalRsvpSaved(true);
+    } catch {
+      setFinalRsvpError("We couldn't save your RSVP.");
+    } finally {
+      setFinalRsvpSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center">
@@ -231,6 +273,133 @@ export default function RespondPage() {
           <p className="text-muted mb-6">{tokenError}</p>
           <Link href="/" className="btn-secondary">Go home</Link>
         </div>
+      </div>
+    );
+  }
+
+  if (event?.status === "finalized" && finalSelection && participant) {
+    const startDate = new Intl.DateTimeFormat("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+      timeZone: event.timezone,
+    }).format(new Date(finalSelection.slot_start * 1000));
+    const startTime = new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: event.timezone,
+    }).format(new Date(finalSelection.slot_start * 1000));
+    const endTime = new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: event.timezone,
+    }).format(new Date(finalSelection.slot_end * 1000));
+    const locationText = [finalSelection.location_name, finalSelection.location_address].filter(Boolean).join(", ");
+    const mapsUrl = buildGoogleMapsUrl(finalSelection.location_name, finalSelection.location_address, finalSelection.google_maps_url);
+    const calendarDescription = [finalSelection.invite_message, finalSelection.notes, event.description].filter(Boolean).join("\n\n");
+    const googleCalendarUrl = buildGoogleCalendarUrl({
+      title: event.title,
+      description: calendarDescription,
+      start: finalSelection.slot_start,
+      end: finalSelection.slot_end,
+      location: locationText,
+    });
+    const icsUrl = buildIcsDataUri({
+      title: event.title,
+      description: calendarDescription,
+      start: finalSelection.slot_start,
+      end: finalSelection.slot_end,
+      location: locationText,
+    });
+    const slug = event.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "togoo";
+
+    return (
+      <div className="min-h-screen bg-bg">
+        <header className="border-b border-border bg-surface/80 backdrop-blur-sm sticky top-0 z-10">
+          <div className="max-w-xl mx-auto px-5 h-14 flex items-center justify-between">
+            <Link href="/" className="font-display text-xl font-semibold text-text">Togoo</Link>
+            <span className="inline-flex min-h-10 items-center rounded-full bg-accent-subtle px-3 py-1 text-xs font-medium text-accent shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)]">
+              Final invite
+            </span>
+          </div>
+        </header>
+
+        <main className="max-w-xl mx-auto px-5 py-8">
+          <div className="mb-6 text-center animate-fade-in">
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-accent">You are invited</p>
+            <h1 className="font-display text-4xl font-bold text-text">{event.title}</h1>
+            {finalSelection.invite_message ? (
+              <p className="mt-3 text-sm text-muted">{finalSelection.invite_message}</p>
+            ) : event.description ? (
+              <p className="mt-3 text-sm text-muted">{event.description}</p>
+            ) : null}
+            <p className="mt-3 text-sm text-muted">
+              Responding as <span className="font-medium text-text">{participant.name}</span>
+            </p>
+          </div>
+
+          <div className="card p-6 text-center shadow-card-elevated animate-scale-in">
+            <p className="text-sm text-muted mb-1">Confirmed for</p>
+            <p className="font-display text-3xl font-bold text-text">{startDate}</p>
+            <div className="mx-auto mt-3 inline-flex min-h-10 items-center rounded-full bg-accent-subtle px-4 py-2 text-sm font-medium text-accent tabular-nums shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)]">
+              {startTime} - {endTime} <span className="ml-1 text-xs text-muted">{event.timezone}</span>
+            </div>
+
+            {(finalSelection.location_name || finalSelection.location_address) && (
+              <div className="mt-5 rounded-card bg-surface-alt px-4 py-4 text-left shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted">Where</p>
+                {finalSelection.location_name && <p className="mt-1 font-display text-xl font-semibold text-text">{finalSelection.location_name}</p>}
+                {finalSelection.location_address && <p className="mt-1 text-sm text-muted">{finalSelection.location_address}</p>}
+                {mapsUrl && (
+                  <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="link-accent mt-3 inline-flex min-h-0 text-sm underline-offset-2">
+                    Open in Google Maps
+                  </a>
+                )}
+              </div>
+            )}
+
+            {finalSelection.notes && <p className="mt-5 border-t border-border pt-5 text-sm text-muted">{finalSelection.notes}</p>}
+
+            <div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <a href={googleCalendarUrl} target="_blank" rel="noopener noreferrer" className="btn-primary text-sm">Add to Calendar</a>
+              <a href={icsUrl} download={`${slug}.ics`} className="btn-secondary text-sm">Download .ics</a>
+            </div>
+          </div>
+
+          <div className="card mt-5 p-5 animate-scale-in">
+            <h2 className="font-display text-xl font-semibold text-text">Can you make it?</h2>
+            <p className="mt-1 text-sm text-muted">Send a final yes or no so the organizer knows who is coming.</p>
+            <Textarea
+              label="Optional note"
+              optional
+              rows={2}
+              value={finalRsvpNote}
+              onChange={(e) => setFinalRsvpNote(e.target.value)}
+              placeholder="Anything the organizer should know?"
+              className="mt-4"
+            />
+            {finalRsvpError && (
+              <div className="mt-3 rounded-input bg-danger-light px-4 py-3 text-sm text-danger shadow-[inset_0_0_0_1px_rgba(185,28,28,0.12)]">
+                {finalRsvpError}
+              </div>
+            )}
+            {finalRsvpSaved && (
+              <div className="mt-3 rounded-input bg-accent-subtle px-4 py-3 text-sm text-accent shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)]">
+                RSVP saved.
+              </div>
+            )}
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <Button loading={finalRsvpSubmitting} onClick={() => handleFinalRsvp("yes")} variant={participant.final_rsvp_status === "yes" ? "primary" : "secondary"}>
+                Yes, I will be there
+              </Button>
+              <Button loading={finalRsvpSubmitting} onClick={() => handleFinalRsvp("no")} variant={participant.final_rsvp_status === "no" ? "primary" : "secondary"}>
+                No, cannot make it
+              </Button>
+            </div>
+          </div>
+        </main>
+        <AppFooter maxWidth="xl" />
       </div>
     );
   }

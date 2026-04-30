@@ -16,7 +16,10 @@ export function ShareButtons({ path, title, description, organizerName, particip
   const invite = organizerName
     ? `${organizerName} is trying to lock in the best time for ${title}.`
     : `Can you make ${title}?`;
-  const final = `${title} is confirmed.${description ? `\n\n${description}` : ""}\n\nSee the confirmed plan here: ${url}`;
+  const finalSummary = description?.trim() || `${title} is confirmed.`;
+  const final = participantName
+    ? `${greeting}${finalSummary}\n\nPlease RSVP yes or no here: ${url}`
+    : `${finalSummary}\n\nOpen the confirmed plan here: ${url}`;
   const body = mode === "final"
     ? final
     : `${greeting}${invite}\n\n${description ? description + "\n\n" : ""}Tell us your availability here: ${url}`;
