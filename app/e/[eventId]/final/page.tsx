@@ -80,8 +80,32 @@ export default async function FinalPage({
     timeZone: event.timezone,
   }).format(new Date(finalSelection.slot_end * 1000));
 
-  const shareText = `${event.title} is confirmed for ${startDate}, ${startTime}-${endTime} (${event.timezone}).`;
   const locationText = [finalSelection.location_name, finalSelection.location_address].filter(Boolean).join(", ");
+  const sameShareDay = new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    timeZone: event.timezone,
+  }).format(new Date(finalSelection.slot_start * 1000)) === new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    timeZone: event.timezone,
+  }).format(new Date(finalSelection.slot_end * 1000));
+  const shareTimeText = sameShareDay
+    ? `${startDate}, ${startTime} - ${endTime}`
+    : `${startDate}, ${startTime} - ${new Intl.DateTimeFormat("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+        timeZone: event.timezone,
+      }).format(new Date(finalSelection.slot_end * 1000))}, ${endTime}`;
+  const shareText = [
+    `${event.title} is locked in. Would love to see you there.`,
+    `Time: ${shareTimeText}`,
+    locationText ? `Where: ${locationText}` : null,
+  ].filter(Boolean).join("\n");
   const mapsUrl = buildGoogleMapsUrl(finalSelection.location_name, finalSelection.location_address, finalSelection.google_maps_url);
   const calendarDescription = [finalSelection.invite_message, finalSelection.notes, event.description].filter(Boolean).join("\n\n");
   const googleCalendarUrl = buildGoogleCalendarUrl({

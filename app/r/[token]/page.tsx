@@ -16,6 +16,7 @@ import { hasMeaningfulPreferences, parseEnabledPreferences } from "@/lib/event-s
 import { buildGoogleCalendarUrl, buildGoogleMapsUrl } from "@/lib/calendar";
 
 type Step = "availability" | "preferences" | "review" | "success";
+type FinalRsvpChoice = "yes" | "no";
 
 function filterWindowsToDateRange(
   windows: Array<{ id: string; start_time: number; end_time: number }>,
@@ -44,7 +45,7 @@ export default function RespondPage() {
   const [windows, setWindows] = useState<TimeWindow[]>([]);
   const [preferences, setPreferences] = useState<PreferenceValues>(defaultPreferences);
   const [localTimezone, setLocalTimezone] = useState("UTC");
-  const [finalRsvpSubmitting, setFinalRsvpSubmitting] = useState(false);
+  const [finalRsvpSubmitting, setFinalRsvpSubmitting] = useState<FinalRsvpChoice | null>(null);
   const [finalRsvpError, setFinalRsvpError] = useState("");
   const [finalRsvpSaved, setFinalRsvpSaved] = useState(false);
   const enabledPreferenceFields = parseEnabledPreferences(event?.enabled_preferences);
@@ -216,9 +217,9 @@ export default function RespondPage() {
     }
   };
 
-  const handleFinalRsvp = async (status: "yes" | "no") => {
+  const handleFinalRsvp = async (status: FinalRsvpChoice) => {
     if (!eventId) return;
-    setFinalRsvpSubmitting(true);
+    setFinalRsvpSubmitting(status);
     setFinalRsvpError("");
     setFinalRsvpSaved(false);
 
@@ -244,7 +245,7 @@ export default function RespondPage() {
     } catch {
       setFinalRsvpError("We couldn't save your RSVP.");
     } finally {
-      setFinalRsvpSubmitting(false);
+      setFinalRsvpSubmitting(null);
     }
   };
 
@@ -354,10 +355,10 @@ export default function RespondPage() {
               </div>
             )}
             <div className="mt-4 grid grid-cols-2 gap-2">
-              <Button loading={finalRsvpSubmitting} onClick={() => handleFinalRsvp("yes")} variant={participant.final_rsvp_status === "yes" ? "primary" : "secondary"}>
+              <Button loading={finalRsvpSubmitting === "yes"} disabled={finalRsvpSubmitting !== null} onClick={() => handleFinalRsvp("yes")} variant={participant.final_rsvp_status === "yes" ? "primary" : "secondary"}>
                 Yes, I will be there
               </Button>
-              <Button loading={finalRsvpSubmitting} onClick={() => handleFinalRsvp("no")} variant={participant.final_rsvp_status === "no" ? "primary" : "secondary"}>
+              <Button loading={finalRsvpSubmitting === "no"} disabled={finalRsvpSubmitting !== null} onClick={() => handleFinalRsvp("no")} variant={participant.final_rsvp_status === "no" ? "primary" : "secondary"}>
                 No, cannot make it
               </Button>
             </div>

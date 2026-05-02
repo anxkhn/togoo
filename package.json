@@ -48,7 +48,7 @@
     "typescript": "^5.7.0",
     "vinext": "latest",
     "vitest": "^4.1.5",
-    "wrangler": "^4.83.0"
+    "wrangler": "^4.87.0"
   },
   "type": "module"
 }

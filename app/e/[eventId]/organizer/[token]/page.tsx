@@ -91,6 +91,43 @@ interface FinalSelection {
   finalized_at: number;
 }
 
+function formatFinalInviteDescription(eventTitle: string, timezone: string, finalSelection: FinalSelection | null): string {
+  if (!finalSelection) return `${eventTitle} is confirmed.`;
+
+  const dateFormatter = new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: timezone,
+  });
+  const timeFormatter = new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: timezone,
+  });
+  const start = new Date(finalSelection.slot_start * 1000);
+  const end = new Date(finalSelection.slot_end * 1000);
+  const startDate = dateFormatter.format(start);
+  const endDate = dateFormatter.format(end);
+  const startTime = timeFormatter.format(start);
+  const endTime = timeFormatter.format(end);
+  const timeText = startDate === endDate
+    ? `${startDate}, ${startTime} - ${endTime}`
+    : `${startDate}, ${startTime} to ${endDate}, ${endTime}`;
+  const locationLines = [finalSelection.location_name, finalSelection.location_address]
+    .filter((line): line is string => Boolean(line?.trim()))
+    .join(", ");
+  const lines = [
+    `${eventTitle} is locked in. Would love to see you there.`,
+    `Time: ${timeText}`,
+    locationLines ? `Place: ${locationLines}` : null,
+    finalSelection.invite_message,
+  ];
+
+  return lines.filter((line): line is string => Boolean(line?.trim())).join("\n");
+}
+
 interface ActivityLog {
   id: string;
   action: string;
@@ -323,6 +360,8 @@ function ParticipantRow({
   participant,
   eventId,
   eventTitle,
+  eventTimezone,
+  finalSelection,
   organizerName,
   eventFinalized,
   onUpdate,
@@ -332,6 +371,8 @@ function ParticipantRow({
   participant: Participant;
   eventId: string;
   eventTitle: string;
+  eventTimezone: string;
+  finalSelection: FinalSelection | null;
   organizerName: string;
   eventFinalized: boolean;
   onUpdate: (id: string, updates: Partial<Participant>) => Promise<void>;
@@ -351,7 +392,7 @@ function ParticipantRow({
   const currentToken = newToken ?? participant.invite_token;
   const inviteUrl = currentToken ? `${window.location.origin}/r/${currentToken}` : null;
   const waPhone = participant.phone?.replace(/\D/g, "");
-  const rsvpInviteDescription = `${eventTitle} is confirmed. Please RSVP yes or no.`;
+  const rsvpInviteDescription = formatFinalInviteDescription(eventTitle, eventTimezone, finalSelection);
 
   return (
     <>
@@ -1508,6 +1549,8 @@ export default function OrganizerDashboard() {
                       participant={p}
                       eventId={eventId}
                       eventTitle={event.title}
+                      eventTimezone={event.timezone}
+                      finalSelection={finalSelection}
                       organizerName={organizerName}
                       eventFinalized={event.status === "finalized"}
                       onUpdate={handleUpdateParticipant}
