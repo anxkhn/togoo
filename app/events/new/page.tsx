@@ -8,6 +8,7 @@ import { Input, Textarea } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { DatePickerField, DateTimePickerField } from "@/components/ui/date-time-picker";
 import { InfoTooltip } from "@/components/ui/field-label";
+import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
 import { getTimeZones } from "@vvo/tzdb";
 import { saveEvent } from "@/components/my-events";
@@ -443,13 +444,7 @@ export default function NewEventPage() {
 
   return (
     <div className="min-h-screen bg-bg">
-      <header className="border-b border-border bg-surface/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-5 h-14 flex items-center justify-between">
-          <Link href="/" className="font-display text-xl font-semibold text-text">
-            Togoo
-          </Link>
-        </div>
-      </header>
+      <AppHeader maxWidth="2xl" />
 
       <main className="max-w-2xl mx-auto px-5 py-12">
         <div className="mb-10">

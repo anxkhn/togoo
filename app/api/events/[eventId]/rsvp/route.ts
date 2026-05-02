@@ -48,7 +48,6 @@ export async function POST(
       .update(schema.participants)
       .set({
         final_rsvp_status: parsed.data.status,
-        final_rsvp_note: parsed.data.note?.trim() || null,
         final_rsvp_updated_at: now,
         updated_at: now,
       })

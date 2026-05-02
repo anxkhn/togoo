@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/input";
+import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
 import { AvailabilityPicker, type TimeWindow } from "@/components/availability-picker";
 import { PreferenceForm, type PreferenceValues, defaultPreferences } from "@/components/preference-form";
@@ -13,7 +13,7 @@ import { saveEvent } from "@/components/my-events";
 import type { ValidateTokenResponse, ApiError, EventData, ParticipantData, FinalSelectionData } from "@/lib/api-types";
 import { clientApi } from "@/lib/client-api";
 import { hasMeaningfulPreferences, parseEnabledPreferences } from "@/lib/event-settings";
-import { buildGoogleCalendarUrl, buildGoogleMapsUrl, buildIcsDataUri } from "@/lib/calendar";
+import { buildGoogleCalendarUrl, buildGoogleMapsUrl } from "@/lib/calendar";
 
 type Step = "availability" | "preferences" | "review" | "success";
 
@@ -44,7 +44,6 @@ export default function RespondPage() {
   const [windows, setWindows] = useState<TimeWindow[]>([]);
   const [preferences, setPreferences] = useState<PreferenceValues>(defaultPreferences);
   const [localTimezone, setLocalTimezone] = useState("UTC");
-  const [finalRsvpNote, setFinalRsvpNote] = useState("");
   const [finalRsvpSubmitting, setFinalRsvpSubmitting] = useState(false);
   const [finalRsvpError, setFinalRsvpError] = useState("");
   const [finalRsvpSaved, setFinalRsvpSaved] = useState(false);
@@ -80,8 +79,6 @@ export default function RespondPage() {
         setEvent(data.event);
         setParticipant(data.participant);
         setFinalSelection(data.final_selection ?? null);
-        setFinalRsvpNote(data.participant.final_rsvp_note ?? "");
-
         if (data.participant.response_status === "responded") {
           setStep("review");
         }
@@ -229,7 +226,7 @@ export default function RespondPage() {
       const res = await fetch(clientApi.rsvp(eventId), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, status, note: finalRsvpNote.trim() || undefined }),
+        body: JSON.stringify({ token, status }),
       });
       const data = await res.json() as ApiError | { status: string };
 
@@ -241,7 +238,6 @@ export default function RespondPage() {
       setParticipant((current) => current ? {
         ...current,
         final_rsvp_status: status,
-        final_rsvp_note: finalRsvpNote.trim() || null,
         final_rsvp_updated_at: Math.floor(Date.now() / 1000),
       } : current);
       setFinalRsvpSaved(true);
@@ -305,33 +301,15 @@ export default function RespondPage() {
       end: finalSelection.slot_end,
       location: locationText,
     });
-    const icsUrl = buildIcsDataUri({
-      title: event.title,
-      description: calendarDescription,
-      start: finalSelection.slot_start,
-      end: finalSelection.slot_end,
-      location: locationText,
-    });
-    const slug = event.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "togoo";
-
     return (
       <div className="min-h-screen bg-bg">
-        <header className="border-b border-border bg-surface/80 backdrop-blur-sm sticky top-0 z-10">
-          <div className="max-w-xl mx-auto px-5 h-14 flex items-center justify-between">
-            <Link href="/" className="font-display text-xl font-semibold text-text">Togoo</Link>
-            <span className="inline-flex min-h-10 items-center rounded-full bg-accent-subtle px-3 py-1 text-xs font-medium text-accent shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)]">
-              Final invite
-            </span>
-          </div>
-        </header>
+        <AppHeader maxWidth="xl" />
 
         <main className="max-w-xl mx-auto px-5 py-8">
           <div className="mb-6 text-center animate-fade-in">
             <p className="mb-2 text-xs font-medium uppercase tracking-wide text-accent">You are invited</p>
             <h1 className="font-display text-4xl font-bold text-text">{event.title}</h1>
-            {finalSelection.invite_message ? (
-              <p className="mt-3 text-sm text-muted">{finalSelection.invite_message}</p>
-            ) : event.description ? (
+            {event.description ? (
               <p className="mt-3 text-sm text-muted">{event.description}</p>
             ) : null}
             <p className="mt-3 text-sm text-muted">
@@ -348,37 +326,23 @@ export default function RespondPage() {
 
             {(finalSelection.location_name || finalSelection.location_address) && (
               <div className="mt-5 rounded-card bg-surface-alt px-4 py-4 text-left shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted">Where</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted">Location</p>
                 {finalSelection.location_name && <p className="mt-1 font-display text-xl font-semibold text-text">{finalSelection.location_name}</p>}
                 {finalSelection.location_address && <p className="mt-1 text-sm text-muted">{finalSelection.location_address}</p>}
-                {mapsUrl && (
-                  <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="link-accent mt-3 inline-flex min-h-0 text-sm underline-offset-2">
-                    Open in Google Maps
-                  </a>
-                )}
               </div>
             )}
 
             {finalSelection.notes && <p className="mt-5 border-t border-border pt-5 text-sm text-muted">{finalSelection.notes}</p>}
 
-            <div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <div className={cn("mt-6 grid grid-cols-1 gap-2", mapsUrl ? "sm:grid-cols-2" : "sm:grid-cols-1")}>
+              {mapsUrl && <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="btn-secondary text-sm">Open in Google Maps</a>}
               <a href={googleCalendarUrl} target="_blank" rel="noopener noreferrer" className="btn-primary text-sm">Add to Calendar</a>
-              <a href={icsUrl} download={`${slug}.ics`} className="btn-secondary text-sm">Download .ics</a>
             </div>
           </div>
 
           <div className="card mt-5 p-5 animate-scale-in">
             <h2 className="font-display text-xl font-semibold text-text">Can you make it?</h2>
-            <p className="mt-1 text-sm text-muted">Send a final yes or no so the organizer knows who is coming.</p>
-            <Textarea
-              label="Optional note"
-              optional
-              rows={2}
-              value={finalRsvpNote}
-              onChange={(e) => setFinalRsvpNote(e.target.value)}
-              placeholder="Anything the organizer should know?"
-              className="mt-4"
-            />
+            <p className="mt-1 text-sm text-muted">Send yes or no so the organizer knows who is coming.</p>
             {finalRsvpError && (
               <div className="mt-3 rounded-input bg-danger-light px-4 py-3 text-sm text-danger shadow-[inset_0_0_0_1px_rgba(185,28,28,0.12)]">
                 {finalRsvpError}
@@ -418,7 +382,7 @@ export default function RespondPage() {
             Thanks, <span className="font-medium text-text">{participant?.name}</span>. Your response is saved.
           </p>
           <p className="text-sm text-muted mb-8">
-            The organizer can now factor your availability into the final decision.
+            The organizer can now factor your availability into the decision.
           </p>
           <div className="flex flex-col gap-3">
             {event?.show_results_to_participants === 1 && eventId && (
@@ -449,16 +413,13 @@ export default function RespondPage() {
 
   return (
     <div className="min-h-screen bg-bg">
-      <header className="border-b border-border bg-surface/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-xl mx-auto px-5 h-14 flex items-center justify-between">
-          <Link href="/" className="font-display text-xl font-semibold text-text">Togoo</Link>
-          {isUpdate && (
-              <span className="inline-flex min-h-10 items-center rounded-full bg-surface-alt px-3 py-1 text-xs text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
-                Editing response
-              </span>
-            )}
-        </div>
-      </header>
+      <AppHeader maxWidth="xl">
+        {isUpdate ? (
+          <span className="inline-flex min-h-10 items-center rounded-full bg-surface-alt px-3 py-1 text-xs text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
+            Editing response
+          </span>
+        ) : null}
+      </AppHeader>
 
       <main className="max-w-xl mx-auto px-5 py-8">
         {event && (

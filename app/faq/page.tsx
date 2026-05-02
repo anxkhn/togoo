@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
 
 interface FaqItem {
@@ -56,12 +57,9 @@ const FAQS = [
 export default function FAQPage() {
   return (
     <div className="min-h-screen bg-bg">
-      <header className="border-b border-border bg-surface/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto px-5 h-14 flex items-center justify-between">
-          <Link href="/" className="font-display text-xl font-semibold text-text">Togoo</Link>
-          <Link href="/events/new" className="btn-primary text-sm">Create a plan</Link>
-        </div>
-      </header>
+      <AppHeader maxWidth="3xl">
+        <Link href="/events/new" className="btn-primary text-sm">Create a plan</Link>
+      </AppHeader>
 
       <main className="max-w-3xl mx-auto px-5 py-16">
         <h1 className="font-display text-4xl font-bold text-text mb-2 animate-slide-up">FAQ</h1>

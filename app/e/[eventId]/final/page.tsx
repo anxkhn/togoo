@@ -6,9 +6,10 @@ import { getDB } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
 import { formatDuration } from "@/lib/utils";
 import { notFound } from "next/navigation";
+import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
 import { ShareButtons } from "@/components/share-buttons";
-import { buildGoogleCalendarUrl, buildGoogleMapsUrl, buildIcsDataUri } from "@/lib/calendar";
+import { buildGoogleCalendarUrl, buildGoogleMapsUrl } from "@/lib/calendar";
 
 export async function generateMetadata({
   params,
@@ -90,23 +91,9 @@ export default async function FinalPage({
     end: finalSelection.slot_end,
     location: locationText,
   });
-  const icsUrl = buildIcsDataUri({
-    title: event.title,
-    description: calendarDescription,
-    start: finalSelection.slot_start,
-    end: finalSelection.slot_end,
-    location: locationText,
-  });
-
   return (
     <div className="min-h-screen bg-bg">
-      <header className="sticky top-0 z-10 border-b border-border bg-surface/80 backdrop-blur-sm">
-        <div className="mx-auto flex h-14 max-w-xl items-center justify-between px-5">
-          <Link href="/" className="font-display text-xl font-semibold text-text">
-            Togoo
-          </Link>
-        </div>
-      </header>
+      <AppHeader maxWidth="xl" />
 
       <main className="mx-auto flex min-h-[calc(100vh-56px)] max-w-xl items-center px-5 py-10">
         <div className="w-full">
@@ -122,9 +109,6 @@ export default async function FinalPage({
           <h1 className="font-display text-4xl font-bold text-text mb-2 sm:text-5xl">{event.title}</h1>
           {event.description && (
             <p className="text-muted">{event.description}</p>
-          )}
-          {finalSelection.invite_message && (
-            <p className="mx-auto mt-4 max-w-md text-sm text-text">{finalSelection.invite_message}</p>
           )}
         </div>
 
@@ -145,11 +129,6 @@ export default async function FinalPage({
               <p className="text-xs font-medium uppercase tracking-wide text-muted">Location</p>
               {finalSelection.location_name && <p className="mt-1 font-display text-xl font-semibold text-text">{finalSelection.location_name}</p>}
               {finalSelection.location_address && <p className="mt-1 text-sm text-muted">{finalSelection.location_address}</p>}
-              {mapsUrl && (
-                <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="link-accent mt-3 inline-flex min-h-0 text-sm underline-offset-2">
-                  Open in Google Maps
-                </a>
-              )}
             </div>
           )}
           {finalSelection.notes && (
@@ -158,12 +137,14 @@ export default async function FinalPage({
             </div>
           )}
 
-          <div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <div className={`mt-6 grid grid-cols-1 gap-2 ${mapsUrl ? "sm:grid-cols-2" : "sm:grid-cols-1"}`}>
+            {mapsUrl && (
+              <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="btn-secondary text-sm">
+                Open in Google Maps
+              </a>
+            )}
             <a href={googleCalendarUrl} target="_blank" rel="noopener noreferrer" className="btn-primary text-sm">
               Add to Calendar
-            </a>
-            <a href={icsUrl} download={`${event.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "togoo"}.ics`} className="btn-secondary text-sm">
-              Download calendar file
             </a>
           </div>
 

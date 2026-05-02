@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
 import { MyEvents } from "@/components/my-events";
 import { LandingFlowPreview } from "@/components/landing-flow-preview";
@@ -6,16 +7,13 @@ import { LandingFlowPreview } from "@/components/landing-flow-preview";
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-bg">
-      <header className="border-b border-border bg-surface/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-5 h-14 flex items-center justify-between">
-          <span className="font-display text-xl font-semibold text-text">Togoo</span>
-          <nav className="flex items-center gap-4">
-            <Link href="/faq" className="link-muted px-2 text-sm">FAQ</Link>
-            <a href="https://github.com/anxkhn/togoo" target="_blank" rel="noopener noreferrer" className="link-muted px-2 text-sm">GitHub</a>
-            <Link href="/events/new" className="btn-primary text-sm">Create a plan</Link>
-          </nav>
-        </div>
-      </header>
+      <AppHeader maxWidth="5xl" logoAsLink={false}>
+        <nav className="flex items-center gap-4">
+          <Link href="/faq" className="link-muted px-2 text-sm">FAQ</Link>
+          <a href="https://github.com/anxkhn/togoo" target="_blank" rel="noopener noreferrer" className="link-muted px-2 text-sm">GitHub</a>
+          <Link href="/events/new" className="btn-primary text-sm">Create a plan</Link>
+        </nav>
+      </AppHeader>
 
       <main>
         <section className="max-w-5xl mx-auto px-5 pt-24 pb-20 text-center">

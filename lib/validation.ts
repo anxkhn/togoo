@@ -198,5 +198,4 @@ export const FinalizeEventSchema = z.object({
 export const FinalRsvpSchema = z.object({
   token: z.string().min(24).max(64),
   status: z.enum(["yes", "no"]),
-  note: z.string().max(500).optional(),
 });

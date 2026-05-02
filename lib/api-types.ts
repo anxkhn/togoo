@@ -27,7 +27,6 @@ export interface ParticipantData {
   role: string;
   response_status?: string;
   final_rsvp_status?: string;
-  final_rsvp_note?: string | null;
   final_rsvp_updated_at?: number | null;
 }
 

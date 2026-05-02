@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
+import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
 import { Input, Textarea } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -31,7 +32,6 @@ interface Participant {
   priority_tier: number;
   response_status: string;
   final_rsvp_status: string;
-  final_rsvp_note: string | null;
   final_rsvp_updated_at: number | null;
   invite_token: string | null;
 }
@@ -390,9 +390,6 @@ function ParticipantRow({
                 {eventFinalized && <FinalRsvpBadge status={participant.final_rsvp_status ?? "pending"} />}
               </div>
               {participant.email && <p className="text-xs text-muted mt-0.5">{participant.email}</p>}
-              {eventFinalized && participant.final_rsvp_note && (
-                <p className="mt-1 text-xs text-muted">RSVP note: {participant.final_rsvp_note}</p>
-              )}
               {inviteUrl && !eventFinalized && (
                 <div className="mt-2 space-y-1.5">
                   <div className="flex items-center gap-1">
@@ -685,7 +682,6 @@ export default function OrganizerDashboard() {
             role: "participant",
             response_status: "pending",
             final_rsvp_status: "pending",
-            final_rsvp_note: null,
             final_rsvp_updated_at: null,
             invite_token: added.invite_token,
             priority_tier: added.participant.priority_tier ?? participant.priority_tier,
@@ -1042,31 +1038,26 @@ export default function OrganizerDashboard() {
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">
-      <header className="border-b border-border bg-surface/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-5 h-14 flex items-center justify-between gap-4">
-          <Link href="/" className="font-display text-xl font-semibold text-text flex-shrink-0">Togoo</Link>
-          <div className="flex items-center gap-3">
-            <Button variant="secondary" size="sm" onClick={() => {
-              setEditingPlan((value) => !value);
-              setPlanError("");
-              if (event) setPlanForm(eventToPlanForm(event));
-            }}>
-              {editingPlan ? "Close editor" : "Edit plan"}
-            </Button>
-            {event.show_results_to_participants === 1 && (
-              <Link href={`/e/${eventId}/summary/${token}`} className="btn-secondary !px-3.5 !py-1.5 !text-xs">
-                Live summary
-              </Link>
-            )}
-              <Badge variant={event.status === "finalized" ? "success" : "default"}>
-                {event.status === "finalized" ? "Confirmed" : "Collecting responses"}
-              </Badge>
-              {event.status === "finalized" && (
-                <Button variant="secondary" size="sm" onClick={handleReopen}>Reopen responses</Button>
-              )}
-          </div>
-        </div>
-      </header>
+      <AppHeader maxWidth="5xl">
+        <Button variant="secondary" size="sm" onClick={() => {
+          setEditingPlan((value) => !value);
+          setPlanError("");
+          if (event) setPlanForm(eventToPlanForm(event));
+        }}>
+          {editingPlan ? "Close editor" : "Edit plan"}
+        </Button>
+        {event.show_results_to_participants === 1 && (
+          <Link href={`/e/${eventId}/summary/${token}`} className="btn-secondary !px-3.5 !py-1.5 !text-xs">
+            Live summary
+          </Link>
+        )}
+        <Badge variant={event.status === "finalized" ? "success" : "default"}>
+          {event.status === "finalized" ? "Confirmed" : "Collecting responses"}
+        </Badge>
+        {event.status === "finalized" && (
+          <Button variant="secondary" size="sm" onClick={handleReopen}>Reopen responses</Button>
+        )}
+      </AppHeader>
 
       <main className="max-w-5xl mx-auto px-5 py-8 flex-1 w-full">
         <div className="mb-8 animate-slide-up">

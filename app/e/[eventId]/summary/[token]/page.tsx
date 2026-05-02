@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
 import { getDB } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
@@ -105,11 +105,7 @@ export default async function SummaryPage({
 
   return (
     <div className="min-h-screen bg-bg">
-      <header className="border-b border-border bg-surface/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-xl mx-auto px-5 h-14 flex items-center justify-between">
-          <Link href="/" className="font-display text-xl font-semibold text-text">Togoo</Link>
-        </div>
-      </header>
+      <AppHeader maxWidth="xl" />
 
       <main className="max-w-xl mx-auto px-5 py-8">
         <div className="mb-8 animate-fade-in">
