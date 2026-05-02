@@ -330,6 +330,33 @@
   }
 }
 
+@keyframes shakeX {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20% {
+    transform: translateX(-6px);
+  }
+
+  40% {
+    transform: translateX(5px);
+  }
+
+  60% {
+    transform: translateX(-3px);
+  }
+
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+.animate-shake-x {
+  animation: shakeX 220ms var(--ease-out-cubic);
+}
+
 /*
  * Reduced motion: disable all animated movement, keep instant state changes.
  * Per-selector (no !important) so specificity is respected.
@@ -339,6 +366,7 @@
   .animate-slide-up,
   .animate-scale-in,
   .animate-shake-x,
+  .animate-pulse,
   .animate-spin {
     animation: none;
   }
@@ -388,31 +416,4 @@
     transform: none;
     will-change: auto;
   }
-}
-
-@keyframes shakeX {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-
-  20% {
-    transform: translateX(-6px);
-  }
-
-  40% {
-    transform: translateX(5px);
-  }
-
-  60% {
-    transform: translateX(-3px);
-  }
-
-  80% {
-    transform: translateX(2px);
-  }
-}
-
-  .animate-shake-x {
-  animation: shakeX 220ms var(--ease-out-cubic);
 }
