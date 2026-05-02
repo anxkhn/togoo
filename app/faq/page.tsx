@@ -42,7 +42,7 @@ const FAQS = [
   },
   {
     q: "What happens after I confirm a time?",
-    a: "Togoo locks in the selected slot and creates a shareable final page you can send back to the group.",
+    a: "Togoo locks in the selected slot and creates a shareable confirmed invite you can send back to the group.",
   },
   {
     q: "Can I send invites over WhatsApp or email?",

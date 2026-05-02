@@ -188,9 +188,9 @@ export const OrganizerOverrideSchema = z.object({
 export const FinalizeEventSchema = z.object({
   slot_start: z.number().int().positive(),
   slot_end: z.number().int().positive(),
-  location_name: z.string().max(200).optional(),
-  location_address: z.string().max(500).optional(),
-  google_maps_url: z.string().max(1000).optional(),
+  location_name: z.string().trim().min(1).max(200),
+  location_address: z.string().trim().min(1).max(500),
+  google_maps_url: z.string().trim().url().max(1000),
   invite_message: z.string().max(1000).optional(),
   notes: z.string().max(500).optional(),
 });

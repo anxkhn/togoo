@@ -34,7 +34,7 @@ export function ShareButtons({ path, title, description, organizerName, particip
         href={whatsappUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="btn-ghost rounded-full bg-surface px-3 text-xs shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08),0_8px_20px_rgba(26,23,20,0.04)]"
+        className="btn-ghost min-h-8 flex-shrink-0 rounded-full px-2 py-1 text-xs"
         title="Share on WhatsApp"
       >
         <svg className="-ml-0.5 h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
@@ -44,7 +44,7 @@ export function ShareButtons({ path, title, description, organizerName, particip
       </a>
       <a
         href={mailtoUrl}
-        className="btn-ghost rounded-full bg-surface px-3 text-xs shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08),0_8px_20px_rgba(26,23,20,0.04)]"
+        className="btn-ghost min-h-8 flex-shrink-0 rounded-full px-2 py-1 text-xs"
         title="Share by email"
       >
         <svg className="-ml-0.5 h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

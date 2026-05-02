@@ -94,7 +94,7 @@ const PANELS = [
     step: "03",
     label: "Decision view",
     title: "See the best option fast",
-    copy: "The organizer sees overlap, ranked options, and a final page that is ready to send back to the group.",
+    copy: "The organizer sees overlap, ranked options, and a confirmed invite that is ready to send back to the group.",
     glow: "bg-[#E6EFE8]",
     content: (
       <div className="space-y-3">
@@ -134,7 +134,7 @@ const PANELS = [
         </div>
 
         <div className="rounded-card bg-surface p-4 shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
-          <p className="mb-2 text-xs font-medium text-muted">Final share page</p>
+          <p className="mb-2 text-xs font-medium text-muted">Confirmed invite</p>
           <div className="rounded-card bg-accent-subtle px-4 py-4 text-center shadow-[inset_0_0_0_1px_rgba(47,104,68,0.14)]">
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">confirmed</p>
             <p className="mt-1 font-display text-xl font-semibold text-text tabular-nums">Wednesday 7:00 PM</p>
@@ -157,7 +157,7 @@ export function LandingFlowPreview() {
               The full flow, from idea to confirmed plan.
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-muted sm:text-base">
-              A quick look at what the organizer sets up, what invitees actually see, and how the final decision comes together.
+              A quick look at what the organizer sets up, what invitees actually see, and how the decision comes together.
             </p>
           </div>
 

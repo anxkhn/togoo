@@ -218,12 +218,26 @@ function TierBadge({ tier }: { tier: number }) {
 }
 
 function FinalRsvpBadge({ status }: { status: string }) {
-  if (status === "yes") return <Badge variant="success" className="text-xs">Final RSVP yes</Badge>;
-  if (status === "no") return <Badge variant="warning" className="text-xs">Final RSVP no</Badge>;
-  return <Badge variant="default" className="text-xs">Final RSVP pending</Badge>;
+  if (status === "yes") return <Badge variant="success" className="text-xs">RSVP yes</Badge>;
+  if (status === "no") return <Badge variant="warning" className="text-xs">RSVP no</Badge>;
+  return <Badge variant="default" className="text-xs">RSVP pending</Badge>;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validateConfirmedPlanDetails(locationName: string, locationAddress: string, mapsUrl: string) {
+  if (!locationName.trim() || !locationAddress.trim() || !mapsUrl.trim()) {
+    return "Add the location, address, and Google Maps link before confirming.";
+  }
+
+  try {
+    new URL(mapsUrl.trim());
+  } catch {
+    return "Enter a valid Google Maps link.";
+  }
+
+  return "";
+}
 
 const ALL_TIMEZONES = getTimeZones({ includeUtc: true });
 
@@ -336,7 +350,7 @@ function ParticipantRow({
   const currentToken = newToken ?? participant.invite_token;
   const inviteUrl = currentToken ? `${window.location.origin}/r/${currentToken}` : null;
   const waPhone = participant.phone?.replace(/\D/g, "");
-  const finalInviteDescription = `${eventTitle} is confirmed. Please RSVP yes or no.`;
+  const rsvpInviteDescription = `${eventTitle} is confirmed. Please RSVP yes or no.`;
 
   return (
     <>
@@ -399,7 +413,6 @@ function ParticipantRow({
                   <ShareButtons
                     path={`/r/${currentToken}`}
                     title={eventTitle}
-                    description={eventFinalized ? `${eventTitle} is confirmed. Please RSVP yes or no.` : undefined}
                     organizerName={organizerName}
                     participantName={participant.name}
                     participantEmail={participant.email}
@@ -407,23 +420,17 @@ function ParticipantRow({
                 </div>
               )}
               {inviteUrl && eventFinalized && (
-                <div className="mt-3 rounded-input bg-accent-subtle/60 px-3 py-3 shadow-[inset_0_0_0_1px_rgba(47,104,68,0.12)]">
-                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <p className="text-xs font-medium text-accent">Final invite</p>
-                      <p className="mt-0.5 text-xs text-muted">Send {participant.name} their private RSVP link.</p>
-                    </div>
-                    <CopyButton text={inviteUrl} label="Copy RSVP link" />
-                  </div>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
                   <ShareButtons
                     path={`/r/${currentToken}`}
                     title={eventTitle}
-                    description={finalInviteDescription}
+                    description={rsvpInviteDescription}
                     organizerName={organizerName}
                     participantName={participant.name}
                     participantEmail={participant.email}
                     mode="final"
                   />
+                  <CopyButton text={inviteUrl} label="Copy RSVP link" />
                 </div>
               )}
             </div>
@@ -509,6 +516,8 @@ export default function OrganizerDashboard() {
   const [finalLocationAddress, setFinalLocationAddress] = useState("");
   const [finalMapsUrl, setFinalMapsUrl] = useState("");
   const [finalInviteMessage, setFinalInviteMessage] = useState("");
+  const [finalDetailsError, setFinalDetailsError] = useState("");
+  const [editingConfirmedPlan, setEditingConfirmedPlan] = useState(false);
   const [overrideLoading, setOverrideLoading] = useState(false);
   const [editingPlan, setEditingPlan] = useState(false);
   const [savingPlan, setSavingPlan] = useState(false);
@@ -756,7 +765,14 @@ export default function OrganizerDashboard() {
 
   const handleFinalize = async () => {
     if (!selectedMeeting) return;
+    const detailsError = validateConfirmedPlanDetails(finalLocationName, finalLocationAddress, finalMapsUrl);
+    if (detailsError) {
+      setFinalDetailsError(detailsError);
+      return;
+    }
+
     setFinalizing(true);
+    setFinalDetailsError("");
     try {
       const res = await fetch(clientApi.finalize(eventId), {
         method: "POST",
@@ -786,7 +802,65 @@ export default function OrganizerDashboard() {
           finalized_at: Math.floor(Date.now() / 1000),
         });
         setFinalPath(data.final_url);
+      } else {
+        const data = await res.json().catch(() => ({ error: "We couldn't confirm this plan." })) as { error?: string };
+        setFinalDetailsError(data.error ?? "We couldn't confirm this plan.");
       }
+    } finally {
+      setFinalizing(false);
+    }
+  };
+
+  const resetConfirmedPlanForm = (selection: FinalSelection | null) => {
+    setFinalDetailsError("");
+    setFinalNotes(selection?.notes ?? "");
+    setFinalLocationName(selection?.location_name ?? "");
+    setFinalLocationAddress(selection?.location_address ?? "");
+    setFinalMapsUrl(selection?.google_maps_url ?? "");
+    setFinalInviteMessage(selection?.invite_message ?? "");
+  };
+
+  const handleUpdateConfirmedPlan = async () => {
+    if (!finalSelection) return;
+    const detailsError = validateConfirmedPlanDetails(finalLocationName, finalLocationAddress, finalMapsUrl);
+    if (detailsError) {
+      setFinalDetailsError(detailsError);
+      return;
+    }
+
+    setFinalizing(true);
+    setFinalDetailsError("");
+    try {
+      const res = await fetch(clientApi.finalize(eventId), {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slot_start: finalSelection.slot_start,
+          slot_end: finalSelection.slot_end,
+          location_name: finalLocationName.trim() || undefined,
+          location_address: finalLocationAddress.trim() || undefined,
+          google_maps_url: finalMapsUrl.trim() || undefined,
+          invite_message: finalInviteMessage.trim() || undefined,
+          notes: finalNotes.trim() || undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "We couldn't save those changes." })) as { error?: string };
+        setFinalDetailsError(data.error ?? "We couldn't save those changes.");
+        return;
+      }
+
+      setFinalSelection((current) => current ? {
+        ...current,
+        location_name: finalLocationName.trim() || null,
+        location_address: finalLocationAddress.trim() || null,
+        google_maps_url: finalMapsUrl.trim() || null,
+        invite_message: finalInviteMessage.trim() || null,
+        notes: finalNotes.trim() || null,
+        finalized_at: Math.floor(Date.now() / 1000),
+      } : current);
+      setEditingConfirmedPlan(false);
     } finally {
       setFinalizing(false);
     }
@@ -797,12 +871,15 @@ export default function OrganizerDashboard() {
     await fetch(clientApi.reopen(eventId), { method: "POST", headers });
     setEvent((e) => e ? { ...e, status: "active" } : e);
     setSelectedMeeting(null);
-      setFinalSelection(null);
-      setFinalPath(null);
-      setFinalLocationName("");
-      setFinalLocationAddress("");
-      setFinalMapsUrl("");
-      setFinalInviteMessage("");
+    setFinalSelection(null);
+    setFinalPath(null);
+    setEditingConfirmedPlan(false);
+    setFinalNotes("");
+    setFinalDetailsError("");
+    setFinalLocationName("");
+    setFinalLocationAddress("");
+    setFinalMapsUrl("");
+    setFinalInviteMessage("");
   };
 
   const handleAddOverride = async (overrideType: "block_time" | "force_include" | "force_exclude") => {
@@ -1020,10 +1097,10 @@ export default function OrganizerDashboard() {
       case "event_updated_and_reopened":
         return actorName ? `${actorName} updated the plan and reopened responses` : "Event updated and reopened";
       case "event_finalized":
-        return actorName ? `${actorName} finalized the plan` : "Event finalized";
+        return actorName ? `${actorName} confirmed the plan` : "Plan confirmed";
       case "final_rsvp_submitted": {
         const status = data.status === "yes" ? "yes" : data.status === "no" ? "no" : "a response";
-        return actorName ? `${actorName} RSVP'd ${status} to the final invite` : `Final RSVP ${status}`;
+        return actorName ? `${actorName} RSVP'd ${status} to the invite` : `RSVP ${status}`;
       }
       case "event_reopened":
         return actorName ? `${actorName} reopened responses` : "Event reopened";
@@ -1301,7 +1378,7 @@ export default function OrganizerDashboard() {
               { label: "Invited", value: stats.total_invited },
               { label: "Responded", value: stats.total_responded },
               { label: "Response rate", value: `${responseRate}%` },
-              { label: event.status === "finalized" ? "Final yes" : "Pending", value: event.status === "finalized" ? `${finalYesCount}/${stats.total_invited}` : stats.pending },
+              { label: event.status === "finalized" ? "RSVP yes" : "Pending", value: event.status === "finalized" ? `${finalYesCount}/${stats.total_invited}` : stats.pending },
             ].map((stat) => (
               <div key={stat.label} className="card p-4 text-center">
                 <p className="font-display text-3xl font-bold text-text tabular-nums">{stat.value}</p>
@@ -1480,7 +1557,23 @@ export default function OrganizerDashboard() {
             <div className="space-y-5">
               {event.status === "finalized" && finalSelection && (
                 <div className="card bg-accent-subtle border-accent/30 p-4 animate-scale-in">
-                  <p className="text-xs font-medium text-accent mb-2">Confirmed plan</p>
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <p className="text-xs font-medium text-accent">Confirmed plan</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        resetConfirmedPlanForm(finalSelection);
+                        setEditingConfirmedPlan((value) => !value);
+                      }}
+                      className="btn-ghost min-h-8 rounded-full px-2 text-xs text-accent"
+                      title="Edit confirmed plan"
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      Edit
+                    </button>
+                  </div>
                   <p className="font-display text-base font-semibold text-text tabular-nums">
                     {new Intl.DateTimeFormat("en-US", {
                       weekday: "short", month: "short", day: "numeric",
@@ -1492,22 +1585,80 @@ export default function OrganizerDashboard() {
                       hour: "numeric", minute: "2-digit", timeZone: event.timezone,
                     }).format(new Date(finalSelection.slot_end * 1000))}
                   </p>
-                  {finalSelection.notes && (
-                    <p className="mt-2 text-sm text-muted">{finalSelection.notes}</p>
-                  )}
-                  {(finalSelection.location_name || finalSelection.location_address) && (
-                    <div className="mt-3 rounded-input bg-surface/70 px-3 py-2 text-sm shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
-                      {finalSelection.location_name && <p className="font-medium text-text">{finalSelection.location_name}</p>}
-                      {finalSelection.location_address && <p className="mt-0.5 text-xs text-muted">{finalSelection.location_address}</p>}
+
+                  {editingConfirmedPlan ? (
+                    <div className="mt-3 space-y-3">
+                      <Input
+                        label="Location"
+                        required
+                        placeholder="Restaurant, park, office, or meetup spot"
+                        value={finalLocationName}
+                        onChange={(e) => setFinalLocationName(e.target.value)}
+                      />
+                      <Textarea
+                        label="Address or navigation note"
+                        required
+                        placeholder="Floor, gate, landmark, parking note, or how to get there."
+                        rows={2}
+                        value={finalLocationAddress}
+                        onChange={(e) => setFinalLocationAddress(e.target.value)}
+                      />
+                      <Input
+                        label="Google Maps link"
+                        required
+                        placeholder="https://maps.google.com/..."
+                        value={finalMapsUrl}
+                        onChange={(e) => setFinalMapsUrl(e.target.value)}
+                      />
+                      <Textarea
+                        label="Invite message"
+                        optional
+                        placeholder="You are invited. Please RSVP so I know who is coming."
+                        rows={3}
+                        value={finalInviteMessage}
+                        onChange={(e) => setFinalInviteMessage(e.target.value)}
+                      />
+                      <Textarea
+                        label="Note"
+                        optional
+                        placeholder="Add anything the group should know about this confirmed plan."
+                        rows={2}
+                        value={finalNotes}
+                        onChange={(e) => setFinalNotes(e.target.value)}
+                      />
+                      {finalDetailsError && (
+                        <div className="rounded-input bg-danger-light px-3 py-2 text-xs text-danger shadow-[inset_0_0_0_1px_rgba(185,28,28,0.12)]">
+                          {finalDetailsError}
+                        </div>
+                      )}
+                      <div className="flex gap-2">
+                        <Button size="sm" loading={finalizing} onClick={handleUpdateConfirmedPlan}>Save changes</Button>
+                        <Button size="sm" variant="ghost" onClick={() => {
+                          resetConfirmedPlanForm(finalSelection);
+                          setEditingConfirmedPlan(false);
+                        }}>Cancel</Button>
+                      </div>
                     </div>
-                  )}
-                  {finalSelection.invite_message && (
-                    <p className="mt-3 text-sm text-muted">{finalSelection.invite_message}</p>
-                  )}
-                  {finalPath && (
-                    <div className="mt-3 rounded-input bg-surface/70 px-3 py-2 text-xs text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
-                      Send final invites from the People tab so each guest gets their private RSVP link.
-                    </div>
+                  ) : (
+                    <>
+                      {finalSelection.notes && (
+                        <p className="mt-2 text-sm text-muted">{finalSelection.notes}</p>
+                      )}
+                      {(finalSelection.location_name || finalSelection.location_address) && (
+                        <div className="mt-3 rounded-input bg-surface/70 px-3 py-2 text-sm shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
+                          {finalSelection.location_name && <p className="font-medium text-text">{finalSelection.location_name}</p>}
+                          {finalSelection.location_address && <p className="mt-0.5 text-xs text-muted">{finalSelection.location_address}</p>}
+                        </div>
+                      )}
+                      {finalSelection.invite_message && (
+                        <p className="mt-3 text-sm text-muted">{finalSelection.invite_message}</p>
+                      )}
+                      {finalPath && (
+                        <div className="mt-3 rounded-input bg-surface/70 px-3 py-2 text-xs text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
+                          Send invites from the People tab so each guest gets their private RSVP link.
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
@@ -1527,14 +1678,14 @@ export default function OrganizerDashboard() {
                   <div className="mt-3 space-y-3">
                     <Input
                       label="Location"
-                      optional
+                      required
                       placeholder="Restaurant, park, office, or meetup spot"
                       value={finalLocationName}
                       onChange={(e) => setFinalLocationName(e.target.value)}
                     />
                     <Textarea
                       label="Address or navigation note"
-                      optional
+                      required
                       placeholder="Floor, gate, landmark, parking note, or how to get there."
                       rows={2}
                       value={finalLocationAddress}
@@ -1542,7 +1693,7 @@ export default function OrganizerDashboard() {
                     />
                     <Input
                       label="Google Maps link"
-                      optional
+                      required
                       placeholder="https://maps.google.com/..."
                       value={finalMapsUrl}
                       onChange={(e) => setFinalMapsUrl(e.target.value)}
@@ -1556,8 +1707,13 @@ export default function OrganizerDashboard() {
                       onChange={(e) => setFinalInviteMessage(e.target.value)}
                     />
                   </div>
+                  {finalDetailsError && (
+                    <div className="mt-3 rounded-input bg-danger-light px-3 py-2 text-xs text-danger shadow-[inset_0_0_0_1px_rgba(185,28,28,0.12)]">
+                      {finalDetailsError}
+                    </div>
+                  )}
                   <Textarea
-                    label="Final note (optional)"
+                    label="Note (optional)"
                     placeholder="Add anything the group should know about this confirmed plan."
                     rows={2}
                     value={finalNotes}

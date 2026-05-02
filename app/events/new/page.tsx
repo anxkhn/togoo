@@ -835,7 +835,7 @@ export default function NewEventPage() {
                     />
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm text-text">Must attend</span>
-                      <InfoTooltip text="Use this when this person needs to be included in the final pick." />
+                      <InfoTooltip text="Use this when this person needs to be included in the confirmed pick." />
                     </div>
                   </label>
                   <div>
