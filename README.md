@@ -292,10 +292,7 @@ lib/
   calendar.ts                                   Google Calendar and Google Maps URL helpers
 
 drizzle/migrations/
-  0001_init.sql                                 Base schema migration
-  0002_final_invites.sql                        Confirmed invite and RSVP fields
-  0003_remove_final_rsvp_note.sql               Remove free-text final RSVP notes
-  0004_integer_final_rsvp_status.sql            Convert final RSVP status to integer codes
+  0001_init.sql                                 Squashed current schema migration
 
 tests/
   scheduling.test.ts                            Recommendation regression tests

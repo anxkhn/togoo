@@ -1,4 +1,4 @@
--- Migration: Initial schema
+-- Migration: Squashed current schema
 
 CREATE TABLE IF NOT EXISTS `events` (
   `id` text PRIMARY KEY NOT NULL,
@@ -38,6 +38,8 @@ CREATE TABLE IF NOT EXISTS `participants` (
   `is_required` integer NOT NULL DEFAULT 0,
   `priority_tier` integer NOT NULL DEFAULT 0,
   `response_status` text NOT NULL DEFAULT 'pending',
+  `final_rsvp_status` integer NOT NULL DEFAULT 0,
+  `final_rsvp_updated_at` integer,
   `created_at` integer NOT NULL DEFAULT (unixepoch()),
   `updated_at` integer NOT NULL DEFAULT (unixepoch())
 );
@@ -134,6 +136,10 @@ CREATE TABLE IF NOT EXISTS `final_selections` (
   `event_id` text NOT NULL REFERENCES `events`(`id`) ON DELETE CASCADE,
   `slot_start` integer NOT NULL,
   `slot_end` integer NOT NULL,
+  `location_name` text,
+  `location_address` text,
+  `google_maps_url` text,
+  `invite_message` text,
   `notes` text,
   `selected_by` text NOT NULL,
   `finalized_at` integer NOT NULL DEFAULT (unixepoch())
