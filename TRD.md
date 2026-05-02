@@ -57,6 +57,7 @@ flowchart TD
 | `lib/db/index.ts` | D1 to Drizzle adapter setup |
 | `lib/scheduling.ts` | Availability normalization, candidate generation, scoring, finalization validation |
 | `lib/normalized-slots.ts` | Batched normalized slot insertion |
+| `lib/final-rsvp.ts` | Integer code mapping for final RSVP status |
 | `lib/validation.ts` | Zod request schemas |
 | `lib/auth.ts` | Active token lookup helpers |
 | `lib/tokens.ts` | Random ids and access tokens |
@@ -66,7 +67,7 @@ flowchart TD
 | `worker/index.ts` | Cloudflare Worker entrypoint and image optimization routing |
 | `vite.config.ts` | Vinext, Cloudflare build plugin, and local D1 shim |
 | `wrangler.toml` | Worker, asset, image, and D1 bindings |
-| `drizzle/migrations/0001_init.sql` | Current schema migration |
+| `drizzle/migrations/` | D1 schema migrations |
 | `tests/` | Vitest regression tests |
 | `scripts/smoke-local.mjs` | Local end-to-end HTTP smoke test |
 
@@ -112,13 +113,14 @@ flowchart LR
 | `POST` | `/api/events/[eventId]/participants/[participantId]/token` | `/api/p/[eventId]/participants/[participantId]/token` | organizer token | Deactivate old participant tokens and create a new one |
 | `GET` | `/api/events/[eventId]/participants/export` | `/api/p/[eventId]/participants/export` | organizer token | Return CSV export |
 | `POST` | `/api/events/[eventId]/respond` | `/api/p/[eventId]/respond` | participant token | Submit or update availability and preferences |
+| `POST` | `/api/events/[eventId]/rsvp` | `/api/p/[eventId]/rsvp` | participant token | Submit final yes/no RSVP after finalization |
 | `GET` | `/api/events/[eventId]/recommendations` | `/api/p/[eventId]/recommendations` | organizer token | Recompute recommendations and store latest snapshot |
 | `POST` | `/api/events/[eventId]/finalize` | `/api/p/[eventId]/finalize` | organizer token | Recompute candidates, validate selected slot, upsert final selection |
 | `POST` | `/api/events/[eventId]/reopen` | `/api/p/[eventId]/reopen` | organizer token | Set event active and delete final selection |
 | `GET` | `/api/events/[eventId]/overrides` | `/api/p/[eventId]/overrides` | organizer token | List overrides newest first |
 | `POST` | `/api/events/[eventId]/overrides` | `/api/p/[eventId]/overrides` | organizer token | Add override |
 | `DELETE` | `/api/events/[eventId]/overrides` | `/api/p/[eventId]/overrides` | organizer token | Delete override by id |
-| `GET` | `/api/validate-token` | none | active token | Return token role, event, participant, existing windows, existing preferences |
+| `GET` | `/api/validate-token` | none | active token | Return token role, event, participant, existing windows, existing preferences, and final selection when present |
 
 ## API Contracts
 
@@ -238,11 +240,36 @@ Body:
 {
   "slot_start": 1764504000,
   "slot_end": 1764511200,
+  "location_name": "The Garden Cafe",
+  "location_address": "12 MG Road, Bengaluru",
+  "google_maps_url": "https://maps.google.com/?q=The+Garden+Cafe",
+  "invite_message": "See you there.",
   "notes": "Dinner at 7 PM"
 }
 ```
 
-The server recomputes candidate meetings and accepts the final slot only if the selected start and end match a valid current candidate.
+The server recomputes candidate meetings and accepts the final slot only if the selected start and end match a valid current candidate. Finalization also requires confirmed-plan location name, address, and Google Maps URL. The participant confirmed invite uses those fields for Google Maps and Google Calendar links.
+
+### Final RSVP
+
+`POST /api/p/[eventId]/rsvp`
+
+Body:
+
+```json
+{
+  "token": "participant-token",
+  "status": "yes"
+}
+```
+
+Server behavior:
+
+1. Validate participant token and body.
+2. Require the event to be finalized and have a final selection.
+3. Encode `yes` as `1` or `no` as `2` before writing `participants.final_rsvp_status`.
+4. Update `final_rsvp_updated_at` and `updated_at`.
+5. Write `final_rsvp_submitted` activity with the readable status label.
 
 ## Authentication and Authorization
 
@@ -318,6 +345,8 @@ erDiagram
         integer is_required
         integer priority_tier
         text response_status
+        integer final_rsvp_status
+        integer final_rsvp_updated_at
     }
     INVITE_TOKENS {
         text id PK
@@ -374,6 +403,10 @@ erDiagram
         text event_id FK
         integer slot_start
         integer slot_end
+        text location_name
+        text location_address
+        text google_maps_url
+        text invite_message
         text notes
         text selected_by
         integer finalized_at
@@ -407,14 +440,14 @@ erDiagram
 | Table | Key constraints and behavior |
 | --- | --- |
 | `events` | One row per plan; indexed by status; stores status as `active` or `finalized` |
-| `participants` | Cascades with event; organizer is also a participant row; response status starts `pending` for invitees |
+| `participants` | Cascades with event; organizer is also a participant row; response status starts `pending` for invitees; final RSVP status uses integer codes `0` pending, `1` yes, `2` no |
 | `invite_tokens` | Unique token index; cascades with event and participant; active flag gates access |
 | `availability_windows` | Raw participant-selected meeting windows |
 | `participant_preferences` | Unique event-participant pair |
 | `organizer_overrides` | JSON `data` field interpreted by scheduling engine |
 | `normalized_slots` | Derived slots rebuilt on response submission, recommendation fetch, and schedule update |
 | `recommendation_snapshots` | API keeps only the latest snapshot per event by deleting prior rows before insert |
-| `final_selections` | Unique event id; finalization uses insert or update conflict handling |
+| `final_selections` | Unique event id; finalization uses insert or update conflict handling and stores confirmed location, address, Google Maps URL, invite message, notes, and finalized timestamp |
 | `activity_log` | Append-only event audit stream |
 
 ## Scheduling Engine
@@ -599,7 +632,8 @@ Source: `lib/validation.ts`
 | `UpdateParticipantSchema` | Participant update | Partial participant changes |
 | `SubmitResponseSchema` | Response submission | Requires token and 1 to 20 availability windows |
 | `OrganizerOverrideSchema` | Override create | Restricts override type to supported values |
-| `FinalizeEventSchema` | Finalization | Validates slot start, slot end, optional notes |
+| `FinalizeEventSchema` | Finalization | Validates slot start, slot end, required location details, optional invite message, and optional notes |
+| `FinalRsvpSchema` | Final RSVP | Restricts participant confirmation status to `yes` or `no` |
 
 ## Deployment Architecture
 

@@ -6,6 +6,7 @@ import * as schema from "@/lib/db/schema";
 import { generateId } from "@/lib/tokens";
 import { unixNow } from "@/lib/utils";
 import { findOrganizerInviteToken } from "@/lib/auth";
+import { FINAL_RSVP_STATUS } from "@/lib/final-rsvp";
 
 export async function POST(
   request: NextRequest,
@@ -32,7 +33,7 @@ export async function POST(
 
     await db
       .update(schema.participants)
-      .set({ final_rsvp_status: "pending", final_rsvp_updated_at: null, updated_at: now })
+      .set({ final_rsvp_status: FINAL_RSVP_STATUS.pending, final_rsvp_updated_at: null, updated_at: now })
       .where(eq(schema.participants.event_id, eventId));
 
     await db.insert(schema.activity_log).values({

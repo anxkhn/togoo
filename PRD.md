@@ -57,6 +57,7 @@ Invitee needs:
 - Pick exact times that work.
 - Add useful preferences if requested.
 - Edit the response later when the organizer allows it.
+- Open the final confirmed invite and send a yes/no RSVP.
 - Avoid accidentally submitting a suggested time without confirming availability.
 
 ## Product Goals
@@ -244,12 +245,16 @@ The organizer can influence candidate recommendations with:
 The organizer must be able to:
 
 - Select a recommendation.
-- Finalize one slot.
-- Store optional final notes through the API.
+- Finalize one slot with required location name, address, and Google Maps link.
+- Store optional final notes and invite message through the API.
 - Publish `/e/[eventId]/final`.
+- Share private confirmed invite links where participants can RSVP yes or no.
+- Track final RSVP status per participant.
 - Reopen the event later.
 
 Finalization must recompute valid candidates server-side and reject a selected slot if it is no longer valid.
+
+Final RSVP status is stored as an integer code in D1: `0` pending, `1` yes, and `2` no. Product surfaces show readable labels (`pending`, `yes`, `no`) in the organizer dashboard, participant invite, API responses, and CSV export.
 
 ### Live Summary
 
@@ -257,7 +262,7 @@ When `show_results_to_participants` is enabled, invitees can view a token-gated 
 
 ### CSV Export
 
-The organizer must be able to download participant responses as CSV. The export includes participant identity fields, response status, required flag, priority tier, last updated time in event timezone, selected slot count, selected slots, and stored preferences.
+The organizer must be able to download participant responses as CSV. The export includes participant identity fields, response status, final RSVP status, final RSVP update time, required flag, priority tier, last updated time in event timezone, selected slot count, selected slots, and stored preferences.
 
 ## State Model
 
@@ -274,7 +279,7 @@ State behavior:
 | State | Behavior |
 | --- | --- |
 | `active` | Invitees can respond if token, deadline, and edit rules allow it |
-| `finalized` | Response submission is blocked and final page is available |
+| `finalized` | Availability response submission is blocked; final page and private yes/no RSVP actions are available |
 
 ## Access Requirements
 
@@ -284,6 +289,7 @@ flowchart LR
     OrganizerDashboard --> OrganizerApis[Organizer-only APIs]
     ParticipantLink[Participant token link] --> ResponsePage[Response page]
     ResponsePage --> RespondApi[Response API]
+    ParticipantLink --> FinalRsvpApi[Final RSVP API]
     ParticipantLink --> SummaryPage[Live summary if enabled]
 ```
 
@@ -292,6 +298,7 @@ Access model requirements:
 - The product must not require accounts.
 - Organizer APIs must require an active organizer token.
 - Participant response must require an active participant token.
+- Final yes/no RSVP submission must require an active participant token and a finalized event.
 - Token lookup must reject inactive or expired tokens.
 - Participant token regeneration must invalidate old participant links.
 - Organizer token rotation is not currently required by the shipped product.

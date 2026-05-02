@@ -7,6 +7,7 @@ import { generateId } from "@/lib/tokens";
 import { FinalRsvpSchema } from "@/lib/validation";
 import { unixNow } from "@/lib/utils";
 import { findParticipantInviteToken } from "@/lib/auth";
+import { encodeFinalRsvpStatus } from "@/lib/final-rsvp";
 
 export async function POST(
   request: NextRequest,
@@ -47,7 +48,7 @@ export async function POST(
     await db
       .update(schema.participants)
       .set({
-        final_rsvp_status: parsed.data.status,
+        final_rsvp_status: encodeFinalRsvpStatus(parsed.data.status),
         final_rsvp_updated_at: now,
         updated_at: now,
       })

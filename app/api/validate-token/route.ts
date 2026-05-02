@@ -4,6 +4,7 @@ import { eq, and } from "drizzle-orm";
 import { getDB } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
 import { findActiveInviteToken } from "@/lib/auth";
+import { decodeFinalRsvpStatus } from "@/lib/final-rsvp";
 
 export async function GET(request: NextRequest) {
   try {
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
       event_id: tokenRecord.event_id,
       participant_id: tokenRecord.participant_id,
       event,
-      participant,
+      participant: participant ? { ...participant, final_rsvp_status: decodeFinalRsvpStatus(participant.final_rsvp_status) } : null,
       existing_windows: existingWindows,
       existing_preferences: existingPrefs ?? null,
       final_selection: finalSelection ?? null,

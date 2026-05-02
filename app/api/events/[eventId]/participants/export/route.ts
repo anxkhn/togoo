@@ -5,6 +5,7 @@ import { getDB } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
 import { formatEventDate, formatTime } from "@/lib/utils";
 import { findOrganizerInviteToken } from "@/lib/auth";
+import { decodeFinalRsvpStatus } from "@/lib/final-rsvp";
 
 function toCsvCell(value: string | number | null | undefined): string {
   const normalized = value == null ? "" : String(value);
@@ -79,7 +80,7 @@ export async function GET(
           participant.email,
           participant.phone,
           participant.response_status,
-          participant.final_rsvp_status,
+          decodeFinalRsvpStatus(participant.final_rsvp_status),
           participant.final_rsvp_updated_at ? formatEventDate(participant.final_rsvp_updated_at, event.timezone) : "",
           participant.is_required === 1 ? "yes" : "no",
           participant.priority_tier,

@@ -7,6 +7,7 @@ import { generateId, generateSecureToken } from "@/lib/tokens";
 import { AddParticipantSchema } from "@/lib/validation";
 import { unixNow } from "@/lib/utils";
 import { findOrganizerInviteToken } from "@/lib/auth";
+import { decodeFinalRsvpStatus } from "@/lib/final-rsvp";
 
 export async function GET(
   request: NextRequest,
@@ -34,7 +35,7 @@ export async function GET(
 
     const participantsWithTokens = participants.map((p) => {
       const t = tokensForEvent.find((t) => t.participant_id === p.id && t.role === "participant");
-      return { ...p, invite_token: t?.token ?? null };
+      return { ...p, final_rsvp_status: decodeFinalRsvpStatus(p.final_rsvp_status), invite_token: t?.token ?? null };
     });
 
     return NextResponse.json({ participants: participantsWithTokens });

@@ -163,7 +163,7 @@ The canonical API namespace is `/api/events`. The browser UI uses `/api/p` alias
 
 Organizer-only endpoints require the `x-organizer-token` header. Participant response and RSVP submission send the participant token in the request body.
 
-After the organizer confirms a recommended slot, Togoo requires confirmed-plan details such as location, address, and Google Maps link. The public final page and private participant RSVP view show the confirmed details, Google Maps, Google Calendar, and yes/no RSVP actions. The organizer dashboard tracks final RSVP status per participant, and CSV export includes the final RSVP status and updated timestamp.
+After the organizer confirms a recommended slot, Togoo requires confirmed-plan details such as location, address, and Google Maps link. The public final page and private participant RSVP view show the confirmed details, Google Maps, Google Calendar, and yes/no RSVP actions. The organizer dashboard tracks final RSVP status per participant, and CSV export includes the final RSVP status and updated timestamp. Final RSVP state is stored in D1 as integer codes (`0` pending, `1` yes, `2` no) and decoded to readable labels at API, UI, and CSV boundaries.
 
 ## Recommendation Model
 
@@ -229,7 +229,7 @@ erDiagram
 | Table | Purpose |
 | --- | --- |
 | `events` | Plan settings, timing range, scoring mode, status, deadline |
-| `participants` | Organizer and invitees, response state, final RSVP status, required flag, priority tier |
+| `participants` | Organizer and invitees, response state, integer-coded final RSVP status, required flag, priority tier |
 | `invite_tokens` | Private organizer and participant access tokens |
 | `availability_windows` | Raw submitted exact meeting windows |
 | `participant_preferences` | Optional preference data per participant |
@@ -286,6 +286,7 @@ lib/
   auth.ts                                       Token lookup helpers
   tokens.ts                                     Random id and token generation
   event-settings.ts                             Preference settings helpers
+  final-rsvp.ts                                 Final RSVP integer code mapping
   client-api.ts                                 Browser-facing /api/p paths
   utils.ts                                      Date, timezone, formatting helpers
   calendar.ts                                   Google Calendar and Google Maps URL helpers
@@ -294,6 +295,7 @@ drizzle/migrations/
   0001_init.sql                                 Base schema migration
   0002_final_invites.sql                        Confirmed invite and RSVP fields
   0003_remove_final_rsvp_note.sql               Remove free-text final RSVP notes
+  0004_integer_final_rsvp_status.sql            Convert final RSVP status to integer codes
 
 tests/
   scheduling.test.ts                            Recommendation regression tests

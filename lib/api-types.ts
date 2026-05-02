@@ -1,3 +1,5 @@
+import type { FinalRsvpStatus } from "@/lib/final-rsvp";
+
 export interface EventData {
   id: string;
   title: string;
@@ -26,7 +28,7 @@ export interface ParticipantData {
   email: string | null;
   role: string;
   response_status?: string;
-  final_rsvp_status?: string;
+  final_rsvp_status?: FinalRsvpStatus;
   final_rsvp_updated_at?: number | null;
 }
 

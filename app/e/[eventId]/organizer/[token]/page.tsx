@@ -18,6 +18,7 @@ import { ShareButtons } from "@/components/share-buttons";
 import { cn, formatDate, formatEventDate, zonedDateTimeToUnix, zonedDateToUnixEndOfDay } from "@/lib/utils";
 import type { RecommendationSet, ScoredMeeting } from "@/lib/scheduling";
 import type { AddParticipantInviteResponse } from "@/lib/api-types";
+import type { FinalRsvpStatus } from "@/lib/final-rsvp";
 import { clientApi } from "@/lib/client-api";
 import { getTimeZones } from "@vvo/tzdb";
 import { removeEventShortcut } from "@/components/my-events";
@@ -31,7 +32,7 @@ interface Participant {
   is_required: number;
   priority_tier: number;
   response_status: string;
-  final_rsvp_status: string;
+  final_rsvp_status: FinalRsvpStatus;
   final_rsvp_updated_at: number | null;
   invite_token: string | null;
 }
@@ -217,7 +218,7 @@ function TierBadge({ tier }: { tier: number }) {
   return null;
 }
 
-function FinalRsvpBadge({ status }: { status: string }) {
+function FinalRsvpBadge({ status }: { status: FinalRsvpStatus }) {
   if (status === "yes") return <Badge variant="success" className="text-xs">RSVP yes</Badge>;
   if (status === "no") return <Badge variant="warning" className="text-xs">RSVP no</Badge>;
   return <Badge variant="default" className="text-xs">RSVP pending</Badge>;

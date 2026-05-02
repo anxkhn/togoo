@@ -45,7 +45,7 @@ export const participants = sqliteTable(
     is_required: integer("is_required").notNull().default(0),
     priority_tier: integer("priority_tier").notNull().default(0),
     response_status: text("response_status").notNull().default("pending"),
-    final_rsvp_status: text("final_rsvp_status").notNull().default("pending"),
+    final_rsvp_status: integer("final_rsvp_status").notNull().default(0),
     final_rsvp_updated_at: integer("final_rsvp_updated_at"),
     created_at: integer("created_at").notNull().default(sql`(unixepoch())`),
     updated_at: integer("updated_at").notNull().default(sql`(unixepoch())`),

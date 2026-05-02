@@ -9,6 +9,7 @@ import { findOrganizerInviteToken } from "@/lib/auth";
 import { normalizeAvailabilityWindows } from "@/lib/scheduling";
 import { unixNow } from "@/lib/utils";
 import { UpdateEventSchema } from "@/lib/validation";
+import { FINAL_RSVP_STATUS } from "@/lib/final-rsvp";
 
 export async function GET(
   request: NextRequest,
@@ -110,7 +111,7 @@ export async function PUT(
       await db.delete(schema.final_selections).where(eq(schema.final_selections.event_id, eventId));
       await db
         .update(schema.participants)
-        .set({ final_rsvp_status: "pending", final_rsvp_updated_at: null, updated_at: now })
+        .set({ final_rsvp_status: FINAL_RSVP_STATUS.pending, final_rsvp_updated_at: null, updated_at: now })
         .where(eq(schema.participants.event_id, eventId));
     }
 
