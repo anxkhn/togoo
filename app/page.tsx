@@ -62,7 +62,7 @@ export default function LandingPage() {
               {
                 step: "02",
                 title: "Share one link",
-                desc: "Invite everyone once. They respond with broad availability and any extra context you want to collect.",
+                desc: "Invite everyone once. They respond with exact slots and any extra context you want to collect.",
                 icon: (
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -103,7 +103,7 @@ export default function LandingPage() {
               Set up your plan in a couple of minutes. Guests can respond without creating an account.
             </p>
             <Link href="/events/new" className="btn-primary text-base px-8 py-3">
-              Create a free plan
+              Create a plan
             </Link>
           </div>
         </section>

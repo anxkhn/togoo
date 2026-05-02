@@ -14,14 +14,6 @@ export function unixNow(): number {
   return Math.floor(Date.now() / 1000);
 }
 
-export function unixFromDate(date: Date): number {
-  return Math.floor(date.getTime() / 1000);
-}
-
-export function dateFromUnix(unix: number): Date {
-  return new Date(unix * 1000);
-}
-
 export function formatEventDate(unix: number, timezone: string): string {
   return new Intl.DateTimeFormat("en-US", {
     weekday: "short",
@@ -94,10 +86,6 @@ export function snapUnixToTimezoneStep(unixTs: number, stepMinutes: number, time
   const localDateTime = `${roundedDate.getUTCFullYear()}-${pad2(roundedDate.getUTCMonth() + 1)}-${pad2(roundedDate.getUTCDate())}T${pad2(roundedDate.getUTCHours())}:${pad2(roundedDate.getUTCMinutes())}`;
 
   return zonedDateTimeToUnix(localDateTime, timezone);
-}
-
-export function getTimezones(): string[] {
-  return Intl.supportedValuesOf("timeZone");
 }
 
 export function getTimeCategory(hourInTimezone: number): string {

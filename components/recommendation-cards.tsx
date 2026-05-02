@@ -122,7 +122,7 @@ function RecommendationCard({
           </>
         )}
         <div className="flex items-center justify-between text-xs text-muted">
-          <span>Preference fit</span>
+          <span>Time preference fit</span>
         </div>
         <ScoreBar score={meeting.timePrefScore} />
       </div>

@@ -13,8 +13,8 @@ const FAQS = [
     a: "No. Everyone gets a private link and can respond right away without creating an account.",
   },
   {
-    q: "What do invitees actually fill out?",
-    a: "They share when they could make it and, if you want, details like food, budget, preferred area, and indoor or outdoor preferences.",
+    q: "What do invitees fill out?",
+    a: "They select exact slots they can make and, if you want, details like food, budget, preferred area, and indoor or outdoor preferences.",
   },
   {
     q: "Can someone change their response later?",

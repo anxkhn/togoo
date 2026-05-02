@@ -3,7 +3,7 @@ const PANELS = [
     step: "01",
     label: "Organizer setup",
     title: "Set the plan once",
-    copy: "Set the date window, choose the questions that matter, and send one clean invite flow.",
+    copy: "Set the date window, choose the questions that matter, and send one invite link.",
     glow: "bg-[#DDEDE4]",
     content: (
       <div className="space-y-3">

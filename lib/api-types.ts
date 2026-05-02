@@ -30,14 +30,6 @@ export interface ParticipantData {
   final_rsvp_updated_at?: number | null;
 }
 
-export interface ActivityLogEntry {
-  id: string;
-  action: string;
-  actor_id: string | null;
-  data: string | null;
-  created_at: number;
-}
-
 export interface FinalSelectionData {
   id: string;
   event_id: string;

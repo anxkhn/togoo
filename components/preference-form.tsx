@@ -25,18 +25,6 @@ export const defaultPreferences: PreferenceValues = {
   notes: "",
 };
 
-// All known preference field keys
-export const ALL_PREFERENCE_FIELDS = [
-  "food",
-  "budget",
-  "location",
-  "day_type",
-  "time_of_day",
-  "indoor_outdoor",
-] as const;
-
-export type PreferenceFieldKey = (typeof ALL_PREFERENCE_FIELDS)[number];
-
 interface PreferenceFormProps {
   values: PreferenceValues;
   onChange: (values: PreferenceValues) => void;
@@ -47,8 +35,6 @@ interface PreferenceFormProps {
 function set(values: PreferenceValues, field: keyof PreferenceValues, value: string): PreferenceValues {
   return { ...values, [field]: value };
 }
-
-// ─── pill group ───────────────────────────────────────────────────────────────
 
 interface PillOption {
   value: string;

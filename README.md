@@ -29,8 +29,8 @@ Togoo is built around one practical scheduling loop:
 2. Add invitees and generate one private response link per participant.
 3. Let invitees select exact meeting slots and optional preferences.
 4. Rank possible meeting windows from submitted availability.
-5. Let the organizer finalize a validated recommended slot.
-6. Share a final page with the group.
+5. Let the organizer confirm a validated recommended slot with location and Google Maps details.
+6. Share the confirmed plan and collect yes/no RSVPs from invitees.
 
 Togoo is intentionally not an account system, calendar product, notification service, or venue recommendation engine.
 
@@ -38,13 +38,13 @@ Togoo is intentionally not an account system, calendar product, notification ser
 
 | Area | What exists today |
 | --- | --- |
-| Event creation | title, description, event type, timezone, continuous date range, duration, slot granularity, minimum attendance threshold, scoring mode, suggested time, response deadline |
+| Event creation | title, description, organizer name, event type, timezone, continuous date range, duration, slot granularity, scoring mode, suggested time, response deadline, participant edit settings, live-summary visibility, preference requirement, enabled preference fields |
 | Invite links | private organizer link and private participant links backed by random tokens |
 | Participant response | exact slot selection, existing response preload, optional preference form, response updates when allowed |
 | Preferences | food, budget, preferred area, weekday/weekend, time of day, indoor/outdoor, notes |
-| Organizer dashboard | event editing, participant management, response stats, activity, recommendations, heatmap, overrides, CSV export, finalization, reopen, delete |
+| Organizer dashboard | event editing, participant management, response stats, activity, recommendations, heatmap, overrides, CSV export, confirmation details, final RSVP tracking, reopen, delete |
 | Recommendations | ranked candidate windows based on attendance, required attendees, priority tier, time preference, and day preference |
-| Final page | public finalized event view after the organizer confirms a slot |
+| Confirmed invite | public confirmed event page, private participant RSVP view, Google Maps link, and Google Calendar link |
 | Local persistence | recent events and in-progress create flow stored in browser `localStorage` |
 
 ## Architecture
@@ -100,7 +100,9 @@ sequenceDiagram
     API-->>UI: Ranked recommendations
     O->>UI: Finalize candidate
     UI->>API: POST /api/p/:eventId/finalize
-    API->>DB: Revalidate candidate and store final selection
+    API->>DB: Revalidate candidate and store confirmed details
+    O->>UI: Share confirmed invite links
+    UI-->>O: Track final yes/no RSVPs
 ```
 
 ### Invitee Flow
@@ -115,6 +117,9 @@ flowchart TD
     F --> G[Raw windows stored]
     G --> H[Normalized slots generated]
     H --> I[Organizer recommendations update]
+    I --> J[Organizer confirms slot]
+    J --> K[Invitee opens same private link]
+    K --> L[View confirmed details and RSVP yes or no]
 ```
 
 ## Application Routes
@@ -147,15 +152,18 @@ The canonical API namespace is `/api/events`. The browser UI uses `/api/p` alias
 | `POST` | `/api/events/[eventId]/participants/[participantId]/token` | `/api/p/[eventId]/participants/[participantId]/token` | Regenerate participant invite token |
 | `GET` | `/api/events/[eventId]/participants/export` | `/api/p/[eventId]/participants/export` | Export participant responses as CSV |
 | `POST` | `/api/events/[eventId]/respond` | `/api/p/[eventId]/respond` | Submit or update participant response |
+| `POST` | `/api/events/[eventId]/rsvp` | `/api/p/[eventId]/rsvp` | Submit participant yes/no RSVP after confirmation |
 | `GET` | `/api/events/[eventId]/recommendations` | `/api/p/[eventId]/recommendations` | Compute recommendations and store latest snapshot |
 | `POST` | `/api/events/[eventId]/finalize` | `/api/p/[eventId]/finalize` | Revalidate and finalize selected slot |
 | `POST` | `/api/events/[eventId]/reopen` | `/api/p/[eventId]/reopen` | Reopen finalized event |
 | `GET` | `/api/events/[eventId]/overrides` | `/api/p/[eventId]/overrides` | List organizer overrides |
 | `POST` | `/api/events/[eventId]/overrides` | `/api/p/[eventId]/overrides` | Add organizer override |
 | `DELETE` | `/api/events/[eventId]/overrides` | `/api/p/[eventId]/overrides` | Delete organizer override |
-| `GET` | `/api/validate-token` | none | Validate organizer or participant token |
+| `GET` | `/api/validate-token` | none | Validate organizer or participant token and return existing response, preferences, and final selection details when available |
 
-Organizer-only endpoints require the `x-organizer-token` header. Participant response submission sends the participant token in the request body.
+Organizer-only endpoints require the `x-organizer-token` header. Participant response and RSVP submission send the participant token in the request body.
+
+After the organizer confirms a recommended slot, Togoo requires confirmed-plan details such as location, address, and Google Maps link. The public final page and private participant RSVP view show the confirmed details, Google Maps, Google Calendar, and yes/no RSVP actions. The organizer dashboard tracks final RSVP status per participant, and CSV export includes the final RSVP status and updated timestamp.
 
 ## Recommendation Model
 
@@ -221,14 +229,14 @@ erDiagram
 | Table | Purpose |
 | --- | --- |
 | `events` | Plan settings, timing range, scoring mode, status, deadline |
-| `participants` | Organizer and invitees, response state, required flag, priority tier |
+| `participants` | Organizer and invitees, response state, final RSVP status, required flag, priority tier |
 | `invite_tokens` | Private organizer and participant access tokens |
 | `availability_windows` | Raw submitted exact meeting windows |
 | `participant_preferences` | Optional preference data per participant |
 | `organizer_overrides` | Manual `block_time`, `force_include`, and `force_exclude` rules |
 | `normalized_slots` | Slotized availability used by scoring |
 | `recommendation_snapshots` | Latest stored recommendation response per event |
-| `final_selections` | Confirmed final slot and optional notes |
+| `final_selections` | Confirmed slot, location/address, Google Maps URL, invite message, notes, selected-by participant, and finalized timestamp |
 | `activity_log` | Event audit trail |
 
 ## Stack
@@ -265,6 +273,7 @@ components/
   overlap-heatmap.tsx                           Availability heatmap
   my-events.tsx                                 Browser-local recent plans
   share-buttons.tsx                             WhatsApp and email share actions
+  app-header.tsx                                Shared app header
   app-footer.tsx                                Shared app footer
   ui/                                           Shared primitives
 
@@ -279,9 +288,12 @@ lib/
   event-settings.ts                             Preference settings helpers
   client-api.ts                                 Browser-facing /api/p paths
   utils.ts                                      Date, timezone, formatting helpers
+  calendar.ts                                   Google Calendar and Google Maps URL helpers
 
 drizzle/migrations/
   0001_init.sql                                 Base schema migration
+  0002_final_invites.sql                        Confirmed invite and RSVP fields
+  0003_remove_final_rsvp_note.sql               Remove free-text final RSVP notes
 
 tests/
   scheduling.test.ts                            Recommendation regression tests
@@ -332,10 +344,12 @@ npm run seed:local
 
 ## Database
 
-The repository currently has one source-controlled migration:
+The repository currently has three source-controlled migrations:
 
 ```text
 drizzle/migrations/0001_init.sql
+drizzle/migrations/0002_final_invites.sql
+drizzle/migrations/0003_remove_final_rsvp_note.sql
 ```
 
 Apply migrations with:
@@ -426,13 +440,14 @@ Known build warning: Vinext can report a chunk-size warning for worker/client ou
 ## Current Constraints
 
 - No account system.
-- No email or SMS delivery.
-- No calendar sync or ICS export.
+- No automatic email or SMS delivery. The UI provides copy, WhatsApp, email `mailto:`, and QR share actions for manual invite sharing.
+- No calendar sync or downloadable ICS export. Confirmed final pages provide an Add to Calendar link for Google Calendar.
 - No venue recommendation flow.
 - No multi-organizer collaboration.
 - Recommendation snapshots store the latest computed snapshot per event, not an append-only history.
 - Food, budget, preferred area, and indoor/outdoor preferences are stored but not scored yet.
 - Organizer tokens are not rotated through the UI.
+- The API/schema support a minimum attendance threshold, currently fixed to `0` in the UI.
 
 ## Related Docs
 

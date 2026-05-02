@@ -22,7 +22,7 @@ export function ShareButtons({ path, title, description, organizerName, particip
     : `${finalSummary}\n\nOpen the confirmed plan here: ${url}`;
   const body = mode === "final"
     ? final
-    : `${greeting}${invite}\n\n${description ? description + "\n\n" : ""}Tell us your availability here: ${url}`;
+    : `${greeting}${invite}\n\n${description ? description + "\n\n" : ""}Send your availability here: ${url}`;
 
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(body)}`;
   const subject = mode === "final" ? `${title} is confirmed` : `${organizerName ?? "Someone"} invited you to ${title}`;

@@ -604,7 +604,7 @@ export default function NewEventPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <DatePickerField
                   label="Response deadline"
-                  tooltip="After this date, new responses are closed. People can still view the plan, but they cannot submit new availability."
+                  tooltip="After this date, new responses are closed. Invitees can still open the plan, but they cannot submit new availability."
                   optional
                   value={form.response_deadline_local}
                   onChange={(value) => set("response_deadline_local", value)}
@@ -861,7 +861,7 @@ export default function NewEventPage() {
                 <div className="animate-fade-in rounded-input bg-surface-alt px-4 py-3 text-sm text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
                   <div className="flex items-center gap-2">
                     <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-muted/30 border-t-accent" />
-                    <span>Saving attendee...</span>
+                    <span>Creating invite link...</span>
                   </div>
                 </div>
               )}

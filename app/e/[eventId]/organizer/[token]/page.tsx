@@ -1422,6 +1422,7 @@ export default function OrganizerDashboard() {
                   <div>
                     <Input
                       label="Email"
+                      optional
                       placeholder="alex@example.com"
                       type="email"
                       value={newEmail}
@@ -1435,6 +1436,7 @@ export default function OrganizerDashboard() {
                   <Input
                     type="tel"
                     label="Phone"
+                    optional
                     placeholder="+91 9000000000"
                     value={newPhone}
                     onChange={(e) => setNewPhone(e.target.value)}
@@ -1470,7 +1472,7 @@ export default function OrganizerDashboard() {
                   <div className="mb-3 animate-fade-in rounded-input bg-surface-alt px-4 py-3 text-sm text-muted shadow-[inset_0_0_0_1px_rgba(26,23,20,0.08)]">
                     <div className="flex items-center gap-2">
                       <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-muted/30 border-t-accent" />
-                      Saving attendee...
+                      Creating invite link...
                     </div>
                   </div>
                 )}
